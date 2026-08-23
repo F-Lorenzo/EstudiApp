@@ -26,3 +26,16 @@ pendiente (tarjeta "Setup de Supabase").
   disponibilidad, reservas, pagos, videollamada, calificaciones).
 - `0002_rls_policies.sql`: Row Level Security por tabla, acorde a los
   roles alumno / docente / administrador (sección 16 de la spec).
+- `0003_handle_new_user.sql`: trigger que crea `profiles` (y
+  `tutor_profiles` si el rol es docente) al registrarse.
+
+## Paso manual pendiente: templates de email
+
+El flujo de auth (`src/app/auth/confirm/route.ts`) espera que los emails
+de confirmación de registro y recuperación de contraseña linkeen a
+`{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type={{ .Type }}`.
+Por defecto, Supabase usa `{{ .ConfirmationURL }}`, que apunta a un
+endpoint propio de Supabase en vez de a la app. Hay que editar los
+templates "Confirm signup" y "Reset password" en
+Authentication → Email Templates del dashboard para usar la URL de
+arriba.
