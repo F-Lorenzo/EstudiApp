@@ -28,6 +28,11 @@ export const requestPasswordResetSchema = z.object({
   email: z.email("Ingresá un email válido"),
 });
 
+export const updateProfileSchema = z.object({
+  fullName: z.string().trim().min(1, "Ingresá tu nombre completo"),
+  avatarUrl: z.union([z.url("Ingresá una URL válida"), z.literal("")]),
+});
+
 export const updatePasswordSchema = z
   .object({
     password: passwordSchema,
