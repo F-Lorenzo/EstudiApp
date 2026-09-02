@@ -29,6 +29,16 @@ pendiente (tarjeta "Setup de Supabase").
 - `0003_handle_new_user.sql`: trigger que crea `profiles` (y
   `tutor_profiles` si el rol es docente) al registrarse.
 
+## Paso manual pendiente: asignar el rol administrador
+
+No hay alta pública de administradores (por seguridad, el trigger de
+registro nunca asigna ese rol). Para convertir un usuario ya registrado
+en administrador, correr en el SQL editor del dashboard:
+
+```sql
+update public.profiles set role = 'administrador' where id = '<uuid del usuario>';
+```
+
 ## Paso manual pendiente: templates de email
 
 El flujo de auth (`src/app/auth/confirm/route.ts`) espera que los emails
