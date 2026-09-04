@@ -1,15 +1,15 @@
-const COPY: Record<string, { label: string; className: string }> = {
+const COPY: Record<string, { tag: string; label: string }> = {
   pendiente: {
+    tag: "PENDIENTE",
     label: "Tu perfil está pendiente de aprobación. No es visible en el catálogo todavía.",
-    className: "bg-amber-50 text-amber-800 border-amber-200",
   },
   aprobado: {
+    tag: "APROBADO",
     label: "Tu perfil está aprobado y visible en el catálogo.",
-    className: "bg-green-50 text-green-800 border-green-200",
   },
   rechazado: {
+    tag: "RECHAZADO",
     label: "Tu perfil fue rechazado.",
-    className: "bg-red-50 text-red-800 border-red-200",
   },
 };
 
@@ -23,8 +23,10 @@ export function VerificationStatusBanner({
   const copy = COPY[status] ?? COPY.pendiente;
 
   return (
-    <div className={`rounded border p-3 text-sm ${copy.className}`}>
-      <p>{copy.label}</p>
+    <div className="border-2 border-black p-3 text-sm">
+      <p>
+        <span className="font-bold">[{copy.tag}]</span> {copy.label}
+      </p>
       {status === "rechazado" && reason && (
         <p className="mt-1">Motivo: {reason}</p>
       )}

@@ -31,7 +31,7 @@ export default async function CatalogoDocentesPage({
     <div className="mx-auto max-w-3xl space-y-6 p-6">
       <h1 className="text-2xl font-semibold">Buscar docentes</h1>
 
-      <form className="flex flex-wrap items-end gap-3 rounded border p-4" method="get">
+      <form className="flex flex-wrap items-end gap-3 border-2 border-black p-4" method="get">
         <div>
           <label htmlFor="q" className="block text-sm font-medium">
             Buscar
@@ -42,7 +42,7 @@ export default async function CatalogoDocentesPage({
             type="text"
             defaultValue={params.q}
             placeholder="Nombre o materia"
-            className="mt-1 rounded border px-3 py-2"
+            className="mt-1 border-2 border-black px-3 py-2"
           />
         </div>
 
@@ -54,7 +54,7 @@ export default async function CatalogoDocentesPage({
             id="materia"
             name="materia"
             defaultValue={params.materia ?? ""}
-            className="mt-1 rounded border px-3 py-2"
+            className="mt-1 border-2 border-black px-3 py-2"
           >
             <option value="">Todas</option>
             {(subjects ?? []).map((subject) => (
@@ -75,7 +75,7 @@ export default async function CatalogoDocentesPage({
             type="number"
             min="0"
             defaultValue={params.precioMin}
-            className="mt-1 w-24 rounded border px-3 py-2"
+            className="mt-1 w-24 border-2 border-black px-3 py-2"
           />
         </div>
 
@@ -89,7 +89,7 @@ export default async function CatalogoDocentesPage({
             type="number"
             min="0"
             defaultValue={params.precioMax}
-            className="mt-1 w-24 rounded border px-3 py-2"
+            className="mt-1 w-24 border-2 border-black px-3 py-2"
           />
         </div>
 
@@ -102,13 +102,13 @@ export default async function CatalogoDocentesPage({
           Con disponibilidad
         </label>
 
-        <button type="submit" className="rounded bg-black px-4 py-2 text-white">
+        <button type="submit" className="border-2 border-black bg-white px-4 py-2 text-black hover:bg-black hover:text-white">
           Buscar
         </button>
       </form>
 
       {tutors && tutors.length > 0 ? (
-        <ul className="divide-y rounded border">
+        <ul className="divide-y-2 divide-black border-2 border-black">
           {tutors.map((tutor) => (
             <li key={tutor.id} className="flex items-center justify-between p-4">
               <div>

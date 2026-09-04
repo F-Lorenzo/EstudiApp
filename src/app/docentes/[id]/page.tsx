@@ -71,7 +71,7 @@ export default async function PerfilPublicoDocentePage({
         {ratings && ratings.length > 0 ? (
           <ul className="mt-2 space-y-3">
             {ratings.map((rating, index) => (
-              <li key={index} className="rounded border p-3 text-sm">
+              <li key={index} className="border-2 border-black p-3 text-sm">
                 <p className="font-medium">{rating.score} / 5</p>
                 {rating.comment && <p className="text-neutral-600">{rating.comment}</p>}
               </li>

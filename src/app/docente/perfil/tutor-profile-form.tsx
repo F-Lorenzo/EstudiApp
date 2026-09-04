@@ -57,7 +57,7 @@ export function TutorProfileForm({
           type="text"
           defaultValue={fullName}
           required
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="mt-1 w-full border-2 border-black px-3 py-2"
         />
         <FieldError messages={state.fieldErrors?.fullName} />
       </div>
@@ -72,7 +72,7 @@ export function TutorProfileForm({
           type="url"
           defaultValue={avatarUrl}
           placeholder="https://..."
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="mt-1 w-full border-2 border-black px-3 py-2"
         />
         <FieldError messages={state.fieldErrors?.avatarUrl} />
       </div>
@@ -87,7 +87,7 @@ export function TutorProfileForm({
           defaultValue={bio}
           required
           rows={4}
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="mt-1 w-full border-2 border-black px-3 py-2"
         />
         <FieldError messages={state.fieldErrors?.bio} />
       </div>
@@ -120,7 +120,7 @@ export function TutorProfileForm({
           type="text"
           defaultValue={nivelAcademico}
           required
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="mt-1 w-full border-2 border-black px-3 py-2"
         />
         <FieldError messages={state.fieldErrors?.nivelAcademico} />
       </div>
@@ -135,7 +135,7 @@ export function TutorProfileForm({
           type="url"
           defaultValue={credentialUrl}
           placeholder="https://..."
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="mt-1 w-full border-2 border-black px-3 py-2"
         />
         <FieldError messages={state.fieldErrors?.credentialUrl} />
       </div>
@@ -152,7 +152,7 @@ export function TutorProfileForm({
           step="0.01"
           defaultValue={tarifaPorClase || ""}
           required
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="mt-1 w-full border-2 border-black px-3 py-2"
         />
         <FieldError messages={state.fieldErrors?.tarifaPorClase} />
       </div>
@@ -167,7 +167,7 @@ export function TutorProfileForm({
           type="text"
           defaultValue={contactoVerificacion}
           required
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="mt-1 w-full border-2 border-black px-3 py-2"
         />
         <FieldError messages={state.fieldErrors?.contactoVerificacion} />
       </div>
@@ -175,7 +175,7 @@ export function TutorProfileForm({
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded bg-black px-3 py-2 text-white disabled:opacity-50"
+        className="w-full border-2 border-black bg-white px-3 py-2 text-black hover:bg-black hover:text-white disabled:opacity-50"
       >
         {pending ? "Guardando..." : "Guardar cambios"}
       </button>

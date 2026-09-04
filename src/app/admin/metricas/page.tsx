@@ -39,7 +39,7 @@ export default async function MetricasPage() {
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {metrics.map((metric) => (
-          <div key={metric.label} className="rounded border p-4">
+          <div key={metric.label} className="border-2 border-black p-4">
             <p className="text-2xl font-semibold">{metric.value}</p>
             <p className="text-sm text-neutral-600">{metric.label}</p>
           </div>

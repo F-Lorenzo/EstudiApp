@@ -4,7 +4,7 @@ import { SignOutButton } from "@/components/sign-out-button";
 export default function AlumnoLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-1 flex-col">
-      <nav className="flex items-center justify-between border-b px-6 py-4">
+      <nav className="flex items-center justify-between border-b-2 border-black px-6 py-4">
         <div className="flex gap-4 text-sm">
           <Link href="/alumno/proximas-clases">Próximas clases</Link>
           <Link href="/alumno/historial">Historial</Link>

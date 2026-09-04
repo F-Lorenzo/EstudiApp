@@ -17,7 +17,7 @@ export function BookingList({
   }
 
   return (
-    <ul className="divide-y rounded border">
+    <ul className="divide-y-2 divide-black border-2 border-black">
       {bookings.map((booking) => (
         <li key={booking.id} className="flex items-center justify-between p-4">
           <div>

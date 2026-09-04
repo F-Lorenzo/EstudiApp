@@ -26,7 +26,7 @@ export default function ActualizarPasswordPage() {
           name="password"
           type="password"
           required
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="mt-1 w-full border-2 border-black px-3 py-2"
         />
         <FieldError messages={state.fieldErrors?.password} />
       </div>
@@ -40,7 +40,7 @@ export default function ActualizarPasswordPage() {
           name="confirmPassword"
           type="password"
           required
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="mt-1 w-full border-2 border-black px-3 py-2"
         />
         <FieldError messages={state.fieldErrors?.confirmPassword} />
       </div>
@@ -48,7 +48,7 @@ export default function ActualizarPasswordPage() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded bg-black px-3 py-2 text-white disabled:opacity-50"
+        className="w-full border-2 border-black bg-white px-3 py-2 text-black hover:bg-black hover:text-white disabled:opacity-50"
       >
         {pending ? "Guardando..." : "Guardar contraseña"}
       </button>

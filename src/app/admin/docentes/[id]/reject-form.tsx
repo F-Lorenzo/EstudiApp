@@ -17,7 +17,7 @@ export function RejectForm({ tutorId }: { tutorId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded border border-red-600 px-3 py-2 text-red-600"
+        className="border-2 border-black px-3 py-2 text-black hover:bg-black hover:text-white"
       >
         Rechazar
       </button>
@@ -35,13 +35,13 @@ export function RejectForm({ tutorId }: { tutorId: string }) {
         name="reason"
         required
         rows={3}
-        className="w-full rounded border px-3 py-2"
+        className="w-full border-2 border-black px-3 py-2"
       />
       <FieldError messages={state.fieldErrors?.reason} />
       <button
         type="submit"
         disabled={pending}
-        className="rounded bg-red-600 px-3 py-2 text-white disabled:opacity-50"
+        className="border-2 border-black bg-white px-3 py-2 text-black hover:bg-black hover:text-white disabled:opacity-50"
       >
         {pending ? "Rechazando..." : "Confirmar rechazo"}
       </button>
