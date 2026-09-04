@@ -1,16 +1,14 @@
 import Link from "next/link";
-import { listTutorsByStatus } from "@/lib/tutors/queries";
-import { createClient } from "@/lib/supabase/server";
+import { listTutorsByStatus } from "@/lib/mock/queries";
 
 export default async function DocentesActivosPage() {
-  const supabase = await createClient();
-  const { data: tutors } = await listTutorsByStatus(supabase, "aprobado");
+  const tutors = listTutorsByStatus("aprobado");
 
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-semibold">Docentes activos</h1>
 
-      {tutors && tutors.length > 0 ? (
+      {tutors.length > 0 ? (
         <ul className="divide-y-2 divide-black border-2 border-black">
           {tutors.map((tutor) => (
             <li key={tutor.id} className="flex items-center justify-between p-4">

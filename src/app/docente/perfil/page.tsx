@@ -1,26 +1,16 @@
 import { VerificationStatusBanner } from "@/components/verification-status-banner";
-import { createClient } from "@/lib/supabase/server";
+import { getTutorProfile, listSubjects } from "@/lib/mock/queries";
+import { TUTOR_SUBJECTS } from "@/lib/mock/data";
+import { getMockSession } from "@/lib/mock/session";
 import { TutorProfileForm } from "./tutor-profile-form";
 
 export default async function PerfilDocentePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const [{ data: profile }, { data: tutorProfile }, { data: subjects }, { data: tutorSubjects }] =
-    await Promise.all([
-      supabase.from("profiles").select("full_name, avatar_url").eq("id", user!.id).single(),
-      supabase
-        .from("tutor_profiles")
-        .select(
-          "bio, nivel_academico, credential_url, tarifa_por_clase, contacto_verificacion, verification_status, verification_reason",
-        )
-        .eq("id", user!.id)
-        .single(),
-      supabase.from("subjects").select("id, name").order("name"),
-      supabase.from("tutor_subjects").select("subject_id").eq("tutor_id", user!.id),
-    ]);
+  const profile = await getMockSession();
+  const tutorProfile = profile ? getTutorProfile(profile.id) : null;
+  const subjects = listSubjects();
+  const selectedSubjectIds = profile
+    ? TUTOR_SUBJECTS.filter((ts) => ts.tutor_id === profile.id).map((ts) => ts.subject_id)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -32,7 +22,7 @@ export default async function PerfilDocentePage() {
       />
 
       <TutorProfileForm
-        email={user!.email ?? ""}
+        email={profile?.email ?? ""}
         fullName={profile?.full_name ?? ""}
         avatarUrl={profile?.avatar_url ?? ""}
         bio={tutorProfile?.bio ?? ""}
@@ -40,8 +30,8 @@ export default async function PerfilDocentePage() {
         credentialUrl={tutorProfile?.credential_url ?? ""}
         tarifaPorClase={tutorProfile?.tarifa_por_clase ?? 0}
         contactoVerificacion={tutorProfile?.contacto_verificacion ?? ""}
-        subjects={subjects ?? []}
-        selectedSubjectIds={(tutorSubjects ?? []).map((row) => row.subject_id)}
+        subjects={subjects}
+        selectedSubjectIds={selectedSubjectIds}
       />
     </div>
   );

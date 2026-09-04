@@ -1,13 +1,17 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createProfile, findProfileByEmail } from "@/lib/mock/queries";
+import { setMockSession } from "@/lib/mock/session";
 import { registerDocenteSchema } from "@/lib/validation/auth";
 import type { ActionState } from "@/lib/validation/form-state";
 
-// Crea únicamente la cuenta (auth + profiles + tutor_profiles en estado
+// Crea únicamente la cuenta (perfil + tutor_profile en estado
 // "pendiente"). El formulario extendido de la sección 4 (bio, materias,
-// tarifa, etc.) es una tarjeta aparte, pendiente de definir con el cliente.
+// tarifa, etc.) se completa después en /docente/perfil.
+//
+// MOCK — SIN DB: perfil en memoria, login directo sin confirmación de
+// email (no hay proveedor de email en este modo).
 export async function registerDocente(
   _prevState: ActionState,
   formData: FormData,
@@ -24,22 +28,12 @@ export async function registerDocente(
   }
 
   const { fullName, email, password } = parsed.data;
-  const supabase = await createClient();
 
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { full_name: fullName, role: "docente" } },
-  });
-
-  if (error) {
-    return {
-      error:
-        error.code === "user_already_exists"
-          ? "Ya existe una cuenta con ese email"
-          : "No se pudo crear la cuenta. Intentá de nuevo.",
-    };
+  if (findProfileByEmail(email)) {
+    return { error: "Ya existe una cuenta con ese email" };
   }
 
-  redirect("/registro/confirmar-email");
+  const profile = createProfile({ email, password, fullName, role: "docente" });
+  await setMockSession(profile.id);
+  redirect("/");
 }

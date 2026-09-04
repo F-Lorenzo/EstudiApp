@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { searchTutorCatalog } from "@/lib/tutors/catalog";
-import { createClient } from "@/lib/supabase/server";
+import { listSubjects, searchTutorCatalog } from "@/lib/mock/queries";
 
 export default async function CatalogoDocentesPage({
   searchParams,
@@ -14,18 +13,15 @@ export default async function CatalogoDocentesPage({
   }>;
 }) {
   const params = await searchParams;
-  const supabase = await createClient();
 
-  const [{ data: tutors }, { data: subjects }] = await Promise.all([
-    searchTutorCatalog(supabase, {
-      q: params.q,
-      materia: params.materia,
-      precioMin: params.precioMin ? Number(params.precioMin) : undefined,
-      precioMax: params.precioMax ? Number(params.precioMax) : undefined,
-      disponibilidad: params.disponibilidad === "on",
-    }),
-    supabase.from("subjects").select("name").order("name"),
-  ]);
+  const tutors = searchTutorCatalog({
+    q: params.q,
+    materia: params.materia,
+    precioMin: params.precioMin ? Number(params.precioMin) : undefined,
+    precioMax: params.precioMax ? Number(params.precioMax) : undefined,
+    disponibilidad: params.disponibilidad === "on",
+  });
+  const subjects = listSubjects();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
@@ -57,7 +53,7 @@ export default async function CatalogoDocentesPage({
             className="mt-1 border-2 border-black px-3 py-2"
           >
             <option value="">Todas</option>
-            {(subjects ?? []).map((subject) => (
+            {subjects.map((subject) => (
               <option key={subject.name} value={subject.name}>
                 {subject.name}
               </option>
@@ -102,12 +98,15 @@ export default async function CatalogoDocentesPage({
           Con disponibilidad
         </label>
 
-        <button type="submit" className="border-2 border-black bg-white px-4 py-2 text-black hover:bg-black hover:text-white">
+        <button
+          type="submit"
+          className="border-2 border-black bg-white px-4 py-2 text-black hover:bg-black hover:text-white"
+        >
           Buscar
         </button>
       </form>
 
-      {tutors && tutors.length > 0 ? (
+      {tutors.length > 0 ? (
         <ul className="divide-y-2 divide-black border-2 border-black">
           {tutors.map((tutor) => (
             <li key={tutor.id} className="flex items-center justify-between p-4">

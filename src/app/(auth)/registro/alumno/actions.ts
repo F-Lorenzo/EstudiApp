@@ -1,10 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createProfile, findProfileByEmail } from "@/lib/mock/queries";
+import { setMockSession } from "@/lib/mock/session";
 import { registerAlumnoSchema } from "@/lib/validation/auth";
 import type { ActionState } from "@/lib/validation/form-state";
 
+// MOCK — SIN DB: crea el perfil en memoria y loguea directo, sin
+// confirmación de email (no hay proveedor de email en este modo).
 export async function registerAlumno(
   _prevState: ActionState,
   formData: FormData,
@@ -21,22 +24,12 @@ export async function registerAlumno(
   }
 
   const { fullName, email, password } = parsed.data;
-  const supabase = await createClient();
 
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { full_name: fullName, role: "alumno" } },
-  });
-
-  if (error) {
-    return {
-      error:
-        error.code === "user_already_exists"
-          ? "Ya existe una cuenta con ese email"
-          : "No se pudo crear la cuenta. Intentá de nuevo.",
-    };
+  if (findProfileByEmail(email)) {
+    return { error: "Ya existe una cuenta con ese email" };
   }
 
-  redirect("/registro/confirmar-email");
+  const profile = createProfile({ email, password, fullName, role: "alumno" });
+  await setMockSession(profile.id);
+  redirect("/");
 }

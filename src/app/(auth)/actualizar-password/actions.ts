@@ -1,12 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getMockSession } from "@/lib/mock/session";
 import { updatePasswordSchema } from "@/lib/validation/auth";
 import type { ActionState } from "@/lib/validation/form-state";
 
-// Requiere la sesión de recuperación que /auth/confirm establece a partir
-// del enlace enviado por email.
+// MOCK — SIN DB: sin proveedor de email no hay un link de recuperación
+// real, así que esto actualiza la contraseña de la sesión mock actual en
+// vez de la de una sesión de recuperación.
 export async function updatePassword(
   _prevState: ActionState,
   formData: FormData,
@@ -20,14 +21,11 @@ export async function updatePassword(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({
-    password: parsed.data.password,
-  });
-
-  if (error) {
-    return { error: "No se pudo actualizar la contraseña. Pedí un nuevo enlace." };
+  const profile = await getMockSession();
+  if (!profile) {
+    return { error: "Iniciá sesión primero para poder cambiar la contraseña." };
   }
 
+  profile.password = parsed.data.password;
   redirect("/login");
 }

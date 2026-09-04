@@ -1,10 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { clearMockSession } from "@/lib/mock/session";
 
 export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  await clearMockSession();
   redirect("/login");
 }

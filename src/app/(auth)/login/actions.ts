@@ -1,10 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { findProfileByEmail } from "@/lib/mock/queries";
+import { setMockSession } from "@/lib/mock/session";
 import { loginSchema } from "@/lib/validation/auth";
 import type { ActionState } from "@/lib/validation/form-state";
 
+// MOCK — SIN DB: valida contra los perfiles en memoria en vez de
+// Supabase Auth. Ver src/lib/mock/data.ts para las credenciales de demo.
 export async function login(
   _prevState: ActionState,
   formData: FormData,
@@ -18,12 +21,12 @@ export async function login(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const profile = findProfileByEmail(parsed.data.email);
 
-  if (error) {
+  if (!profile || profile.password !== parsed.data.password) {
     return { error: "Email o contraseña incorrectos" };
   }
 
+  await setMockSession(profile.id);
   redirect("/");
 }
