@@ -1,16 +1,24 @@
 import Link from "next/link";
 import { SignOutButton } from "@/components/sign-out-button";
-import { getMockSession } from "@/lib/mock/session";
-
-const DASHBOARD_BY_ROLE: Record<string, { href: string; label: string }> = {
-  alumno: { href: "/alumno/proximas-clases", label: "Ir a mi panel de alumno" },
-  docente: { href: "/docente/perfil", label: "Ir a mi panel de docente" },
-  administrador: { href: "/admin/docentes/pendientes", label: "Ir al panel de administrador" },
-};
+import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
-  const profile = await getMockSession();
-  const dashboard = profile ? DASHBOARD_BY_ROLE[profile.role] : null;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let fullName: string | null = null;
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .single();
+
+    fullName = profile?.full_name ?? null;
+  }
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
@@ -20,16 +28,9 @@ export default async function Home() {
         Buscar docentes
       </Link>
 
-      {profile ? (
+      {user ? (
         <div className="space-y-3">
-          <p>Hola, {profile.full_name}.</p>
-          {dashboard && (
-            <p>
-              <Link href={dashboard.href} className="text-sm underline">
-                {dashboard.label}
-              </Link>
-            </p>
-          )}
+          <p>Hola{fullName ? `, ${fullName}` : ""}.</p>
           <SignOutButton />
         </div>
       ) : (

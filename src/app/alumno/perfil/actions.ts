@@ -1,8 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { updateProfile as updateMockProfile } from "@/lib/mock/queries";
-import { getMockSession } from "@/lib/mock/session";
+import { createClient } from "@/lib/supabase/server";
 import { updateProfileSchema } from "@/lib/validation/auth";
 import type { ActionState } from "@/lib/validation/form-state";
 
@@ -19,15 +18,26 @@ export async function updateProfile(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const profile = await getMockSession();
-  if (!profile) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     return { error: "Tu sesión expiró. Volvé a iniciar sesión." };
   }
 
-  updateMockProfile(profile.id, {
-    full_name: parsed.data.fullName,
-    avatar_url: parsed.data.avatarUrl || null,
-  });
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      full_name: parsed.data.fullName,
+      avatar_url: parsed.data.avatarUrl || null,
+    })
+    .eq("id", user.id);
+
+  if (error) {
+    return { error: "No se pudieron guardar los cambios. Intentá de nuevo." };
+  }
 
   revalidatePath("/alumno/perfil");
   return { success: true };

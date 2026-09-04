@@ -1,11 +1,36 @@
-import { countBookings, countProfiles, countTutorsByStatus } from "@/lib/mock/queries";
+import { createClient } from "@/lib/supabase/server";
+
+async function count(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  table: string,
+  match?: Record<string, string>,
+) {
+  let query = supabase.from(table).select("*", { count: "exact", head: true });
+  if (match) {
+    for (const [column, value] of Object.entries(match)) {
+      query = query.eq(column, value);
+    }
+  }
+  const { count: total } = await query;
+  return total ?? 0;
+}
 
 export default async function MetricasPage() {
+  const supabase = await createClient();
+
+  const [usuarios, docentesAprobados, docentesPendientes, reservas] =
+    await Promise.all([
+      count(supabase, "profiles"),
+      count(supabase, "tutor_profiles", { verification_status: "aprobado" }),
+      count(supabase, "tutor_profiles", { verification_status: "pendiente" }),
+      count(supabase, "bookings"),
+    ]);
+
   const metrics = [
-    { label: "Usuarios suscriptos", value: countProfiles() },
-    { label: "Docentes aprobados", value: countTutorsByStatus("aprobado") },
-    { label: "Docentes pendientes", value: countTutorsByStatus("pendiente") },
-    { label: "Clases reservadas", value: countBookings() },
+    { label: "Usuarios suscriptos", value: usuarios },
+    { label: "Docentes aprobados", value: docentesAprobados },
+    { label: "Docentes pendientes", value: docentesPendientes },
+    { label: "Clases reservadas", value: reservas },
   ];
 
   return (
@@ -22,8 +47,9 @@ export default async function MetricasPage() {
       </div>
 
       <p className="text-sm text-neutral-600">
-        &quot;Usuarios logueados / activos&quot; no está disponible en el modo mock
-        (no hay sesiones reales de auth para contar).
+        &quot;Usuarios logueados / activos&quot; no está disponible todavía:
+        requiere consultar <code>auth.users</code> con la service role key,
+        que no usamos desde el cliente por seguridad.
       </p>
     </div>
   );

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { VerificationStatusBanner } from "@/components/verification-status-banner";
-import { getTutorDetail } from "@/lib/mock/queries";
+import { getTutorDetail } from "@/lib/tutors/queries";
+import { createClient } from "@/lib/supabase/server";
 import { approveTutor } from "./actions";
 import { RejectForm } from "./reject-form";
 
@@ -10,7 +11,8 @@ export default async function DetalleDocentePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const tutor = getTutorDetail(id);
+  const supabase = await createClient();
+  const { data: tutor } = await getTutorDetail(supabase, id);
 
   if (!tutor) {
     notFound();
@@ -22,9 +24,14 @@ export default async function DetalleDocentePage({
 
   return (
     <div className="max-w-lg space-y-6">
-      <h1 className="text-xl font-semibold">{tutor.profiles?.full_name ?? "Docente"}</h1>
+      <h1 className="text-xl font-semibold">
+        {tutor.profiles?.full_name ?? "Docente"}
+      </h1>
 
-      <VerificationStatusBanner status={tutor.verification_status} reason={tutor.verification_reason} />
+      <VerificationStatusBanner
+        status={tutor.verification_status}
+        reason={tutor.verification_reason}
+      />
 
       <dl className="space-y-3 text-sm">
         <div>

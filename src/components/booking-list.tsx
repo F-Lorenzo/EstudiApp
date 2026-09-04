@@ -1,4 +1,4 @@
-import type { StudentBookingRow } from "@/lib/mock/queries";
+import type { StudentBookingRow } from "@/lib/bookings/queries";
 
 const dateFormatter = new Intl.DateTimeFormat("es-AR", {
   dateStyle: "medium",

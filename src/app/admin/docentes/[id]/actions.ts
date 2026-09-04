@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { approveTutor as approveMockTutor, rejectTutor as rejectMockTutor } from "@/lib/mock/queries";
+import { createClient } from "@/lib/supabase/server";
 import { rejectTutorSchema } from "@/lib/validation/moderation";
 import type { ActionState } from "@/lib/validation/form-state";
 
@@ -11,7 +11,16 @@ import type { ActionState } from "@/lib/validation/form-state";
 // Este es el punto donde se dispararía ese envío.
 
 export async function approveTutor(tutorId: string) {
-  approveMockTutor(tutorId);
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("tutor_profiles")
+    .update({ verification_status: "aprobado", verification_reason: null })
+    .eq("id", tutorId);
+
+  if (error) {
+    throw new Error("No se pudo aprobar el perfil");
+  }
 
   revalidatePath("/admin/docentes/pendientes");
   revalidatePath("/admin/docentes/activos");
@@ -31,7 +40,18 @@ export async function rejectTutor(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  rejectMockTutor(tutorId, parsed.data.reason);
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("tutor_profiles")
+    .update({
+      verification_status: "rechazado",
+      verification_reason: parsed.data.reason,
+    })
+    .eq("id", tutorId);
+
+  if (error) {
+    return { error: "No se pudo rechazar el perfil. Intentá de nuevo." };
+  }
 
   revalidatePath("/admin/docentes/pendientes");
   redirect("/admin/docentes/pendientes");

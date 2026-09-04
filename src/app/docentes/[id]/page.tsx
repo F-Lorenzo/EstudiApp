@@ -1,21 +1,42 @@
 import { notFound } from "next/navigation";
-import { getPublicTutorProfile, listRatingsForTutor } from "@/lib/mock/queries";
+import { createClient } from "@/lib/supabase/server";
 
-// El helper solo devuelve perfiles con verification_status = 'aprobado',
-// así que un docente no aprobado o inexistente simplemente no aparece acá.
+type PublicTutorProfile = {
+  bio: string;
+  tarifa_por_clase: number;
+  rating_promedio: number;
+  profiles: { full_name: string; avatar_url: string | null } | null;
+  tutor_subjects: { subjects: { name: string } | null }[];
+};
+
+// La RLS de tutor_profiles solo permite leer perfiles con
+// verification_status = 'aprobado' (o al propio docente / admin), así que
+// un docente no aprobado o inexistente simplemente no aparece acá.
 export default async function PerfilPublicoDocentePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const tutorProfile = getPublicTutorProfile(id);
+  const supabase = await createClient();
+
+  const { data: tutorProfile } = await supabase
+    .from("tutor_profiles")
+    .select(
+      "bio, tarifa_por_clase, rating_promedio, profiles(full_name, avatar_url), tutor_subjects(subjects(name))",
+    )
+    .eq("id", id)
+    .single<PublicTutorProfile>();
 
   if (!tutorProfile) {
     notFound();
   }
 
-  const ratings = listRatingsForTutor(id);
+  const { data: ratings } = await supabase
+    .from("ratings")
+    .select("score, comment, created_at")
+    .eq("tutor_id", id)
+    .order("created_at", { ascending: false });
 
   const subjectNames = (tutorProfile.tutor_subjects ?? [])
     .map((row) => row.subjects?.name)
@@ -47,7 +68,7 @@ export default async function PerfilPublicoDocentePage({
 
       <div>
         <h2 className="font-medium">Reseñas</h2>
-        {ratings.length > 0 ? (
+        {ratings && ratings.length > 0 ? (
           <ul className="mt-2 space-y-3">
             {ratings.map((rating, index) => (
               <li key={index} className="border-2 border-black p-3 text-sm">
