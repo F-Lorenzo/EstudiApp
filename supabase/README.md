@@ -11,7 +11,7 @@ pendiente (tarjeta "Setup de Supabase").
    aprovisionarse).
 2. `cp .env.local.example .env.local` y completar `NEXT_PUBLIC_SUPABASE_URL`
    y `NEXT_PUBLIC_SUPABASE_ANON_KEY` desde Project Settings → API.
-3. Aplicar las migraciones (`supabase/migrations/0001` a `0005`) en el
+3. Aplicar las migraciones (`supabase/migrations/0001` a `0006`) en el
    SQL Editor del dashboard, en orden, pegando el contenido de cada
    archivo. (Alternativa con la CLI: ver más abajo.)
 4. Cargar datos de mock para la demo (ver `scripts/seed-demo.mjs`):
@@ -64,6 +64,13 @@ las dos entradas `seed:demo*` de `package.json`.
   del catálogo de materias.
 - `0005_tutor_catalog_view.sql`: vista `tutor_catalog` para el buscador
   público de docentes.
+- `0006_visibility_and_hardening.sql`: políticas que la interfaz necesita
+  (el alumno ve sus reservas, la administración ve las materias de un
+  docente pendiente), guardas contra el cambio de rol y de estado de
+  verificación desde la API, y cálculo automático de `rating_promedio`.
+  **Es necesaria para que «Mi espacio» del alumno y la ficha de revisión
+  funcionen.** Revisala antes de aplicarla: no se probó contra un proyecto
+  real.
 
 ## Paso manual pendiente: asignar el rol administrador
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { FieldError } from "@/components/field-error";
+import { Avatar, Icon } from "@/components/ui";
 import { initialActionState } from "@/lib/validation/form-state";
 import { updateProfile } from "./actions";
 
@@ -18,56 +19,70 @@ export function ProfileForm({
     updateProfile,
     initialActionState,
   );
+  const [name, setName] = useState(fullName);
+  const [photo, setPhoto] = useState(avatarUrl);
 
   return (
-    <form action={formAction} className="max-w-sm space-y-4">
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
-      {state.success && (
-        <p className="text-sm text-green-700">Cambios guardados.</p>
+    <form action={formAction} className="stu-profile-form">
+      <div className="stu-profile-photo">
+        <Avatar name={name || "Estudiante"} src={photo || undefined} size={88} />
+        <div>
+          <strong>Tu foto de perfil</strong>
+          <p>Pegá el enlace de una imagen para mostrarla en tu perfil.</p>
+        </div>
+      </div>
+      <div className="stu-profile-fields">
+        <label className="stu-field">
+          <span>Nombre y apellido</span>
+          <input
+            name="fullName"
+            required
+            autoComplete="name"
+            maxLength={80}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            aria-invalid={state.fieldErrors?.fullName ? true : undefined}
+          />
+          <FieldError messages={state.fieldErrors?.fullName} />
+        </label>
+        <label className="stu-field">
+          <span>Correo electrónico</span>
+          <input type="email" value={email} readOnly aria-readonly="true" />
+          <small>Es el email con el que ingresás. No se puede cambiar acá.</small>
+        </label>
+        <label className="stu-field stu-field-full">
+          <span>
+            Foto de perfil (enlace) <small>Opcional</small>
+          </span>
+          <input
+            name="avatarUrl"
+            type="url"
+            placeholder="https://…"
+            value={photo}
+            onChange={(event) => setPhoto(event.target.value)}
+            aria-invalid={state.fieldErrors?.avatarUrl ? true : undefined}
+          />
+          <FieldError messages={state.fieldErrors?.avatarUrl} />
+        </label>
+      </div>
+      {state.error && (
+        <p className="stu-field-error" role="alert">
+          {state.error}
+        </p>
       )}
-
-      <div>
-        <label className="block text-sm font-medium">Email</label>
-        <p className="mt-1 text-sm text-neutral-600">{email}</p>
+      {state.success && (
+        <div className="stu-notice" role="status">
+          <Icon name="check" size={18} />
+          <span>Listo, guardamos tus cambios.</span>
+        </div>
+      )}
+      <div className="stu-form-actions">
+        <span />
+        <button type="submit" className="stu-button" disabled={pending}>
+          {pending ? "Guardando…" : "Guardar cambios"}{" "}
+          <Icon name="check" size={18} />
+        </button>
       </div>
-
-      <div>
-        <label htmlFor="fullName" className="block text-sm font-medium">
-          Nombre completo
-        </label>
-        <input
-          id="fullName"
-          name="fullName"
-          type="text"
-          defaultValue={fullName}
-          required
-          className="mt-1 w-full border-2 border-black px-3 py-2"
-        />
-        <FieldError messages={state.fieldErrors?.fullName} />
-      </div>
-
-      <div>
-        <label htmlFor="avatarUrl" className="block text-sm font-medium">
-          Foto de perfil (URL)
-        </label>
-        <input
-          id="avatarUrl"
-          name="avatarUrl"
-          type="url"
-          defaultValue={avatarUrl}
-          placeholder="https://..."
-          className="mt-1 w-full border-2 border-black px-3 py-2"
-        />
-        <FieldError messages={state.fieldErrors?.avatarUrl} />
-      </div>
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full border-2 border-black bg-white px-3 py-2 text-black hover:bg-black hover:text-white disabled:opacity-50"
-      >
-        {pending ? "Guardando..." : "Guardar cambios"}
-      </button>
     </form>
   );
 }

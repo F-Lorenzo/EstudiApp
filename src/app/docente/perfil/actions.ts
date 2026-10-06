@@ -88,6 +88,19 @@ export async function updateTutorProfile(
     return { error: "No se pudieron guardar las materias. Intentá de nuevo." };
   }
 
-  revalidatePath("/docente/perfil");
+  // Un perfil rechazado vuelve a la cola de revisión cuando el docente lo
+  // corrige; si no, quedaría rechazado para siempre. Solo toca esa fila y solo
+  // si sigue rechazada (la migración 0006 permite exactamente esta transición).
+  const { error: resubmitError } = await supabase
+    .from("tutor_profiles")
+    .update({ verification_status: "pendiente", verification_reason: null })
+    .eq("id", user.id)
+    .eq("verification_status", "rechazado");
+
+  if (resubmitError) {
+    return { error: "No se pudo enviar el perfil a revisión. Intentá de nuevo." };
+  }
+
+  revalidatePath("/docente", "layout");
   return { success: true };
 }

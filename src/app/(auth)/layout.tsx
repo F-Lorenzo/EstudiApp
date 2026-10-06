@@ -1,7 +1,12 @@
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="flex flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-sm space-y-6">{children}</div>
-    </main>
-  );
+import type { ReactNode } from "react";
+import { PublicShell } from "@/components/site-shell";
+import { getViewer } from "@/lib/auth/viewer";
+
+export default async function AuthLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const viewer = await getViewer();
+  return <PublicShell viewer={viewer}>{children}</PublicShell>;
 }

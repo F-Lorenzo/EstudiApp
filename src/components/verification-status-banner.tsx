@@ -1,34 +1,56 @@
-const COPY: Record<string, { tag: string; label: string }> = {
-  pendiente: {
-    tag: "PENDIENTE",
-    label: "Tu perfil está pendiente de aprobación. No es visible en el catálogo todavía.",
-  },
+import Link from "next/link";
+
+const COPY = {
   aprobado: {
-    tag: "APROBADO",
-    label: "Tu perfil está aprobado y visible en el catálogo.",
+    tone: "approved",
+    symbol: "✓",
+    title: "Tu experiencia ya está verificada",
+    text: "Tu perfil está aprobado y visible en el catálogo. Seguí compartiendo lo que sabés.",
+  },
+  pendiente: {
+    tone: "pending",
+    symbol: "◷",
+    title: "Estamos revisando tu perfil",
+    text: "Tu perfil está pendiente de aprobación y todavía no es visible en el catálogo. Podés preparar tu agenda; la publicación se habilita al aprobarlo.",
   },
   rechazado: {
-    tag: "RECHAZADO",
-    label: "Tu perfil fue rechazado.",
+    tone: "rejected",
+    symbol: "!",
+    title: "Tu perfil necesita un ajuste",
+    text: "El equipo revisó tu solicitud y necesita que ajustes tu perfil.",
   },
-};
+} as const;
 
+type Status = keyof typeof COPY;
+
+/** Estado de verificación del perfil docente. `action` agrega un enlace a la derecha. */
 export function VerificationStatusBanner({
   status,
   reason,
+  action,
 }: {
   status: string;
   reason?: string | null;
+  action?: { href: string; label: string };
 }) {
-  const copy = COPY[status] ?? COPY.pendiente;
+  const copy = COPY[(status in COPY ? status : "pendiente") as Status];
 
   return (
-    <div className="border-2 border-black p-3 text-sm">
-      <p>
-        <span className="font-bold">[{copy.tag}]</span> {copy.label}
-      </p>
-      {status === "rechazado" && reason && (
-        <p className="mt-1">Motivo: {reason}</p>
+    <div className={`mgmt-approval mgmt-approval-${copy.tone}`}>
+      <span className="mgmt-approval-symbol" aria-hidden="true">
+        {copy.symbol}
+      </span>
+      <div>
+        <strong>{copy.title}</strong>
+        <p>
+          {copy.text}
+          {status === "rechazado" && reason ? ` Motivo: ${reason}` : ""}
+        </p>
+      </div>
+      {action && (
+        <Link href={action.href}>
+          {action.label} <span aria-hidden="true">↗</span>
+        </Link>
       )}
     </div>
   );

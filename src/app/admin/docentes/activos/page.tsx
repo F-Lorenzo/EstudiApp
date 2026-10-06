@@ -1,29 +1,23 @@
-import Link from "next/link";
-import { listTutorsByStatus } from "@/lib/tutors/queries";
+import { ActiveTeachers } from "@/components/admin-pages";
+import { EmptyState } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
+import { listTutorsByStatus, toAdminRow } from "@/lib/tutors/queries";
+
+export const metadata = { title: "Comunidad docente" };
 
 export default async function DocentesActivosPage() {
   const supabase = await createClient();
-  const { data: tutors } = await listTutorsByStatus(supabase, "aprobado");
+  const { data, error } = await listTutorsByStatus(supabase, "aprobado");
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Docentes activos</h1>
+  if (error)
+    return (
+      <div className="mgmt-page">
+        <EmptyState
+          title="No pudimos cargar los docentes."
+          description="Hubo un problema de nuestro lado. Actualizá la página en un momento."
+        />
+      </div>
+    );
 
-      {tutors && tutors.length > 0 ? (
-        <ul className="divide-y-2 divide-black border-2 border-black">
-          {tutors.map((tutor) => (
-            <li key={tutor.id} className="flex items-center justify-between p-4">
-              <span>{tutor.profiles?.full_name ?? "Docente"}</span>
-              <Link href={`/admin/docentes/${tutor.id}`} className="text-sm underline">
-                Ver perfil
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-neutral-600">Todavía no hay docentes aprobados.</p>
-      )}
-    </div>
-  );
+  return <ActiveTeachers rows={(data ?? []).map(toAdminRow)} />;
 }

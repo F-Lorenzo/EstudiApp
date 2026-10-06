@@ -1,29 +1,40 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import "@fontsource-variable/bricolage-grotesque";
+import "@fontsource-variable/figtree";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Las clases de cada área comparten primitives (botones, tarjetas, avisos),
+// así que se cargan una sola vez desde la raíz.
+import "@/components/home.css";
+import "@/components/public-pages.css";
+import "@/components/student-pages.css";
+import "@/components/management-pages.css";
 
 export const metadata: Metadata = {
-  title: "EstudiApp",
-  description: "Clases particulares con docentes verificados",
+  title: {
+    default: "EstudiApp — Aprender también es avanzar",
+    template: "%s · EstudiApp",
+  },
+  description:
+    "Encontrá profesores con trayectoria comprobada. Aprendé a tu ritmo, con alguien que sabe cómo acompañarte.",
+  // Producto todavía sin lanzamiento público: no indexar hasta decidirlo.
+  robots: { index: false, follow: false },
+  icons: {
+    icon: [{ url: "/brand/isotype-official.png", type: "image/png" }],
+  },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#023618",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="es-AR" data-scroll-behavior="smooth">
+      <body>{children}</body>
     </html>
   );
 }

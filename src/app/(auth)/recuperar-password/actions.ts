@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { requestPasswordResetSchema } from "@/lib/validation/auth";
-import type { ActionState } from "@/lib/validation/form-state";
+import { echoValues, type ActionState } from "@/lib/validation/form-state";
 
 export async function requestPasswordReset(
   _prevState: ActionState,
@@ -14,7 +14,10 @@ export async function requestPasswordReset(
   });
 
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors };
+    return {
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      values: echoValues(formData, ["email"]),
+    };
   }
 
   const supabase = await createClient();

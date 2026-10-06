@@ -1,11 +1,23 @@
+import { AuthFrame, AuthSuccess } from "@/components/auth-ui";
+import { ButtonLink, Icon } from "@/components/ui";
+
+export const metadata = { title: "Revisá tu email" };
+
 export default function ConfirmarEmailPage() {
   return (
-    <div className="space-y-2 text-center">
-      <h1 className="text-xl font-semibold">Revisá tu email</h1>
-      <p className="text-sm text-neutral-600">
-        Te enviamos un email para confirmar tu cuenta. Abrí el enlace para
-        activarla antes de iniciar sesión.
-      </p>
-    </div>
+    <AuthFrame>
+      <AuthSuccess
+        eyebrow="UN NUEVO PUNTO DE PARTIDA"
+        title="Revisá tu email."
+        action={
+          <ButtonLink href="/login">
+            Ir a ingresar <Icon name="arrow-right" size={17} />
+          </ButtonLink>
+        }
+      >
+        Te enviamos un mensaje para confirmar tu cuenta. Abrí el enlace para
+        activarla y después ingresá.
+      </AuthSuccess>
+    </AuthFrame>
   );
 }

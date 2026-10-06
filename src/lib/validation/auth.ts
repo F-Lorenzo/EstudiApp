@@ -16,6 +16,10 @@ export const registerAlumnoSchema = z
     email: z.email("Ingresá un email válido"),
     password: passwordSchema,
     confirmPassword: z.string(),
+    // Casilla de términos y privacidad: el navegador la marca como "on".
+    terms: z.literal("on", {
+      error: "Aceptá los términos y la política de privacidad para continuar",
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Las contraseñas no coinciden",
@@ -30,7 +34,7 @@ export const requestPasswordResetSchema = z.object({
 
 export const updateProfileSchema = z.object({
   fullName: z.string().trim().min(1, "Ingresá tu nombre completo"),
-  avatarUrl: z.union([z.url("Ingresá una URL válida"), z.literal("")]),
+  avatarUrl: z.union([z.url({ protocol: /^https?$/, error: "Ingresá un enlace válido que empiece con http o https" }), z.literal("")]),
 });
 
 export const updatePasswordSchema = z

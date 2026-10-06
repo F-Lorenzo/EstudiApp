@@ -1,18 +1,27 @@
-import Link from "next/link";
-import { SignOutButton } from "@/components/sign-out-button";
+import type { ReactNode } from "react";
+import { AppShell } from "@/components/site-shell";
+import { getViewer } from "@/lib/auth/viewer";
+import { createClient } from "@/lib/supabase/server";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const viewer = await getViewer();
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("tutor_profiles")
+    .select("*", { count: "exact", head: true })
+    .eq("verification_status", "pendiente");
+
   return (
-    <div className="flex flex-1 flex-col">
-      <nav className="flex items-center justify-between border-b-2 border-black px-6 py-4">
-        <div className="flex gap-4 text-sm">
-          <Link href="/admin/docentes/pendientes">Docentes pendientes</Link>
-          <Link href="/admin/docentes/activos">Docentes activos</Link>
-          <Link href="/admin/metricas">Métricas</Link>
-        </div>
-        <SignOutButton />
-      </nav>
-      <main className="flex-1 p-6">{children}</main>
-    </div>
+    <AppShell
+      role="administrador"
+      name={viewer?.name ?? "Equipo EstudiApp"}
+      pendingCount={count ?? 0}
+    >
+      {children}
+    </AppShell>
   );
 }

@@ -1,22 +1,39 @@
-import { BookingList } from "@/components/booking-list";
-import { getCompletedBookings } from "@/lib/bookings/queries";
+import { redirect } from "next/navigation";
+import {
+  ClassListError,
+  HistoryRow,
+  NoHistory,
+} from "@/components/student-dashboard";
+import { PageHeading } from "@/components/ui";
+import { getViewer } from "@/lib/auth/viewer";
+import { getCompletedClasses } from "@/lib/bookings/queries";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function HistorialPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export const metadata = { title: "Historial" };
 
-  const { data: bookings } = await getCompletedBookings(supabase, user!.id);
+export default async function HistorialPage() {
+  const viewer = await getViewer();
+  if (!viewer) redirect("/login");
+
+  const supabase = await createClient();
+  const { classes, error } = await getCompletedClasses(supabase, viewer.id);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold">Historial de clases</h1>
-      <BookingList
-        bookings={bookings ?? []}
-        emptyMessage="Todavía no tomaste ninguna clase."
+    <div className="stu-page">
+      <PageHeading
+        eyebrow="MIS CLASES"
+        title="Tu recorrido."
+        description="Las clases que ya completaste, de la más reciente a la más antigua."
       />
+      <section className="stu-class-list">
+        {error ? (
+          <ClassListError />
+        ) : classes.length ? (
+          classes.map((item) => <HistoryRow key={item.id} item={item} />)
+        ) : (
+          <NoHistory />
+        )}
+      </section>
     </div>
   );
 }

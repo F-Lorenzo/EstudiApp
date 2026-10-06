@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { registerDocenteSchema } from "@/lib/validation/auth";
-import type { ActionState } from "@/lib/validation/form-state";
+import { echoValues, type ActionState } from "@/lib/validation/form-state";
 
 // Crea únicamente la cuenta (auth + profiles + tutor_profiles en estado
 // "pendiente"). El formulario extendido de la sección 4 (bio, materias,
@@ -12,15 +12,17 @@ export async function registerDocente(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const values = echoValues(formData, ["fullName", "email", "terms"]);
   const parsed = registerDocenteSchema.safeParse({
     fullName: formData.get("fullName"),
     email: formData.get("email"),
     password: formData.get("password"),
     confirmPassword: formData.get("confirmPassword"),
+    terms: formData.get("terms"),
   });
 
   if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors };
+    return { fieldErrors: parsed.error.flatten().fieldErrors, values };
   }
 
   const { fullName, email, password } = parsed.data;
@@ -38,6 +40,7 @@ export async function registerDocente(
         error.code === "user_already_exists"
           ? "Ya existe una cuenta con ese email"
           : "No se pudo crear la cuenta. Intentá de nuevo.",
+      values,
     };
   }
 

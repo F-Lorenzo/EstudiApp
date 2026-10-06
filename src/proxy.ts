@@ -13,15 +13,19 @@ const ROLE_ROUTE_PREFIXES: { prefix: string; role: UserRole }[] = [
 
 const LOGIN_PATH = "/login";
 
+// El prefijo debe coincidir por segmento completo: «/docente» protege
+// «/docente/perfil», pero no el catálogo público «/docentes».
+function matchesPrefix(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+/**
+ * Corre en todas las rutas de página. Las páginas públicas también leen la
+ * sesión (para mostrar «Mi espacio» en la cabecera), y refrescar un token
+ * vencido solo se puede persistir acá: desde un Server Component no se pueden
+ * escribir cookies. Además exige sesión y rol en las rutas privadas.
+ */
 export async function proxy(request: NextRequest) {
-  const matchedRoute = ROLE_ROUTE_PREFIXES.find(({ prefix }) =>
-    request.nextUrl.pathname.startsWith(prefix),
-  );
-
-  if (!matchedRoute) {
-    return NextResponse.next();
-  }
-
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -49,10 +53,27 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const matchedRoute = ROLE_ROUTE_PREFIXES.find(({ prefix }) =>
+    matchesPrefix(request.nextUrl.pathname, prefix),
+  );
+
+  if (!matchedRoute) {
+    return response;
+  }
+
+  // Las redirecciones también deben llevar las cookies de sesión refrescadas.
+  const redirectTo = (url: URL) => {
+    const redirectResponse = NextResponse.redirect(url);
+    response.cookies
+      .getAll()
+      .forEach((cookie) => redirectResponse.cookies.set(cookie));
+    return redirectResponse;
+  };
+
   if (!user) {
     const redirectUrl = new URL(LOGIN_PATH, request.url);
     redirectUrl.searchParams.set("redirectTo", request.nextUrl.pathname);
-    return NextResponse.redirect(redirectUrl);
+    return redirectTo(redirectUrl);
   }
 
   const { data: profile } = await supabase
@@ -62,12 +83,15 @@ export async function proxy(request: NextRequest) {
     .single();
 
   if (profile?.role !== matchedRoute.role) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return redirectTo(new URL("/", request.url));
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/alumno/:path*", "/docente/:path*", "/admin/:path*"],
+  // Todo menos los archivos estáticos y las imágenes de marca.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map)$).*)",
+  ],
 };

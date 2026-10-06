@@ -1,7 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
-import { FieldError } from "@/components/field-error";
+import {
+  AuthFrame,
+  AuthHeading,
+  FormError,
+  PasswordField,
+  SubmitButton,
+} from "@/components/auth-ui";
 import { initialActionState } from "@/lib/validation/form-state";
 import { updatePassword } from "./actions";
 
@@ -12,46 +18,33 @@ export default function ActualizarPasswordPage() {
   );
 
   return (
-    <form action={formAction} className="space-y-4">
-      <h1 className="text-xl font-semibold">Elegí una nueva contraseña</h1>
-
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
-
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium">
-          Nueva contraseña
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          className="mt-1 w-full border-2 border-black px-3 py-2"
+    <AuthFrame>
+      <AuthHeading
+        eyebrow="UN NUEVO COMIENZO"
+        title="Creá tu nueva contraseña."
+        subtitle="Elegí una que puedas recordar. Después vas a ingresar con ella."
+      />
+      <form className="pub-form" action={formAction}>
+        {state.error && <FormError id="update-error">{state.error}</FormError>}
+        <PasswordField
+          label="Nueva contraseña"
+          autoComplete="new-password"
+          placeholder="Al menos 8 caracteres"
+          errors={state.fieldErrors?.password}
         />
-        <FieldError messages={state.fieldErrors?.password} />
-      </div>
-
-      <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium">
-          Confirmar contraseña
-        </label>
-        <input
-          id="confirmPassword"
+        <PasswordField
+          label="Repetí la contraseña"
           name="confirmPassword"
-          type="password"
-          required
-          className="mt-1 w-full border-2 border-black px-3 py-2"
+          autoComplete="new-password"
+          placeholder="Escribila de nuevo"
+          errors={state.fieldErrors?.confirmPassword}
         />
-        <FieldError messages={state.fieldErrors?.confirmPassword} />
-      </div>
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full border-2 border-black bg-white px-3 py-2 text-black hover:bg-black hover:text-white disabled:opacity-50"
-      >
-        {pending ? "Guardando..." : "Guardar contraseña"}
-      </button>
-    </form>
+        <SubmitButton
+          pending={pending}
+          idle="Guardar contraseña"
+          busy="Guardando…"
+        />
+      </form>
+    </AuthFrame>
   );
 }

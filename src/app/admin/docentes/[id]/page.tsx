@@ -1,9 +1,13 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DecisionPanel } from "@/components/admin-pages";
+import { Avatar, Badge, PageHeading } from "@/components/ui";
 import { VerificationStatusBanner } from "@/components/verification-status-banner";
-import { getTutorDetail } from "@/lib/tutors/queries";
+import { longDate, money } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
-import { approveTutor } from "./actions";
-import { RejectForm } from "./reject-form";
+import { getTutorDetail } from "@/lib/tutors/queries";
+
+export const metadata = { title: "Revisar solicitud" };
 
 export default async function DetalleDocentePage({
   params,
@@ -14,75 +18,119 @@ export default async function DetalleDocentePage({
   const supabase = await createClient();
   const { data: tutor } = await getTutorDetail(supabase, id);
 
-  if (!tutor) {
-    notFound();
-  }
+  if (!tutor) notFound();
 
+  const name = tutor.profiles?.full_name || "Docente";
   const subjectNames = (tutor.tutor_subjects ?? [])
     .map((row) => row.subjects?.name)
-    .filter((name): name is string => Boolean(name));
+    .filter((subject): subject is string => Boolean(subject));
+  const credentialIsLink =
+    !!tutor.credential_url && /^https?:\/\//i.test(tutor.credential_url);
 
   return (
-    <div className="max-w-lg space-y-6">
-      <h1 className="text-xl font-semibold">
-        {tutor.profiles?.full_name ?? "Docente"}
-      </h1>
-
+    <div className="mgmt-page">
+      <Link
+        href={
+          tutor.verification_status === "aprobado"
+            ? "/admin/docentes/activos"
+            : "/admin/docentes/pendientes"
+        }
+        className="mgmt-back-link"
+      >
+        {tutor.verification_status === "aprobado"
+          ? "← Volver a docentes"
+          : "← Volver a solicitudes"}
+      </Link>
+      <PageHeading
+        eyebrow="FICHA DOCENTE"
+        title="Una nueva forma de enseñar."
+        description={`Se registró el ${longDate(tutor.created_at)}. Revisá la información antes de tomar una decisión.`}
+      />
       <VerificationStatusBanner
         status={tutor.verification_status}
         reason={tutor.verification_reason}
       />
-
-      <dl className="space-y-3 text-sm">
-        <div>
-          <dt className="font-medium">Biografía</dt>
-          <dd className="text-neutral-600">{tutor.bio}</dd>
-        </div>
-        <div>
-          <dt className="font-medium">Materias</dt>
-          <dd className="text-neutral-600">
-            {subjectNames.length > 0 ? subjectNames.join(", ") : "—"}
-          </dd>
-        </div>
-        <div>
-          <dt className="font-medium">Nivel académico</dt>
-          <dd className="text-neutral-600">{tutor.nivel_academico ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="font-medium">Adjunto / respaldo</dt>
-          <dd className="text-neutral-600">
-            {tutor.credential_url ? (
-              <a href={tutor.credential_url} className="underline" target="_blank">
-                Ver adjunto
-              </a>
-            ) : (
-              "—"
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt className="font-medium">Tarifa por clase</dt>
-          <dd className="text-neutral-600">${tutor.tarifa_por_clase}</dd>
-        </div>
-        <div>
-          <dt className="font-medium">Contacto de verificación</dt>
-          <dd className="text-neutral-600">{tutor.contacto_verificacion ?? "—"}</dd>
-        </div>
-      </dl>
-
-      {tutor.verification_status === "pendiente" && (
-        <div className="flex flex-col gap-4">
-          <form action={approveTutor.bind(null, tutor.id)}>
-            <button
-              type="submit"
-              className="border-2 border-black bg-white px-3 py-2 text-black hover:bg-black hover:text-white"
+      <div className="mgmt-request-detail-layout">
+        <div className="mgmt-request-detail">
+          <div className="mgmt-candidate-header">
+            <Avatar name={name} src={tutor.profiles?.avatar_url ?? undefined} />
+            <div>
+              <h2>{name}</h2>
+              <p>{subjectNames.join(", ") || "Sin materias cargadas"}</p>
+            </div>
+            <Badge
+              tone={
+                tutor.verification_status === "aprobado"
+                  ? "green"
+                  : tutor.verification_status === "rechazado"
+                    ? "muted"
+                    : "orange"
+              }
             >
-              Aprobar
-            </button>
-          </form>
-          <RejectForm tutorId={tutor.id} />
+              {tutor.verification_status === "aprobado"
+                ? "Aprobada"
+                : tutor.verification_status === "rechazado"
+                  ? "Rechazada"
+                  : "Pendiente de revisión"}
+            </Badge>
+          </div>
+          <section>
+            <span className="mgmt-small-label">SU PRESENTACIÓN</span>
+            <p className="mgmt-candidate-bio">
+              {tutor.bio ? `“${tutor.bio}”` : "Todavía no escribió su presentación."}
+            </p>
+          </section>
+          <dl className="mgmt-candidate-facts">
+            <div>
+              <dt>Formación</dt>
+              <dd>{tutor.nivel_academico || "—"}</dd>
+            </div>
+            <div>
+              <dt>Tarifa por clase</dt>
+              <dd>{tutor.tarifa_por_clase ? money(Number(tutor.tarifa_por_clase)) : "—"}</dd>
+            </div>
+            <div>
+              <dt>Contacto de verificación</dt>
+              <dd>{tutor.contacto_verificacion || "—"}</dd>
+            </div>
+            <div>
+              <dt>Respaldo</dt>
+              <dd>
+                {credentialIsLink ? (
+                  <a
+                    href={tutor.credential_url!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Ver adjunto ↗
+                  </a>
+                ) : (
+                  tutor.credential_url || "—"
+                )}
+              </dd>
+            </div>
+          </dl>
+          <section>
+            <span className="mgmt-small-label">MATERIAS</span>
+            <div className="mgmt-tags">
+              {subjectNames.length ? (
+                subjectNames.map((subject) => (
+                  <Badge key={subject} tone="green">
+                    {subject}
+                  </Badge>
+                ))
+              ) : (
+                <span>—</span>
+              )}
+            </div>
+          </section>
         </div>
-      )}
+        <DecisionPanel
+          tutorId={tutor.id}
+          status={tutor.verification_status}
+          reason={tutor.verification_reason}
+        />
+      </div>
     </div>
   );
 }
