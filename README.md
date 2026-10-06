@@ -33,10 +33,10 @@ npm run build
 | Registro, login, recuperar contraseña | Funcionan (Supabase Auth). |
 | Catálogo y perfil público del docente | Funcionan con datos reales (búsqueda, filtros, horarios y opiniones). |
 | Alumno: inicio, próximas clases, historial, perfil | Funcionan con datos reales. |
-| Docente: inicio, perfil profesional (3 pasos) | Funcionan con datos reales. |
+| Docente: inicio, perfil profesional (3 pasos), disponibilidad (abrir y cerrar franjas de 60 min) | Funcionan con datos reales. La disponibilidad requiere la migración 0007. |
 | Admin: solicitudes, ficha con aprobar o rechazar, docentes activos, métricas | Funcionan con datos reales. |
 | Reservar, pago, sala de clase | **Vista de muestra** (banner visible). No crean reservas ni cobran. |
-| Docente: disponibilidad. Docente: cuenta de cobro. Admin: contenido | **Vista de muestra**. No guardan nada. |
+| Docente: cuenta de cobro. Admin: contenido | **Vista de muestra**. No guardan nada. |
 
 ## Estructura
 

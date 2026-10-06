@@ -11,7 +11,7 @@ pendiente (tarjeta "Setup de Supabase").
    aprovisionarse).
 2. `cp .env.local.example .env.local` y completar `NEXT_PUBLIC_SUPABASE_URL`
    y `NEXT_PUBLIC_SUPABASE_ANON_KEY` desde Project Settings → API.
-3. Aplicar las migraciones (`supabase/migrations/0001` a `0006`) en el
+3. Aplicar las migraciones (`supabase/migrations/0001` a `0007`) en el
    SQL Editor del dashboard, en orden, pegando el contenido de cada
    archivo. (Alternativa con la CLI: ver más abajo.)
 4. Cargar datos de mock para la demo (ver `scripts/seed-demo.mjs`):
@@ -71,6 +71,10 @@ las dos entradas `seed:demo*` de `package.json`.
   **Es necesaria para que «Mi espacio» del alumno y la ficha de revisión
   funcionen.** Revisala antes de aplicarla: no se probó contra un proyecto
   real.
+- `0007_availability_unique_slot.sql`: índice único (docente, hora de
+  inicio) para que «Mi disponibilidad» no cree franjas duplicadas. Antes
+  de aplicarlo, comprobá que no haya duplicados (la consulta está en el
+  archivo).
 
 ## Paso manual pendiente: asignar el rol administrador
 

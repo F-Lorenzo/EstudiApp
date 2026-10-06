@@ -1,69 +1,116 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import Link from "next/link";
+import { saveAvailability } from "@/app/docente/disponibilidad/actions";
 import { Notice } from "@/components/management-ui";
-import { PageHeading, SampleBanner } from "@/components/ui";
+import { PageHeading } from "@/components/ui";
 import { VerificationStatusBanner } from "@/components/verification-status-banner";
+import {
+  DAY_NAMES,
+  MAX_WEEKS_AHEAD,
+  slotKey,
+  slotStart,
+  SLOT_HOURS,
+  weekDates,
+} from "@/lib/availability/slots";
 
-const hours = [
-  "09:00",
-  "10:00",
-  "11:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-  "18:00",
-];
-const dayNames = ["LUN", "MAR", "MIÉ", "JUE", "VIE"];
+type SlotState = "free" | "booked";
 
-// Reservas de ejemplo: la agenda todavía no está conectada a la base.
-const reserved: Record<string, string> = {
-  "0-2-7": "Estudiante",
-  "0-3-1": "Estudiante",
-  "0-4-5": "Estudiante",
-};
-
-/** Agenda semanal de muestra. Los cambios viven solo en esta pantalla. */
+/**
+ * Agenda semanal del docente. Los clics se acumulan como cambios pendientes
+ * (incluso entre semanas) y se guardan juntos con «Guardar cambios».
+ */
 export function TeacherAvailability({
+  week,
   weekStart,
-  todayIndex,
+  today,
+  now,
   status,
+  slots,
+  loadFailed,
 }: {
-  /** Lunes de la semana actual (`YYYY-MM-DD`). */
+  /** Semanas respecto de la actual (0 = esta semana). */
+  week: number;
+  /** Lunes de la semana que se muestra (`YYYY-MM-DD`). */
   weekStart: string;
-  /** Posición de hoy dentro de lunes a viernes, o -1 si es fin de semana. */
-  todayIndex: number;
+  today: string;
+  /** Instante actual según el servidor (ms): evita diferencias de reloj al hidratar. */
+  now: number;
   status: string;
+  /** Estado guardado de cada franja de la semana, por clave `YYYY-MM-DDTHH`. */
+  slots: Record<string, SlotState>;
+  loadFailed: boolean;
 }) {
-  const [week, setWeek] = useState(0);
-  const [slots, setSlots] = useState<Record<string, boolean>>({
-    "0-0-1": true,
-    "0-0-2": true,
-    "0-1-4": true,
-    "0-2-3": true,
-    "0-2-4": true,
-    "0-3-1": true,
-    "0-3-4": true,
-    "0-4-5": true,
-    "0-4-6": true,
-  });
+  // Cambios sin guardar: true = quedar abierta, false = quedar cerrada. Solo
+  // se registran los que difieren de lo guardado cuando se hizo el clic.
+  const [pendingChanges, setPendingChanges] = useState<Record<string, boolean>>({});
   const [notice, setNotice] = useState("");
-  const [changed, setChanged] = useState(false);
-  const approved = status === "aprobado";
+  const [error, setError] = useState("");
+  const [saving, startSaving] = useTransition();
 
-  const dates = dayNames.map((_, index) => {
-    const date = new Date(`${weekStart}T12:00:00`);
-    date.setDate(date.getDate() + week * 7 + index);
-    return date;
-  });
-  const monthLabel = dates[0].toLocaleDateString("es-AR", {
+  const dates = weekDates(weekStart);
+  const monthLabel = new Date(`${weekStart}T12:00:00Z`).toLocaleDateString("es-AR", {
     month: "long",
     year: "numeric",
+    timeZone: "UTC",
   });
-  const availableCount = Object.keys(slots).filter(
-    (key) => key.startsWith(`${week}-`) && slots[key] && !reserved[key],
-  ).length;
+  const dayOf = (date: string) => Number(date.slice(8));
+  const changeCount = Object.keys(pendingChanges).length;
+
+  const isOpen = (key: string) => pendingChanges[key] ?? slots[key] === "free";
+  const availableCount = dates.reduce(
+    (total, date) =>
+      total +
+      SLOT_HOURS.filter((hour) => {
+        const key = slotKey(date, hour);
+        return slots[key] !== "booked" && isOpen(key);
+      }).length,
+    0,
+  );
+
+  function toggle(key: string) {
+    const wantOpen = !isOpen(key);
+    const saved = slots[key] === "free";
+    setPendingChanges((current) => {
+      const next = { ...current };
+      if (wantOpen === saved) delete next[key];
+      else next[key] = wantOpen;
+      return next;
+    });
+    setNotice("");
+    setError("");
+  }
+
+  function save() {
+    const open = Object.keys(pendingChanges).filter((key) => pendingChanges[key]);
+    const close = Object.keys(pendingChanges).filter((key) => !pendingChanges[key]);
+    setNotice("");
+    setError("");
+    startSaving(async () => {
+      const result = await saveAvailability({ open, close });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setPendingChanges({});
+      const parts = [
+        result.opened && `${result.opened} ${result.opened === 1 ? "horario abierto" : "horarios abiertos"}`,
+        result.closed && `${result.closed} ${result.closed === 1 ? "horario cerrado" : "horarios cerrados"}`,
+      ].filter(Boolean);
+      setNotice(
+        `${parts.length ? `Listo: ${parts.join(" y ")}.` : "No había cambios para guardar."}${
+          result.protectedCount
+            ? ` ${result.protectedCount} ${result.protectedCount === 1 ? "horario ya está reservado y quedó como estaba" : "horarios ya están reservados y quedaron como estaban"}.`
+            : ""
+        }`,
+      );
+    });
+  }
+
+  const href = (target: number) =>
+    target === 0 ? "/docente/disponibilidad" : `/docente/disponibilidad?semana=${target}`;
+  const weekEnd = dates[6];
 
   return (
     <div className="mgmt-page">
@@ -75,95 +122,105 @@ export function TeacherAvailability({
         <button
           type="button"
           className="mgmt-button"
-          disabled={!changed}
-          onClick={() => {
-            setNotice(
-              "Es una vista de muestra: los horarios no se guardaron ni se publicaron.",
-            );
-            setChanged(false);
-          }}
+          disabled={!changeCount || saving}
+          onClick={save}
         >
-          {changed ? "Guardar cambios" : "Agenda actualizada"}
-          <span aria-hidden="true">{changed ? "↗" : "✓"}</span>
+          {saving
+            ? "Guardando…"
+            : changeCount
+              ? `Guardar cambios (${changeCount})`
+              : "Agenda actualizada"}
+          <span aria-hidden="true">{changeCount && !saving ? "↗" : "✓"}</span>
         </button>
       </PageHeading>
-      <SampleBanner>
-        La gestión de disponibilidad todavía no está conectada: lo que marques
-        acá no se guarda ni se publica. Las reservas que ves son de ejemplo.
-      </SampleBanner>
-      {!approved && <VerificationStatusBanner status={status} />}
+      {status !== "aprobado" && (
+        <VerificationStatusBanner status={status} />
+      )}
+      {loadFailed && (
+        <p className="mgmt-field-error" role="alert">
+          No pudimos cargar los horarios guardados de esta semana. Actualizá la
+          página en un momento.
+        </p>
+      )}
       <section className="mgmt-calendar">
         <div className="mgmt-calendar-toolbar">
           <div>
             <span className="mgmt-small-label">
-              SEMANA DEL {dates[0].getDate()} AL {dates[4].getDate()}
+              SEMANA DEL {dayOf(weekStart)} AL {dayOf(weekEnd)}
             </span>
             <h2>{monthLabel}</h2>
           </div>
           <div className="mgmt-calendar-controls">
-            <button
-              type="button"
-              aria-label="Semana anterior"
-              disabled={week === 0}
-              onClick={() => setWeek(week - 1)}
-            >
-              ←
-            </button>
-            <button type="button" onClick={() => setWeek(0)}>
+            {week > 0 ? (
+              <Link aria-label="Semana anterior" href={href(week - 1)} scroll={false}>
+                ←
+              </Link>
+            ) : (
+              <span aria-hidden="true" className="is-disabled">
+                ←
+              </span>
+            )}
+            <Link href={href(0)} scroll={false}>
               Esta semana
-            </button>
-            <button
-              type="button"
-              aria-label="Semana siguiente"
-              onClick={() => setWeek(week + 1)}
-            >
-              →
-            </button>
+            </Link>
+            {week < MAX_WEEKS_AHEAD ? (
+              <Link aria-label="Semana siguiente" href={href(week + 1)} scroll={false}>
+                →
+              </Link>
+            ) : (
+              <span aria-hidden="true" className="is-disabled">
+                →
+              </span>
+            )}
           </div>
         </div>
         <div className="mgmt-calendar-scroll">
-          <div className="mgmt-week-grid">
+          <div className="mgmt-week-grid is-seven">
             <div className="mgmt-calendar-corner">GMT−3</div>
             {dates.map((date, index) => {
-              const isToday = week === 0 && index === todayIndex;
+              const isToday = date === today;
               return (
                 <div
-                  key={index}
+                  key={date}
                   className={`mgmt-day-heading ${isToday ? "is-today" : ""}`}
                 >
-                  <span>{dayNames[index]}</span>
-                  <strong>{date.getDate()}</strong>
+                  <span>{DAY_NAMES[index]}</span>
+                  <strong>{dayOf(date)}</strong>
                   {isToday && <small>HOY</small>}
                 </div>
               );
             })}
-            {hours.map((hour, row) => (
+            {SLOT_HOURS.map((hour) => (
               <div className="mgmt-calendar-grid-row" key={hour}>
-                <div className="mgmt-time-label">{hour}</div>
-                {dates.map((_, col) => {
-                  const key = `${week}-${col}-${row}`;
-                  const booking = reserved[key];
+                <div className="mgmt-time-label">
+                  {String(hour).padStart(2, "0")}:00
+                </div>
+                {dates.map((date, col) => {
+                  const key = slotKey(date, hour);
+                  const booked = slots[key] === "booked";
+                  const past = slotStart(key)!.getTime() <= now;
+                  const open = isOpen(key);
+                  const changed = key in pendingChanges;
+                  const label = `${DAY_NAMES[col]} ${dayOf(date)}, ${String(hour).padStart(2, "0")}:00: ${
+                    booked
+                      ? "reservado"
+                      : past
+                        ? "ya pasó"
+                        : open
+                          ? "disponible, tocar para cerrar"
+                          : "cerrado, tocar para abrir"
+                  }${changed ? " (cambio sin guardar)" : ""}`;
                   return (
                     <button
                       type="button"
                       key={key}
-                      className={`mgmt-slot ${booking ? "is-reserved" : slots[key] ? "is-available" : ""}`}
-                      disabled={!!booking}
-                      aria-label={`${dayNames[col]} ${dates[col].getDate()}, ${hour}: ${booking ? "reservado" : slots[key] ? "disponible, tocar para bloquear" : "bloqueado, tocar para habilitar"}`}
-                      aria-pressed={!booking && !!slots[key]}
-                      onClick={() => {
-                        setSlots((current) => ({
-                          ...current,
-                          [key]: !current[key],
-                        }));
-                        setChanged(true);
-                        setNotice("");
-                      }}
+                      className={`mgmt-slot ${booked ? "is-reserved" : open ? "is-available" : ""} ${past && !booked ? "is-past" : ""} ${changed ? "is-changed" : ""}`}
+                      disabled={booked || past}
+                      aria-label={label}
+                      aria-pressed={!booked && open}
+                      onClick={() => toggle(key)}
                     >
-                      <span>
-                        {booking || (slots[key] ? "Disponible" : "+")}
-                      </span>
-                      {booking && <small>Reservado</small>}
+                      <span>{booked ? "Reservado" : open ? "Disponible" : past ? "" : "+"}</span>
                     </button>
                   );
                 })}
@@ -186,16 +243,29 @@ export function TeacherAvailability({
               Sin disponibilidad
             </span>
           </div>
-          <strong>{availableCount} horas disponibles</strong>
+          <strong>
+            {availableCount} {availableCount === 1 ? "hora disponible" : "horas disponibles"}
+          </strong>
         </div>
       </section>
       <div className="mgmt-under-calendar">
         <p>
-          <strong>Un clic para abrir, otro para cerrar.</strong> Las clases ya
-          reservadas permanecen protegidas.
+          <strong>Un clic para abrir, otro para cerrar.</strong> Los cambios se
+          aplican al guardar. Las clases ya reservadas permanecen protegidas.
         </p>
         <span>Horario de Argentina · GMT−3</span>
       </div>
+      {status !== "aprobado" && (
+        <p className="mgmt-field-hint">
+          Tus horarios se guardan, pero los estudiantes solo los ven cuando tu
+          perfil esté aprobado.
+        </p>
+      )}
+      {error && (
+        <p className="mgmt-field-error" role="alert">
+          {error}
+        </p>
+      )}
       <Notice message={notice} />
     </div>
   );

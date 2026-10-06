@@ -29,6 +29,6 @@ Base de datos (aplicar antes de usar la app con datos reales):
 Funcional:
 
 - El docente no ve el nombre de sus alumnos: la RLS de `profiles` no se lo permite.
-- Reserva, pago (Mercado Pago), sala de video, calificaciones, disponibilidad del docente y gestión de contenido siguen como vista de muestra. El orden recomendado está en `Roadmap-Implementacion-EstudiApp.md` de la carpeta del proyecto de diseño.
+- Reserva, pago (Mercado Pago), sala de video, calificaciones y gestión de contenido siguen como vista de muestra. La disponibilidad del docente ya es real (`/docente/disponibilidad`, migración 0007). El orden recomendado está en `Roadmap-Implementacion-EstudiApp.md` de la carpeta del proyecto de diseño.
 - `ratings` no guarda quién califica en la vista pública: las opiniones se muestran como «Estudiante de EstudiApp».
 - La búsqueda de texto del catálogo ignora tildes en el servidor de la app (no en SQL). Con un catálogo grande conviene moverla a la base con `unaccent`.
