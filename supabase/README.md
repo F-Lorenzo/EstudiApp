@@ -11,7 +11,7 @@ pendiente (tarjeta "Setup de Supabase").
    aprovisionarse).
 2. `cp .env.local.example .env.local` y completar `NEXT_PUBLIC_SUPABASE_URL`
    y `NEXT_PUBLIC_SUPABASE_ANON_KEY` desde Project Settings → API.
-3. Aplicar las migraciones (`supabase/migrations/0001` a `0008`) en el
+3. Aplicar las migraciones (`supabase/migrations/0001` a `0009`) en el
    SQL Editor del dashboard, en orden, pegando el contenido de cada
    archivo. (Alternativa con la CLI: ver más abajo.)
 4. Cargar datos de mock para la demo (ver `scripts/seed-demo.mjs`):
@@ -75,13 +75,22 @@ las dos entradas `seed:demo*` de `package.json`.
   de aplicarlo, comprobá que no haya duplicados (la consulta está en el
   archivo).
 - `0008_booking_system.sql`: sistema de reservas. Las reservas dejan de
-  escribirse directo desde la API y pasan por funciones: `create_booking`
-  (retiene el horario 15 minutos), `cancel_booking`,
-  `expire_pending_bookings` y `confirm_booking_payment` (solo service role,
-  para el webhook de pago). También permite volver a reservar un horario
-  cuya reserva se canceló.
+  escribirse directo desde la API (tampoco la administración) y pasan por
+  funciones: `create_booking` (retiene el horario 15 minutos, tope de dos
+  reservas sin pagar, idempotente), `cancel_booking`, `sync_bookings` (libera
+  las reservas vencidas y completa las clases terminadas) y
+  `confirm_booking_payment` (solo service role, para el webhook de pago:
+  valida vencimiento, monto y comisión). La reserva guarda su propio horario
+  y precio, así que cerrar una franja ya no borra una reserva cancelada.
+  También permite volver a reservar un horario cuya reserva se canceló, y
+  que el alumno siga viendo a su docente (y el docente a sus alumnos).
+- `0009_tutor_creation_guards.sql`: una cuenta ya no puede crearse un perfil
+  de docente «aprobado» ni con cuenta de cobro propia, y una calificación
+  solo se puede dar al docente de esa clase. **Conviene aplicarla junto con
+  la 0008**: sin ella, el sistema de reservas cobraría a docentes que nadie
+  revisó.
 
-Las migraciones 0006 a 0008 se probaron con 56 casos en un Postgres real
+Las migraciones 0006 a 0009 se probaron con 96 casos en un Postgres real
 (roles anónimo, alumno, docente, administrador y service role), pero **no
 contra tu proyecto de Supabase**: revisalas y probalas en un proyecto de
 prueba antes de aplicarlas en el real.

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { syncBookings } from "@/lib/bookings/sync";
 
 export type TutorCatalogRow = {
   id: string;
@@ -34,6 +35,8 @@ export async function searchTutorCatalog(
   supabase: SupabaseClient,
   filters: CatalogFilters,
 ) {
+  // «Con horarios disponibles» no debe contar horarios retenidos por reservas vencidas.
+  await syncBookings(supabase);
   let query = supabase.from("tutor_catalog").select("*");
 
   if (filters.materias?.length) {

@@ -17,6 +17,59 @@ function mmss(milliseconds: number) {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
+/** Cada cuánto se vuelve a consultar al servidor una vez que la cuenta llegó a cero. */
+const RETRY_REFRESH_MS = 5000;
+
+/**
+ * «Cancelar reserva» con confirmación en línea: cancelar libera el horario para
+ * cualquier otra persona y no se puede deshacer, así que un toque accidental no
+ * debe alcanzar.
+ */
+function CancelControl({
+  disabled,
+  onConfirm,
+}: {
+  disabled: boolean;
+  onConfirm: () => void;
+}) {
+  const [asking, setAsking] = useState(false);
+  if (!asking)
+    return (
+      <button
+        type="button"
+        className="stu-text-link"
+        disabled={disabled}
+        onClick={() => setAsking(true)}
+      >
+        Cancelar reserva
+      </button>
+    );
+  return (
+    <div className="stu-cancel-confirm" role="group" aria-label="Confirmar cancelación">
+      <p>¿Cancelar la reserva? El horario queda libre para otras personas.</p>
+      <button
+        type="button"
+        className="stu-button"
+        disabled={disabled}
+        onClick={() => {
+          setAsking(false);
+          onConfirm();
+        }}
+      >
+        Sí, cancelar
+      </button>
+      <button
+        type="button"
+        className="stu-text-link"
+        disabled={disabled}
+        onClick={() => setAsking(false)}
+      >
+        No, volver
+      </button>
+    </div>
+  );
+}
+
 /** Una reserva del alumno: pago pendiente, confirmada, cancelada o completada. */
 export function BookingDetailView({
   booking,
@@ -39,19 +92,27 @@ export function BookingDetailView({
   const [working, startWorking] = useTransition();
   const pending = booking.status === "pendiente_pago";
 
+  // La cuenta parte de la hora del servidor (`now`) y avanza con un reloj
+  // monotónico, no con la hora del navegador: si el reloj de la persona está
+  // adelantado o atrasado, el tiempo que ve no cambia. Cada vez que el servidor
+  // vuelve a renderizar la página llega un `now` nuevo y la cuenta se reajusta.
   useEffect(() => {
     if (!pending) return;
+    const initial = new Date(expiresAt).getTime() - now;
+    const startedAt = performance.now();
+    let lastRefresh = Number.NEGATIVE_INFINITY;
     const timer = setInterval(() => {
-      const left = new Date(expiresAt).getTime() - Date.now();
-      setRemaining(Math.max(0, left));
-      if (left <= 0) {
-        clearInterval(timer);
-        // El servidor libera la reserva vencida al volver a cargar.
+      const elapsed = performance.now() - startedAt;
+      setRemaining(Math.max(0, initial - elapsed));
+      if (initial - elapsed <= 0 && elapsed - lastRefresh >= RETRY_REFRESH_MS) {
+        lastRefresh = elapsed;
+        // El servidor libera la reserva vencida al volver a cargar. Si todavía
+        // no venció del lado de la base, se reintenta en unos segundos.
         router.refresh();
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [pending, expiresAt, router]);
+  }, [pending, expiresAt, now, router]);
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
     setError("");
@@ -86,7 +147,7 @@ export function BookingDetailView({
         </h1>
         <p>Tu clase con {booking.tutorName} está en tu agenda.</p>
         <div className="stu-confirmed-details">
-          <strong>Clase individual{booking.subject ? ` · ${booking.subject}` : ""}</strong>
+          <strong>Clase individual con {booking.tutorName}</strong>
           <span>
             {longDate(booking.startsAt)} · {timeRange(booking.startsAt, booking.endsAt)}
           </span>
@@ -101,14 +162,10 @@ export function BookingDetailView({
             cancelación con reembolso todavía no está disponible.
           </p>
         ) : (
-          <button
-            type="button"
-            className="stu-text-link"
+          <CancelControl
             disabled={working}
-            onClick={() => run(() => cancelBooking(booking.id))}
-          >
-            Cancelar reserva
-          </button>
+            onConfirm={() => run(() => cancelBooking(booking.id))}
+          />
         )}
         {error && (
           <p className="stu-field-error" role="alert">
@@ -222,14 +279,10 @@ export function BookingDetailView({
               {error}
             </p>
           )}
-          <button
-            type="button"
-            className="stu-text-link"
+          <CancelControl
             disabled={working}
-            onClick={() => run(() => cancelBooking(booking.id))}
-          >
-            Cancelar reserva
-          </button>
+            onConfirm={() => run(() => cancelBooking(booking.id))}
+          />
           <div className="stu-checkout-help">
             <h3>Un encuentro, todo el foco.</h3>
             <p>

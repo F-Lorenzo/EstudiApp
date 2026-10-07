@@ -32,14 +32,21 @@ export function BookingSlotPicker({
 
   const preselected = slots.find((slot) => slot.id === initialSlotId);
   const [selectedId, setSelectedId] = useState(preselected?.id ?? "");
-  const [selectedDay, setSelectedDay] = useState(
-    preselected ? dateKeyAR(preselected.startsAt) : (days[0]?.date ?? ""),
+  const [requestedDay, setRequestedDay] = useState(
+    preselected ? dateKeyAR(preselected.startsAt) : "",
   );
   const [error, setError] = useState("");
   const [reserving, startReserving] = useTransition();
 
+  // Si el día elegido ya no tiene horarios (otra persona los tomó), se muestra el primero.
+  const selectedDay = days.some((day) => day.date === requestedDay)
+    ? requestedDay
+    : (days[0]?.date ?? "");
   const chosen = slots.find((slot) => slot.id === selectedId);
   const dayItems = days.find((day) => day.date === selectedDay)?.items ?? [];
+  // Se pidió un horario puntual (desde el perfil) que ya no se puede reservar.
+  const requestedGone =
+    Boolean(initialSlotId) && !preselected && !selectedId && days.length > 0;
 
   function reserve() {
     if (!chosen) return;
@@ -88,7 +95,7 @@ export function BookingSlotPicker({
                       aria-pressed={selectedDay === date}
                       className={selectedDay === date ? "is-selected" : ""}
                       onClick={() => {
-                        setSelectedDay(date);
+                        setRequestedDay(date);
                         setError("");
                       }}
                     >
@@ -124,6 +131,11 @@ export function BookingSlotPicker({
               </div>
             </>
           )}
+          {requestedGone && !error && (
+            <p className="stu-payment-caption" role="status">
+              El horario que elegiste ya no está disponible. Elegí otro de la lista.
+            </p>
+          )}
           {error && (
             <p className="stu-field-error" role="alert">
               {error}
@@ -153,7 +165,7 @@ export function BookingSlotPicker({
         <BookingSummary
           tutorName={teacher.name}
           tutorPhoto={teacher.photo}
-          subject={teacher.subject}
+          subject={teacher.subjects.join(", ") || null}
           startsAt={chosen?.startsAt}
           endsAt={chosen?.endsAt}
           price={teacher.price}

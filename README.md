@@ -34,7 +34,7 @@ npm run build
 | Catálogo y perfil público del docente | Funcionan con datos reales (búsqueda, filtros, horarios y opiniones). |
 | Alumno: inicio, próximas clases, historial, perfil | Funcionan con datos reales. |
 | Docente: inicio, perfil profesional (3 pasos), disponibilidad (abrir y cerrar franjas de 60 min) | Funcionan con datos reales. La disponibilidad requiere la migración 0007. |
-| Reservas: elegir un horario libre, retenerlo 15 min, pagar, cancelar | Funcionan con datos reales (migración 0008). **El cobro con Mercado Pago todavía no existe:** hay un pago simulado solo para desarrollo (`ALLOW_SIMULATED_PAYMENTS`). |
+| Reservas: elegir un horario libre, retenerlo 15 min, pagar, cancelar | Funcionan con datos reales (migraciones 0008 y 0009). **El cobro con Mercado Pago todavía no existe:** hay un pago simulado solo para desarrollo (`ALLOW_SIMULATED_PAYMENTS`). |
 | Admin: solicitudes, ficha con aprobar o rechazar, docentes activos, métricas | Funcionan con datos reales. |
 | Sala de clase | **Vista de muestra** (banner visible). |
 | Docente: cuenta de cobro. Admin: contenido | **Vista de muestra**. No guardan nada. |

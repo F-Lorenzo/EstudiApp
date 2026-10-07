@@ -5,20 +5,14 @@ import {
   type ProfileSlot,
 } from "@/components/teacher-profile";
 import { getViewer } from "@/lib/auth/viewer";
+import { earliestBookableIso } from "@/lib/bookings/hold";
+import { syncBookings } from "@/lib/bookings/sync";
+import { longDate, timeAR } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { getPublicTeacher } from "@/lib/tutors/public";
 
-const TIME_ZONE = "America/Argentina/Buenos_Aires";
-const slotFormat = new Intl.DateTimeFormat("es-AR", {
-  timeZone: TIME_ZONE,
-  weekday: "long",
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-});
 const dateFormat = new Intl.DateTimeFormat("es-AR", {
-  timeZone: TIME_ZONE,
+  timeZone: "America/Argentina/Buenos_Aires",
   dateStyle: "medium",
 });
 
@@ -41,6 +35,8 @@ export default async function PerfilPublicoDocentePage({
   if (!teacher) notFound();
 
   const supabase = await createClient();
+  // Libera los horarios cuya reserva venció sin pagarse: si no, seguirían ocultos.
+  await syncBookings(supabase);
   const [{ data: ratings }, { data: slots }, viewer] = await Promise.all([
     supabase
       .from("ratings")
@@ -52,7 +48,8 @@ export default async function PerfilPublicoDocentePage({
       .select("id, starts_at")
       .eq("tutor_id", id)
       .eq("is_booked", false)
-      .gt("starts_at", new Date().toISOString())
+      // Los mismos que ofrece el selector de reserva (con una hora de anticipación).
+      .gte("starts_at", earliestBookableIso())
       .order("starts_at")
       .limit(5),
     getViewer(),
@@ -65,7 +62,7 @@ export default async function PerfilPublicoDocentePage({
   }));
   const profileSlots: ProfileSlot[] = (slots ?? []).map((slot) => ({
     id: slot.id,
-    label: slotFormat.format(new Date(slot.starts_at)),
+    label: `${longDate(slot.starts_at)} · ${timeAR(slot.starts_at)} h`,
   }));
 
   return (

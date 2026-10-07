@@ -2099,6 +2099,29 @@
   margin-top: 4px;
   font-size: 13px;
 }
+
+/* Confirmación en línea antes de cancelar una reserva. */
+.stu-cancel-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  padding: 14px 16px;
+  border: 1px solid #f0c5ad;
+  border-radius: 10px;
+  background: #fff5ec;
+  color: #85270a;
+  font-size: 14px;
+}
+.stu-cancel-confirm p {
+  flex: 1 1 220px;
+  margin: 0;
+}
+.stu-cancel-confirm .stu-button {
+  min-height: 40px;
+  padding: 8px 18px;
+  font-size: 14px;
+}
 .stu-day-grid button small {
   font-size: 10px;
   text-transform: uppercase;

@@ -1,16 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { syncBookings } from "@/lib/bookings/sync";
 
 type ScoreEmbed = { score: number } | { score: number }[] | null;
 
 type TutorBookingRow = {
   id: string;
-  availability_slots: { starts_at: string; ends_at: string } | null;
+  starts_at: string;
+  ends_at: string;
   ratings?: ScoreEmbed;
 };
 
 /**
- * Clase de un docente. No incluye el nombre del alumno: la RLS actual de
- * `profiles` no deja que un docente lea el perfil de sus alumnos.
+ * Clase de un docente. Todavía no incluye el nombre del alumno aunque la RLS ya
+ * se lo deja leer (migración 0008): falta mostrarlo en el panel del docente.
  */
 export type TutorClass = {
   id: string;
@@ -24,24 +26,22 @@ export async function getTutorClasses(
   tutorId: string,
   status: "confirmada" | "completada",
 ) {
+  await syncBookings(supabase);
   const { data, error } = await supabase
     .from("bookings")
-    .select("id, availability_slots!inner(starts_at, ends_at), ratings(score)")
+    .select("id, starts_at, ends_at, ratings(score)")
     .eq("tutor_id", tutorId)
     .eq("status", status)
     .returns<TutorBookingRow[]>();
 
-  const classes = (data ?? []).flatMap((row): TutorClass[] => {
-    if (!row.availability_slots) return [];
+  const classes = (data ?? []).map((row): TutorClass => {
     const rating = Array.isArray(row.ratings) ? row.ratings[0] : row.ratings;
-    return [
-      {
-        id: row.id,
-        startsAt: row.availability_slots.starts_at,
-        endsAt: row.availability_slots.ends_at,
-        score: rating?.score ?? null,
-      },
-    ];
+    return {
+      id: row.id,
+      startsAt: row.starts_at,
+      endsAt: row.ends_at,
+      score: rating?.score ?? null,
+    };
   });
 
   classes.sort((a, b) =>
@@ -57,6 +57,7 @@ export async function getNextOpenSlot(
   supabase: SupabaseClient,
   tutorId: string,
 ) {
+  await syncBookings(supabase);
   const { data } = await supabase
     .from("availability_slots")
     .select("starts_at")

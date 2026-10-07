@@ -151,7 +151,7 @@ export function StudentDashboard({
               <span className="stu-eyebrow">
                 {nextUnpaid ? "TU PRÓXIMA CLASE · FALTA PAGAR" : "TU PRÓXIMA CLASE"}
               </span>
-              {isToday(next.startsAt) && (
+              {isToday(next.startsAt) && !nextUnpaid && (
                 <span className="stu-live-label">
                   <i /> Es hoy
                 </span>

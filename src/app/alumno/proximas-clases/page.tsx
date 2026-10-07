@@ -23,7 +23,7 @@ export default async function ProximasClasesPage() {
       <PageHeading
         eyebrow="MIS CLASES"
         title="Próximas clases."
-        description="Tus reservas confirmadas, en orden."
+        description="Tus reservas, en orden. Las que faltan pagar vencen a los 15 minutos."
       />
       <section className="stu-class-list">
         {error ? (
