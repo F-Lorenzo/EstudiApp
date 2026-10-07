@@ -7,12 +7,10 @@ import { money } from "@/lib/format";
 import type { UserRole } from "@/lib/auth/roles";
 import type { Teacher } from "@/lib/tutors/view";
 
-/** `date` (`YYYY-MM-DD`) y `time` (`HH:mm`) en hora de Argentina; `label` ya formateado. */
+/** Horario libre del docente; `label` ya viene formateado en hora de Argentina. */
 export type ProfileSlot = {
   id: string;
   label: string;
-  date: string;
-  time: string;
 };
 export type ProfileReview = {
   score: number;
@@ -37,9 +35,7 @@ export function TeacherProfile({
   const canBook = viewerRole === null || viewerRole === "alumno";
   const chosen = slots.find((slot) => slot.id === slotId);
   const bookingHref = `/alumno/reservar/${teacher.id}${
-    chosen
-      ? `?${new URLSearchParams({ fecha: chosen.date, hora: chosen.time })}`
-      : ""
+    chosen ? `?${new URLSearchParams({ slot: chosen.id })}` : ""
   }`;
   const visibleReviews = reviews.slice(0, expanded ? reviews.length : 2);
 

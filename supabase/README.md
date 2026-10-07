@@ -11,7 +11,7 @@ pendiente (tarjeta "Setup de Supabase").
    aprovisionarse).
 2. `cp .env.local.example .env.local` y completar `NEXT_PUBLIC_SUPABASE_URL`
    y `NEXT_PUBLIC_SUPABASE_ANON_KEY` desde Project Settings → API.
-3. Aplicar las migraciones (`supabase/migrations/0001` a `0007`) en el
+3. Aplicar las migraciones (`supabase/migrations/0001` a `0008`) en el
    SQL Editor del dashboard, en orden, pegando el contenido de cada
    archivo. (Alternativa con la CLI: ver más abajo.)
 4. Cargar datos de mock para la demo (ver `scripts/seed-demo.mjs`):
@@ -69,12 +69,22 @@ las dos entradas `seed:demo*` de `package.json`.
   docente pendiente), guardas contra el cambio de rol y de estado de
   verificación desde la API, y cálculo automático de `rating_promedio`.
   **Es necesaria para que «Mi espacio» del alumno y la ficha de revisión
-  funcionen.** Revisala antes de aplicarla: no se probó contra un proyecto
-  real.
+  funcionen.**
 - `0007_availability_unique_slot.sql`: índice único (docente, hora de
   inicio) para que «Mi disponibilidad» no cree franjas duplicadas. Antes
   de aplicarlo, comprobá que no haya duplicados (la consulta está en el
   archivo).
+- `0008_booking_system.sql`: sistema de reservas. Las reservas dejan de
+  escribirse directo desde la API y pasan por funciones: `create_booking`
+  (retiene el horario 15 minutos), `cancel_booking`,
+  `expire_pending_bookings` y `confirm_booking_payment` (solo service role,
+  para el webhook de pago). También permite volver a reservar un horario
+  cuya reserva se canceló.
+
+Las migraciones 0006 a 0008 se probaron con 56 casos en un Postgres real
+(roles anónimo, alumno, docente, administrador y service role), pero **no
+contra tu proyecto de Supabase**: revisalas y probalas en un proyecto de
+prueba antes de aplicarlas en el real.
 
 ## Paso manual pendiente: asignar el rol administrador
 

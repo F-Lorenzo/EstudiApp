@@ -22,13 +22,14 @@ Este repo combina la funcionalidad (Supabase, roles, aprobación de docentes) co
 
 Base de datos (aplicar antes de usar la app con datos reales):
 
-- **Aplicá `supabase/migrations/0006_visibility_and_hardening.sql`.** Sin ella el alumno no ve sus reservas, la ficha de revisión del admin no muestra las materias, y cualquier usuario puede cambiarse el rol a administrador o aprobarse como docente desde la API de Supabase. No se probó contra un proyecto real: revisala antes.
+- **Aplicá las migraciones 0006, 0007 y 0008 (`supabase/migrations`).** Sin la 0006 el alumno no ve sus reservas, la ficha de revisión del admin no muestra las materias, y cualquier usuario puede cambiarse el rol a administrador o aprobarse como docente desde la API de Supabase. Se probaron con 56 casos en un Postgres real, pero no contra tu proyecto de Supabase: revisalas antes.
 - Sigue abierto: `tutor_profiles_select_public_when_approved` es por fila y expone todas las columnas de un docente aprobado, incluidas `contacto_verificacion`, `credential_url` y `mercadopago_account_id`. Cerrarlo exige mover esos datos a una tabla privada (o a una vista) y cambiar las consultas de la app.
 - Las server actions de aprobar y rechazar verifican el rol en la app, pero la barrera real es la RLS.
 
 Funcional:
 
 - El docente no ve el nombre de sus alumnos: la RLS de `profiles` no se lo permite.
-- Reserva, pago (Mercado Pago), sala de video, calificaciones y gestión de contenido siguen como vista de muestra. La disponibilidad del docente ya es real (`/docente/disponibilidad`, migración 0007). El orden recomendado está en `Roadmap-Implementacion-EstudiApp.md` de la carpeta del proyecto de diseño.
+- Las reservas ya son reales (migración 0008): el alumno elige un horario libre, queda retenido 15 minutos como «pendiente_pago» y se confirma al registrarse el pago. **No hay cobro real:** falta el checkout de Mercado Pago, el webhook (debe llamar a `confirm_booking_payment` con la service role) y los reembolsos (`cancel_booking` rechaza reservas ya pagas). Para probar el recorrido existe un pago simulado, apagado por defecto (`ALLOW_SIMULATED_PAYMENTS=true`, nunca en producción de Vercel).
+- Sala de video, calificaciones y gestión de contenido siguen como vista de muestra. La disponibilidad del docente ya es real (`/docente/disponibilidad`, migración 0007). El orden recomendado está en `Roadmap-Implementacion-EstudiApp.md` de la carpeta del proyecto de diseño.
 - `ratings` no guarda quién califica en la vista pública: las opiniones se muestran como «Estudiante de EstudiApp».
 - La búsqueda de texto del catálogo ignora tildes en el servidor de la app (no en SQL). Con un catálogo grande conviene moverla a la base con `unaccent`.

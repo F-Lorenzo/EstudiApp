@@ -19,6 +19,7 @@ function formatDay(iso: string) {
 export function UpcomingRow({ item }: { item: ClassItem }) {
   const { day, month } = dayParts(item.startsAt);
   const today = isToday(item.startsAt);
+  const unpaid = item.status === "pendiente_pago";
   return (
     <article className="stu-class-row">
       <div className="stu-class-date">
@@ -40,11 +41,14 @@ export function UpcomingRow({ item }: { item: ClassItem }) {
         <strong>{timeRange(item.startsAt, item.endsAt)}</strong>
         <span>Online</span>
       </div>
-      <Badge tone={today ? "orange" : "green"}>
-        {today ? "Hoy" : "Confirmada"}
+      <Badge tone={unpaid || today ? "orange" : "green"}>
+        {unpaid ? "Falta pagar" : today ? "Hoy" : "Confirmada"}
       </Badge>
-      <Link href={`/alumno/sala/${item.id}`} className="stu-text-link">
-        Entrar a la sala
+      <Link
+        href={unpaid ? `/alumno/reservas/${item.id}` : `/alumno/sala/${item.id}`}
+        className="stu-text-link"
+      >
+        {unpaid ? "Completar el pago" : "Entrar a la sala"}
         <Icon name="arrow-right" size={16} />
       </Link>
     </article>
@@ -127,6 +131,7 @@ export function StudentDashboard({
 }) {
   const next = upcoming[0];
   const stamp = next ? formatDay(next.startsAt) : null;
+  const nextUnpaid = next?.status === "pendiente_pago";
 
   return (
     <div className="stu-page">
@@ -143,7 +148,9 @@ export function StudentDashboard({
         {next && stamp ? (
           <section className="stu-next-class">
             <div className="stu-next-top">
-              <span className="stu-eyebrow">TU PRÓXIMA CLASE</span>
+              <span className="stu-eyebrow">
+                {nextUnpaid ? "TU PRÓXIMA CLASE · FALTA PAGAR" : "TU PRÓXIMA CLASE"}
+              </span>
               {isToday(next.startsAt) && (
                 <span className="stu-live-label">
                   <i /> Es hoy
@@ -178,8 +185,15 @@ export function StudentDashboard({
                 <Icon name="clock" size={18} />{" "}
                 {timeRange(next.startsAt, next.endsAt)} <b>·</b> Online
               </span>
-              <ButtonLink href={`/alumno/sala/${next.id}`}>
-                Entrar a la sala <Icon name="arrow-right" size={18} />
+              <ButtonLink
+                href={
+                  nextUnpaid
+                    ? `/alumno/reservas/${next.id}`
+                    : `/alumno/sala/${next.id}`
+                }
+              >
+                {nextUnpaid ? "Completar el pago" : "Entrar a la sala"}{" "}
+                <Icon name="arrow-right" size={18} />
               </ButtonLink>
             </div>
           </section>

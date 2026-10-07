@@ -5,7 +5,6 @@ import {
   type ProfileSlot,
 } from "@/components/teacher-profile";
 import { getViewer } from "@/lib/auth/viewer";
-import { dateKeyAR, timeAR } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { getPublicTeacher } from "@/lib/tutors/public";
 
@@ -67,8 +66,6 @@ export default async function PerfilPublicoDocentePage({
   const profileSlots: ProfileSlot[] = (slots ?? []).map((slot) => ({
     id: slot.id,
     label: slotFormat.format(new Date(slot.starts_at)),
-    date: dateKeyAR(slot.starts_at),
-    time: timeAR(slot.starts_at),
   }));
 
   return (

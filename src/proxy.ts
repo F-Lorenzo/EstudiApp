@@ -72,7 +72,12 @@ export async function proxy(request: NextRequest) {
 
   if (!user) {
     const redirectUrl = new URL(LOGIN_PATH, request.url);
-    redirectUrl.searchParams.set("redirectTo", request.nextUrl.pathname);
+    // Con la consulta incluida: después de ingresar vuelve al mismo lugar
+    // (por ejemplo, a la reserva de un horario elegido).
+    redirectUrl.searchParams.set(
+      "redirectTo",
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    );
     return redirectTo(redirectUrl);
   }
 

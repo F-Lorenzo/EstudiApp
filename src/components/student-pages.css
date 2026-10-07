@@ -2077,3 +2077,33 @@
   height: calc(100vh - 370px);
   min-height: 400px;
 }
+
+/* Cuenta regresiva del horario retenido mientras la reserva espera el pago. */
+.stu-hold {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  margin-bottom: 28px;
+  border: 1px solid #f0c5ad;
+  border-radius: 10px;
+  background: #fff5ec;
+  color: #85270a;
+}
+.stu-hold strong {
+  display: block;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.stu-hold p {
+  margin-top: 4px;
+  font-size: 13px;
+}
+.stu-day-grid button small {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.stu-day-grid {
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+}

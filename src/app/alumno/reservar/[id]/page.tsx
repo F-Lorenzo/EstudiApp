@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import { Reservation } from "@/components/student-booking";
-import { readBookingChoice, type BookingSearchParams } from "@/lib/bookings/params";
-import { todayAR } from "@/lib/format";
+import { BookingSlotPicker } from "@/components/booking-slot-picker";
+import { getBookableSlots } from "@/lib/bookings/queries";
+import { createClient } from "@/lib/supabase/server";
 import { getPublicTeacher } from "@/lib/tutors/public";
 
 export const metadata = { title: "Elegí tu horario" };
@@ -11,17 +11,21 @@ export default async function ReservarPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<BookingSearchParams>;
+  searchParams: Promise<{ slot?: string | string[] }>;
 }) {
   const { id } = await params;
   const teacher = await getPublicTeacher(id);
   if (!teacher) notFound();
 
+  const slot = (await searchParams).slot;
+  const supabase = await createClient();
+  const slots = await getBookableSlots(supabase, id);
+
   return (
-    <Reservation
+    <BookingSlotPicker
       teacher={teacher}
-      today={todayAR()}
-      initial={readBookingChoice(await searchParams)}
+      slots={slots}
+      initialSlotId={Array.isArray(slot) ? slot[0] : slot}
     />
   );
 }
