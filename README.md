@@ -28,7 +28,7 @@ Las pruebas de la base de datos (`npm run test:db`) aplican las migraciones real
 
 ## Hoja de ruta
 
-El proyecto se construye por fases, ordenadas por prioridad. Ver [ROADMAP.md](ROADMAP.md): ahora estamos en la **Fase 0 (bases sólidas)**; después, el cobro real con Mercado Pago.
+El proyecto se construye por fases, ordenadas por prioridad. Ver [ROADMAP.md](ROADMAP.md): la **Fase 0 (bases sólidas)** está cerrada; ahora estamos en la **Fase 1 (cobrar de verdad con Mercado Pago)**.
 
 ## Qué funciona y qué es una vista de muestra
 

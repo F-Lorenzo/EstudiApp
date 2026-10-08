@@ -20,10 +20,10 @@ Este repo combina la funcionalidad (Supabase, roles, aprobación de docentes) co
 
 ## Cómo se trabaja
 
-- El plan está en [ROADMAP.md](ROADMAP.md): fases ordenadas por prioridad de construcción, cada una con su criterio de salida. **No empieces trabajo de una fase posterior mientras la anterior tenga huecos de seguridad o sin pruebas.** Estado actual: Fase 0 (bases sólidas).
+- El plan está en [ROADMAP.md](ROADMAP.md): fases ordenadas por prioridad de construcción, cada una con su criterio de salida. **No empieces trabajo de una fase posterior mientras la anterior tenga huecos de seguridad o sin pruebas.** Estado actual: Fase 0 (bases sólidas) cerrada el 8 de octubre de 2026; se trabaja en la Fase 1 (cobrar de verdad).
 - `npm run check` (tipos, lint, pruebas unitarias y de base de datos) tiene que pasar antes de fusionar; el CI de GitHub corre lo mismo.
 - Toda regla que mueve dinero o protege datos vive en la base (funciones y RLS) **y** tiene un caso en `supabase/tests` que intenta romperla.
-- Una migración que ya se aplicó en un proyecto real no se edita: se agrega una nueva. Las que todavía no se aplicaron en ninguno (0006 a 0010) se pueden corregir.
+- Una migración que ya se aplicó en un proyecto real no se edita: se agrega una nueva. **Las diez primeras (0001 a 0010) ya están aplicadas en el proyecto de Supabase real**: todo cambio de la base es una migración nueva (`0011_...`) y se prueba con `npm run test:db`.
 - Los datos privados del docente (contacto, respaldo y cuenta de Mercado Pago) viven en `tutor_private`, nunca en `tutor_profiles`, que es legible por cualquiera.
 
 ## Versiones (actualizadas al 8 de octubre de 2026)
@@ -38,7 +38,7 @@ Todo está en la última versión estable, con tres excepciones a propósito:
 
 Base de datos (aplicar antes de usar la app con datos reales):
 
-- **Aplicá las migraciones 0006, 0007, 0008, 0009 y 0010 (`supabase/migrations`), en orden.** Sin la 0006 el alumno no ve sus reservas, la ficha de revisión del admin no muestra las materias, y cualquier usuario puede cambiarse el rol a administrador o aprobarse como docente desde la API de Supabase. Sin la 0009 cualquier cuenta puede crearse un perfil de docente ya «aprobado» (y la 0008 lo convierte en un camino de cobro). Se probaron con 96 casos en un Postgres real, pero no contra tu proyecto de Supabase: revisalas antes.
+- El proyecto de Supabase de EstudiApp ya tiene las diez migraciones aplicadas y verificadas (`supabase/checks/2-verificacion.sql`). Para cualquier proyecto nuevo: `npm run db:bundle -- 1 10` y la guía `docs/FASE-0-PASO-A-PASO.md`. Una migración ya aplicada en ese proyecto **no se edita**: se agrega una nueva (`0011_...`). Qué cierra cada una: la 0006, que cualquier usuario se cambie el rol a administrador o se apruebe como docente desde la API; la 0008, que un alumno se confirme una reserva sin pagar; la 0009, que cualquier cuenta se cree un perfil de docente ya «aprobado» (con la 0008 sería un camino de cobro); la 0010, que los datos privados del docente sean legibles con la clave pública.
 - Resuelto en la 0010: `tutor_profiles_select_public_when_approved` es por fila y exponía todas las columnas de un docente aprobado. El contacto, el respaldo y la cuenta de Mercado Pago pasaron a `tutor_private` (solo el dueño y la administración). Lo que queda público en `tutor_profiles` es a propósito: biografía, formación, tarifa, calificación y estado de verificación.
 - Las server actions de aprobar y rechazar verifican el rol en la app, pero la barrera real es la RLS.
 

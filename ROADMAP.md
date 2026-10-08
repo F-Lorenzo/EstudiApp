@@ -22,7 +22,7 @@ el dinero real, la videollamada, los emails y las pruebas automáticas.
 
 ---
 
-## Fase 0 — Bases sólidas  ← en curso
+## Fase 0 — Bases sólidas  ✅ cerrada el 8 de octubre de 2026
 
 Objetivo: que lo que ya está construido sea seguro, verificable y se pueda desplegar, antes de
 sumar dinero real.
@@ -38,7 +38,12 @@ sumar dinero real.
 proyecto de Supabase real sin errores; alumno, docente y administración recorrieron sus flujos
 contra esa base; no queda ningún dato privado legible desde la clave pública.
 
-**Avance (lo que se puede hacer sin tocar Supabase ni Vercel ya está hecho):**
+**Cierre:** el proyecto de Supabase se creó desde cero con el script de instalación (diez
+migraciones) y la verificación dio OK; se cargaron la URL y las plantillas de email de Supabase y las
+variables de Vercel, y el recorrido a mano de los flujos con sesión dio OK (informado por quien
+administra el proyecto). El CI está en verde en cada cambio.
+
+**Lo que se hizo:**
 
 - ✅ 0.1 Pruebas: 109 unitarias (incluye las acciones del servidor con Supabase simulado) y 250
   comprobaciones de base de datos, entre ellas la **matriz completa de la RLS** (497 intentos por
@@ -49,15 +54,20 @@ contra esa base; no queda ningún dato privado legible desde la clave pública.
 - ✅ Seguridad de dependencias: Next.js 16.4.0 (la 16.3.2 tenía vulnerabilidades críticas).
 - ✅ Un solo archivo para aplicar las migraciones (`npm run db:bundle`), en una transacción y con
   controles previos.
-- ⏳ 0.4 Pendiente de quien administra Supabase y Vercel (aplicar, variables de entorno, emails y
-  recorrido a mano). Es lo único que impide cerrar la fase. **Guía paso a paso:
-  [docs/FASE-0-PASO-A-PASO.md](docs/FASE-0-PASO-A-PASO.md).**
+- ✅ 0.4 Base real en marcha (aplicar, variables de entorno, emails y recorrido a mano). Guía que se
+  siguió: [docs/FASE-0-PASO-A-PASO.md](docs/FASE-0-PASO-A-PASO.md).
+- ✅ Script de instalación desde cero (`npm run db:bundle -- 1 10`), probado contra las diez
+  migraciones una por una (554 elementos idénticos).
+
+**Quedó para más adelante (no bloquea la Fase 1):** un SMTP propio para los emails (el de Supabase
+manda pocos por hora; entra con los emails de la Fase 1) y la actualización del roadmap y los
+tickets del proyecto de diseño (el roadmap vigente es este archivo).
 
 **Decisiones previas:** ninguna.
 
 ---
 
-## Fase 1 — Cobrar de verdad (núcleo del negocio)
+## Fase 1 — Cobrar de verdad (núcleo del negocio)  ← siguiente
 
 Objetivo: una clase reservada se paga con Mercado Pago, el pago confirma la reserva de forma
 segura y se puede devolver.
