@@ -22,17 +22,18 @@ export function AuthFrame({
         <h2>
           {role === "teacher" ? (
             <>
-              Lo que sabés.
+              {/* El espacio antes de cada <br /> es a propósito: en pantallas angostas el CSS oculta los saltos y sin él las palabras quedan pegadas. */}
+              Lo que sabés.{" "}
               <br />
-              Todo lo que
+              Todo lo que{" "}
               <br />
               podés <em>abrir.</em>
             </>
           ) : (
             <>
-              Las dudas
+              Las dudas{" "}
               <br />
-              se achican.
+              se achican.{" "}
               <br />
               Vos <em>crecés.</em>
             </>

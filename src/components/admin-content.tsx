@@ -155,7 +155,7 @@ export function ContentManager() {
         <aside className="mgmt-content-form">
           <span className="mgmt-small-label">EL MENSAJE</span>
           <h2>
-            Claro. Cercano.
+            Claro. Cercano.{" "}
             <br />
             Bien nuestro.
           </h2>

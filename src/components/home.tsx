@@ -299,7 +299,7 @@ export function Home({ featured }: { featured: Teacher[] }) {
             </h2>
             <div className="section-aside">
               <p>
-                Detrás de cada explicación hay años de recorrido.
+                Detrás de cada explicación hay años de recorrido.{" "}
                 <br />
                 Conocé a quienes pueden acompañarte.
               </p>
@@ -482,7 +482,7 @@ export function Home({ featured }: { featured: Teacher[] }) {
             PREGUNTAR ESTÁ BIEN
           </p>
           <h2>
-            Antes del
+            Antes del{" "}
             <br />
             primer paso.
           </h2>

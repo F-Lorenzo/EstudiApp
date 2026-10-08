@@ -182,7 +182,7 @@ export function HowItWorks({ initialRole = "learner" }: { initialRole?: Role }) 
         <div>
           <p className="pub-eyebrow">POR SI TE QUEDÓ UNA DUDA</p>
           <h2>
-            También tenemos
+            También tenemos{" "}
             <br />
             algunas respuestas.
           </h2>
