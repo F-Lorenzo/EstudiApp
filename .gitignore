@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Archivo generado por `npm run db:bundle` (migraciones juntas para el SQL Editor)
+supabase/aplicar-*.sql

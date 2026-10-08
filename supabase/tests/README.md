@@ -15,6 +15,22 @@ npm run test:db -- bookings  # solo las que tengan «bookings» en el nombre
 | `bookings.db.mjs` | Reservas: crear, retener, vencer, cancelar y confirmar el pago; permisos de las funciones |
 | `hardening.db.mjs` | Un caso por cada hallazgo de las revisiones de seguridad (perfiles de docente, pagos tardíos, tope de reservas, visibilidad) |
 | `private-data.db.mjs` | Datos privados del docente (`tutor_private`) |
+| `rls-matrix.db.mjs` | **Auditoría completa de la RLS**: 71 pruebas × 7 roles (visitante, alumno, otro alumno, docente, otro docente, administración, service role) sobre todas las tablas y operaciones, más «RLS activada en cada tabla» y quién puede ejecutar cada función |
+| `upgrade-path.db.mjs` | Actualización de un proyecto **con datos**: aplica 0006 a 0010 sobre una base con las migraciones 0001 a 0005 y comprueba que no se pierde nada, que el archivo único (`npm run db:bundle`) se aplica de una vez y que, si falla, no queda nada a medias |
+| `seed-compat.db.mjs` | Que las escrituras de `scripts/seed-demo.mjs` sigan siendo válidas con el esquema actual |
+
+### La matriz de la RLS
+
+Cada prueba de `rls-matrix.db.mjs` declara **quién puede** hacer algo; todos los demás tienen que quedar
+afuera. Para comprobar que la matriz detecta un permiso abierto, se puede sabotear la base a propósito
+(tiene que terminar con fallas):
+
+```bash
+MATRIX_SABOTAJE="create policy x on public.payments for select using (true);" npm run test:db -- matrix
+```
+
+Cuando una migración cambia un permiso a propósito, se actualiza la expectativa de la matriz en el mismo
+cambio: así la regla queda escrita.
 
 ## Cómo agregar una prueba
 

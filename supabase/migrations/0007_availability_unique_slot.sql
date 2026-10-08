@@ -12,5 +12,20 @@
 --   group by tutor_id, starts_at
 --   having count(*) > 1;
 
+-- Si hay duplicados, se corta acá con un mensaje claro en lugar de un error de índice.
+do $$
+begin
+  if exists (
+    select 1
+    from public.availability_slots
+    group by tutor_id, starts_at
+    having count(*) > 1
+  ) then
+    raise exception
+      'Hay franjas duplicadas (mismo docente y misma hora). Dejá una sola por docente y hora y volvé a aplicar esta migración. La consulta para encontrarlas está en el encabezado de 0007_availability_unique_slot.sql.';
+  end if;
+end;
+$$;
+
 create unique index availability_slots_tutor_start_key
   on public.availability_slots (tutor_id, starts_at);

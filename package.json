@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:db": "node supabase/tests/run.mjs",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:db",
+    "db:bundle": "node scripts/bundle-migrations.mjs",
     "seed:demo": "node scripts/seed-demo.mjs",
     "seed:demo:cleanup": "node scripts/seed-demo.mjs --cleanup"
   },

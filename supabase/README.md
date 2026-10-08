@@ -14,6 +14,15 @@ pendiente (tarjeta "Setup de Supabase").
 3. Aplicar las migraciones (`supabase/migrations/0001` a `0010`) en el
    SQL Editor del dashboard, en orden, pegando el contenido de cada
    archivo. (Alternativa con la CLI: ver más abajo.)
+
+   **Si el proyecto ya tiene las migraciones 0001 a 0005** (y datos), no
+   hace falta pegar de a una: `npm run db:bundle` genera
+   `supabase/aplicar-0006-a-0010.sql`, un único archivo que se pega y se corre
+   de una vez. Va dentro de una transacción (si algo falla no queda nada a
+   medias) y en su encabezado trae dos consultas de control para correr antes:
+   franjas duplicadas (la 0007 se corta si las hay) y reservas «confirmada»
+   sin pago aprobado (un resto del hueco anterior a la 0008, para revisar a
+   mano). El archivo es generado y no se guarda en git.
 4. Cargar datos de mock para la demo (ver `scripts/seed-demo.mjs`).
    **Solo en un proyecto de desarrollo**: el script crea cuentas con datos
    falsos y se niega a correr si no confirmás el host del proyecto.
@@ -106,7 +115,7 @@ las dos entradas `seed:demo*` de `package.json`.
   fijar el backend (service role) o la administración. **Aplicala antes de
   guardar credenciales de cobro de cualquier docente.**
 
-Las migraciones 0006 a 0010 se probaron con 134 casos en un Postgres real
+Las migraciones 0006 a 0010 se probaron con 250 comprobaciones (más la matriz de la RLS: 497 intentos por rol) en un Postgres real
 (roles anónimo, alumno, docente, administrador y service role; ver
 [tests/README.md](tests/README.md) y `npm run test:db`), pero **no contra tu
 proyecto de Supabase**: revisalas y probalas en un proyecto de prueba antes de

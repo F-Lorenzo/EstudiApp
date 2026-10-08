@@ -38,6 +38,20 @@ sumar dinero real.
 proyecto de Supabase real sin errores; alumno, docente y administración recorrieron sus flujos
 contra esa base; no queda ningún dato privado legible desde la clave pública.
 
+**Avance (lo que se puede hacer sin tocar Supabase ni Vercel ya está hecho):**
+
+- ✅ 0.1 Pruebas: 109 unitarias (incluye las acciones del servidor con Supabase simulado) y 250
+  comprobaciones de base de datos, entre ellas la **matriz completa de la RLS** (497 intentos por
+  rol) y la **actualización sobre datos existentes**. CI de GitHub con tipos, lint, pruebas, auditoría
+  de dependencias y build.
+- ✅ 0.2 `tutor_private` (migración 0010).
+- ✅ 0.3 Seed seguro y compatible con las reservas.
+- ✅ Seguridad de dependencias: Next.js 16.4.0 (la 16.3.2 tenía vulnerabilidades críticas).
+- ✅ Un solo archivo para aplicar las migraciones (`npm run db:bundle`), en una transacción y con
+  controles previos.
+- ⏳ 0.4 Pendiente de quien administra Supabase y Vercel (aplicar, variables de entorno, emails y
+  recorrido a mano). Es lo único que impide cerrar la fase.
+
 **Decisiones previas:** ninguna.
 
 ---
