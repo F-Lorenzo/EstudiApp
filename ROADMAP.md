@@ -50,7 +50,8 @@ contra esa base; no queda ningún dato privado legible desde la clave pública.
 - ✅ Un solo archivo para aplicar las migraciones (`npm run db:bundle`), en una transacción y con
   controles previos.
 - ⏳ 0.4 Pendiente de quien administra Supabase y Vercel (aplicar, variables de entorno, emails y
-  recorrido a mano). Es lo único que impide cerrar la fase.
+  recorrido a mano). Es lo único que impide cerrar la fase. **Guía paso a paso:
+  [docs/FASE-0-PASO-A-PASO.md](docs/FASE-0-PASO-A-PASO.md).**
 
 **Decisiones previas:** ninguna.
 

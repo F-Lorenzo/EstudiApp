@@ -134,10 +134,23 @@ update public.profiles set role = 'administrador' where id = '<uuid del usuario>
 ## Paso manual pendiente: templates de email
 
 El flujo de auth (`src/app/auth/confirm/route.ts`) espera que los emails
-de confirmación de registro y recuperación de contraseña linkeen a
-`{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type={{ .Type }}`.
-Por defecto, Supabase usa `{{ .ConfirmationURL }}`, que apunta a un
-endpoint propio de Supabase en vez de a la app. Hay que editar los
-templates "Confirm signup" y "Reset password" en
-Authentication → Email Templates del dashboard para usar la URL de
-arriba.
+de confirmación de registro y recuperación de contraseña pasen por
+`/auth/confirm` con el tipo **escrito fijo** en cada plantilla:
+
+- *Confirm signup*: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`
+- *Reset password*: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`
+
+(Una versión anterior de esta guía decía `type={{ .Type }}`: esa variable
+no figura entre las que documenta Supabase para las plantillas; con el tipo
+escrito fijo el link funciona seguro.) Por
+defecto Supabase usa `{{ .ConfirmationURL }}`, que apunta a un endpoint
+propio en vez de a la app. El texto completo de las dos plantillas está en
+[docs/FASE-0-PASO-A-PASO.md](../docs/FASE-0-PASO-A-PASO.md), paso 6.
+
+## Consultas para el SQL Editor (`supabase/checks`)
+
+- `1-diagnostico.sql`: qué migraciones tiene el proyecto y qué hacer a continuación.
+- `2-verificacion.sql`: después de aplicar, comprueba la RLS, los permisos, las guardas y los datos
+  que hay que revisar a mano. Cada fila tiene que decir OK.
+
+Las dos solo leen y se prueban en cada estado posible de la base (`supabase/tests/checks.db.mjs`).
