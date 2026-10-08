@@ -30,6 +30,7 @@ const P2 = "e0000000-0000-0000-0000-000000000002";
 const W1 = "e1000000-0000-0000-0000-000000000001";
 const V2 = "e2000000-0000-0000-0000-000000000002";
 const R3 = "e3000000-0000-0000-0000-000000000003";
+const RF = "e4000000-0000-0000-0000-000000000004";
 const NEW_ID = "99999999-9999-9999-9999-999999999999";
 
 await db.exec(`
@@ -46,6 +47,10 @@ await db.exec(`
   insert into public.video_rooms (id, booking_id, room_url) values ('${V2}', '${B2}', 'https://sala.test/x');
   insert into public.ratings (id, booking_id, student_id, tutor_id, score)
     values ('${R3}', '${B3}', '${A1}', '${D1}', 5);
+  insert into public.refunds (id, booking_id, payment_id, mercadopago_payment_id, percent, amount, reason)
+    values ('${RF}', '${B2}', '${P2}', 'mp-rf1', 100, 10000, 'prueba');
+  insert into public.mp_credentials (tutor_id, mp_user_id, access_token, refresh_token, expires_at)
+    values ('${D1}', '555', 'cifrado-a', 'cifrado-r', now() + interval '180 days');
   update public.tutor_private set contacto_verificacion = 'c1', mercadopago_account_id = 'mp1' where id = '${D1}';
   update public.tutor_private set contacto_verificacion = 'c2' where id = '${D2}';
 `);
@@ -172,6 +177,18 @@ P("ratings", "crear", "calificar una clase que no está completada", `insert int
 P("ratings", "editar", "una calificación", `update public.ratings set score = 1 where id='${R3}' returning id`, ["service"]);
 P("ratings", "borrar", "una calificación", `delete from public.ratings where id='${R3}' returning id`, ["service"]);
 
+// refunds (0011)
+P("refunds", "leer", "reembolso de la reserva de A1 con D1", `select id from public.refunds where id='${RF}'`, ["alumno", "docente", "admin", "service"]);
+P("refunds", "crear", "un reembolso", `insert into public.refunds (mercadopago_payment_id, percent, amount, reason) values ('mp-nuevo', 100, 1, 'x') returning id`, ["service"]);
+P("refunds", "editar", "marcar un reembolso como aprobado", `update public.refunds set status='aprobado' where id='${RF}' returning id`, ["service"]);
+P("refunds", "borrar", "un reembolso", `delete from public.refunds where id='${RF}' returning id`, ["service"]);
+
+// mp_credentials (0011): los tokens de Mercado Pago solo los toca el backend
+P("mp_credentials", "leer", "tokens de D1 (ni el propio docente)", `select tutor_id from public.mp_credentials`, ["service"]);
+P("mp_credentials", "crear", "tokens para D2", `insert into public.mp_credentials (tutor_id, mp_user_id, access_token, refresh_token, expires_at) values ('${D2}', '777', 'a', 'r', now()) returning tutor_id`, ["service"]);
+P("mp_credentials", "editar", "el token de D1", `update public.mp_credentials set access_token='x' where tutor_id='${D1}' returning tutor_id`, ["service"]);
+P("mp_credentials", "borrar", "los tokens de D1", `delete from public.mp_credentials where tutor_id='${D1}' returning tutor_id`, ["service"]);
+
 // tutor_catalog (vista)
 P("tutor_catalog", "leer", "catálogo público de docentes", `select id from public.tutor_catalog where id='${D1}'`, ALL);
 P("tutor_catalog", "leer", "un docente pendiente NO aparece", `select id from public.tutor_catalog where id='${D2}'`, []);
@@ -204,6 +221,12 @@ const FUNCIONES = [
   ["public.cancel_booking(uuid, text)", ["authenticated", "service_role"]],
   ["public.sync_bookings()", ["anon", "authenticated", "service_role"]],
   ["public.confirm_booking_payment(uuid, text, numeric, numeric)", ["service_role"]],
+  ["public.mark_refund_result(uuid, refund_status, text, text)", ["service_role"]],
+  ["public.begin_payment_event(text, jsonb)", ["service_role"]],
+  ["public.finish_payment_event(text, text)", ["service_role"]],
+  ["public.commission_rate_for(uuid)", ["authenticated", "service_role"]],
+  ["public.booking_commission(numeric, numeric)", ["authenticated", "service_role"]],
+  ["public.refund_percent(timestamptz, timestamptz, boolean)", ["authenticated", "service_role"]],
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {

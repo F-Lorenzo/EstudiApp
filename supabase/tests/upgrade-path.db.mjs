@@ -65,7 +65,7 @@ const conteoAntes = await contar(antes);
 
 // --- Se aplican 0006 a 0010 en orden, una por una -------------------------------------------------------------------
 let falla = null;
-for (const n of [6, 7, 8, 9, 10]) {
+for (const n of [6, 7, 8, 9, 10, 11]) {
   try {
     await applyMigration(antes, n);
     r.push([true, `la migración ${String(n).padStart(4, "0")} se aplica sobre datos existentes`]);
@@ -84,6 +84,12 @@ if (!falla) {
   const res = (await q(antes, `select b.id, b.starts_at = s.starts_at and b.ends_at = s.ends_at as igual, b.price from public.bookings b join public.availability_slots s on s.id = b.slot_id`)).rows;
   r.push([res.length === 4 && res.every((x) => x.igual), "cada reserva copió el horario de su franja"]);
   r.push([res.every((x) => x.price === null), "las reservas viejas quedan sin precio (no se inventa uno)"]);
+
+  // 0011: toda reserva existente toma la comisión vigente (12 %) y los pagos arrancan sin reembolsos.
+  const comisiones = (await q(antes, `select count(*)::int as n, count(*) filter (where commission_rate = 0.12)::int as doce from public.bookings`)).rows[0];
+  r.push([comisiones.n === 4 && comisiones.doce === 4, `las 4 reservas existentes quedan con la comisión de 12 % (${comisiones.doce} de ${comisiones.n})`]);
+  const sinReembolsos = (await q(antes, `select count(*)::int as n from public.payments where refunded_amount = 0`)).rows[0].n;
+  r.push([sinReembolsos === 2, "los pagos existentes arrancan con 0 reembolsado"]);
 
   // 0010: los datos privados se copiaron.
   const priv = (await q(antes, `select * from public.tutor_private where id = '${ids.docente}'`)).rows[0];
@@ -162,9 +168,11 @@ if (!falla) {
   const { readFileSync } = await import("node:fs");
   const { fileURLToPath } = await import("node:url");
   const root = fileURLToPath(new URL("../..", import.meta.url));
-  const gen = spawnSync(process.execPath, ["scripts/bundle-migrations.mjs"], { cwd: root, encoding: "utf8" });
+  const { readdirSync } = await import("node:fs");
+  const LAST = Math.max(...readdirSync(new URL("../migrations/", import.meta.url)).map((f) => Number(f.slice(0, 4))));
+  const gen = spawnSync(process.execPath, ["scripts/bundle-migrations.mjs", "6", String(LAST)], { cwd: root, encoding: "utf8" });
   r.push([gen.status === 0, "npm run db:bundle genera el archivo único"]);
-  const sql = readFileSync(fileURLToPath(new URL("../aplicar-0006-a-0010.sql", import.meta.url)), "utf8");
+  const sql = readFileSync(fileURLToPath(new URL(`../aplicar-0006-a-${String(LAST).padStart(4, "0")}.sql`, import.meta.url)), "utf8");
 
   const ok = await baseVieja();
   let aplicado = true;

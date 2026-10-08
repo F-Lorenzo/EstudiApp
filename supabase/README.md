@@ -14,11 +14,16 @@ pendiente (tarjeta "Setup de Supabase").
 3. Aplicar las migraciones (`supabase/migrations/0001` a `0010`) en el
    SQL Editor del dashboard. (Alternativa con la CLI: ver más abajo.)
 
-   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 10` genera
-   `supabase/aplicar-0001-a-0010.sql` (con `--compacto`, la misma versión sin
-   comentarios). Se pega entero y se corre una vez, dentro de una transacción.
+   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 11` genera
+   `supabase/aplicar-0001-a-0011.sql` (con `--compacto`, la misma versión sin
+   comentarios).
+
+   **Proyecto que ya tiene hasta la 0010** (el de EstudiApp hoy):
+   `npm run db:bundle -- 11 11` genera `supabase/aplicar-0011-a-0011.sql` con
+   los cimientos del cobro. Corré antes `supabase/checks/1-diagnostico.sql`:
+   su última fila te dice qué comando usar. Se pega entero y se corre una vez, dentro de una transacción.
    Una prueba automática (`supabase/tests/fresh-install.db.mjs`) comprueba que
-   el resultado es idéntico a aplicar las diez migraciones una por una.
+   el resultado es idéntico a aplicar todas las migraciones una por una.
 
    **Si el proyecto ya tiene las migraciones 0001 a 0005** (y datos), no
    hace falta pegar de a una: `npm run db:bundle` genera
@@ -119,8 +124,22 @@ las dos entradas `seed:demo*` de `package.json`.
   antes de borrar las columnas. La cuenta de Mercado Pago solo la puede
   fijar el backend (service role) o la administración. **Aplicala antes de
   guardar credenciales de cobro de cualquier docente.**
+- `0011_payments_foundation.sql`: cimientos del cobro con Mercado Pago (no
+  conecta con Mercado Pago ni cambia lo que puede hacer un alumno). La
+  comisión de la plataforma (12 %) pasa a una función y **cada reserva guarda
+  la tasa del momento en que se creó**, así que cambiarla más adelante (por
+  reputación) no toca las reservas hechas; `confirm_booking_payment` valida la
+  comisión contra esa tasa. Agrega la política de reembolsos
+  (`refund_percent`: 100 % con 24 h o más, 50 % con 2 h o más, 0 % después;
+  el docente y la administración, siempre 100 %), la cola de reembolsos
+  (`refunds`, con clave de idempotencia, y `mark_refund_result`), los tokens
+  de Mercado Pago de cada docente (`mp_credentials`, que ni el propio docente
+  puede leer) y los avisos de pago idempotentes (`begin_payment_event`,
+  `finish_payment_event`). `cancel_booking` no cambia: una reserva paga sigue
+  sin poder cancelarse hasta la 0012 (cancelación con reembolso). Detalle del
+  diseño en [docs/FASE-1-PLAN.md](../docs/FASE-1-PLAN.md).
 
-Las migraciones 0006 a 0010 se probaron con 250 comprobaciones (más la matriz de la RLS: 497 intentos por rol) en un Postgres real
+Las migraciones 0006 a 0011 se probaron con más de 300 comprobaciones (más la matriz de la RLS: 553 intentos por rol) en un Postgres real
 (roles anónimo, alumno, docente, administrador y service role; ver
 [tests/README.md](tests/README.md) y `npm run test:db`), pero **no contra tu
 proyecto de Supabase**: revisalas y probalas en un proyecto de prueba antes de

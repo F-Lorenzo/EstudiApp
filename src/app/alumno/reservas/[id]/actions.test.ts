@@ -119,11 +119,11 @@ describe("simulatePayment", () => {
       createAdminClient.mockReturnValue(admin.client);
 
       expect(await simulatePayment(BOOKING)).toEqual({ ok: true });
+      // No informa comisión: la base usa la que la reserva guardó al crearse.
       expect(admin.client.rpc).toHaveBeenCalledWith("confirm_booking_payment", {
         p_booking_id: BOOKING,
         p_provider_payment_id: `simulado-${BOOKING}`,
         p_amount: 12500,
-        p_commission: 0,
       });
     });
 

@@ -83,11 +83,11 @@ await expectHint("pago tardío CON barrido previo: not_pending", "service", () =
 let paid;
 await as(db, "alumno", async () => { paid = (await book(T(2))).rows[0].id; });
 await expectHint("monto distinto del precio: amount_mismatch", "service", () => q(`select public.confirm_booking_payment('${paid}', 'mp-x', 1, 0)`), "amount_mismatch");
-await expectHint("comisión mayor al monto: invalid_commission", "service", () => q(`select public.confirm_booking_payment('${paid}', 'mp-x', 8000, 9000)`), "invalid_commission");
-await expectHint("comisión negativa: invalid_commission", "service", () => q(`select public.confirm_booking_payment('${paid}', 'mp-x', 8000, -5)`), "invalid_commission");
-await as(db, "service", () => expectOk("pago correcto", q(`select public.confirm_booking_payment('${paid}', 'mp-ok', 8000, 800)`), r));
-await as(db, "service", () => expectOk("el MISMO pago repetido es idempotente", q(`select public.confirm_booking_payment('${paid}', 'mp-ok', 8000, 800)`), r));
-await expectHint("un SEGUNDO pago distinto sobre la misma reserva: duplicate_payment", "service", () => q(`select public.confirm_booking_payment('${paid}', 'mp-otro', 8000, 800)`), "duplicate_payment");
+await expectHint("comisión mayor al monto: commission_mismatch", "service", () => q(`select public.confirm_booking_payment('${paid}', 'mp-x', 8000, 9000)`), "commission_mismatch");
+await expectHint("comisión negativa: commission_mismatch", "service", () => q(`select public.confirm_booking_payment('${paid}', 'mp-x', 8000, -5)`), "commission_mismatch");
+await as(db, "service", () => expectOk("pago correcto", q(`select public.confirm_booking_payment('${paid}', 'mp-ok', 8000, 960)`), r));
+await as(db, "service", () => expectOk("el MISMO pago repetido es idempotente", q(`select public.confirm_booking_payment('${paid}', 'mp-ok', 8000, 960)`), r));
+await expectHint("un SEGUNDO pago distinto sobre la misma reserva: duplicate_payment", "service", () => q(`select public.confirm_booking_payment('${paid}', 'mp-otro', 8000, 960)`), "duplicate_payment");
 {
   const p = (await q(`select mercadopago_payment_id, amount from public.payments where booking_id = '${paid}'`)).rows[0];
   r.push([p.mercadopago_payment_id === "mp-ok" && Number(p.amount) === 8000, "el pago original no se tocó"]);

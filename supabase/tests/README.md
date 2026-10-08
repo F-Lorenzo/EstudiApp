@@ -15,10 +15,11 @@ npm run test:db -- bookings  # solo las que tengan «bookings» en el nombre
 | `bookings.db.mjs` | Reservas: crear, retener, vencer, cancelar y confirmar el pago; permisos de las funciones |
 | `hardening.db.mjs` | Un caso por cada hallazgo de las revisiones de seguridad (perfiles de docente, pagos tardíos, tope de reservas, visibilidad) |
 | `private-data.db.mjs` | Datos privados del docente (`tutor_private`) |
-| `rls-matrix.db.mjs` | **Auditoría completa de la RLS**: 71 pruebas × 7 roles (visitante, alumno, otro alumno, docente, otro docente, administración, service role) sobre todas las tablas y operaciones, más «RLS activada en cada tabla» y quién puede ejecutar cada función |
+| `rls-matrix.db.mjs` | **Auditoría completa de la RLS**: 79 pruebas × 7 roles (visitante, alumno, otro alumno, docente, otro docente, administración, service role) sobre todas las tablas y operaciones, más «RLS activada en cada tabla» y quién puede ejecutar cada función |
 | `upgrade-path.db.mjs` | Actualización de un proyecto **con datos**: aplica 0006 a 0010 sobre una base con las migraciones 0001 a 0005 y comprueba que no se pierde nada, que el archivo único (`npm run db:bundle`) se aplica de una vez y que, si falla, no queda nada a medias |
 | `seed-compat.db.mjs` | Que las escrituras de `scripts/seed-demo.mjs` sigan siendo válidas con el esquema actual |
-| `fresh-install.db.mjs` | Instalación desde cero: el archivo único `npm run db:bundle -- 1 10` (completo y compacto) sobre una base vacía deja un esquema IDÉNTICO (554 elementos comparados) al de las diez migraciones una por una, y la app anda encima |
+| `fresh-install.db.mjs` | Instalación desde cero: el archivo único `npm run db:bundle -- 1 <última>` (completo y compacto) sobre una base vacía deja un esquema IDÉNTICO (675 elementos comparados) al de todas las migraciones una por una, y la app anda encima |
+| `payments.db.mjs` | Cimientos del cobro (0011): política de reembolsos con la tabla de casos límite compartida con TypeScript, comisión y su foto en cada reserva, confirmación de pago, cola de reembolsos, avisos idempotentes y credenciales de Mercado Pago |
 | `checks.db.mjs` | Que las consultas de `supabase/checks` (diagnóstico y verificación para el SQL Editor) funcionen en cualquier estado de la base y digan lo correcto |
 
 ### La matriz de la RLS

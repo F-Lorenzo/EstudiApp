@@ -67,7 +67,16 @@ tickets del proyecto de diseño (el roadmap vigente es este archivo).
 
 ---
 
-## Fase 1 — Cobrar de verdad (núcleo del negocio)  ← siguiente
+## Fase 1 — Cobrar de verdad (núcleo del negocio)  ← en curso
+
+Diseño y plan de trabajo detallados en [docs/FASE-1-PLAN.md](docs/FASE-1-PLAN.md). Decisiones tomadas el
+8 de octubre de 2026: reembolso total con 24 h o más de anticipación, 50 % con 2 h o más, nada después
+(si cancela el docente, siempre total); comisión de 12 % que más adelante baja según la reputación del
+docente; emails con Resend. **Falta:** que se cree la cuenta y la aplicación de Mercado Pago
+([guía](docs/MERCADO-PAGO-CUENTA.md)).
+
+**Avance:** ✅ 1.1 cimientos en la base (migración `0011`: comisión con su foto en cada reserva,
+política de reembolsos, cola de reembolsos, tokens de Mercado Pago, avisos idempotentes), con pruebas.
 
 Objetivo: una clase reservada se paga con Mercado Pago, el pago confirma la reserva de forma
 segura y se puede devolver.
@@ -120,6 +129,9 @@ Objetivo: que el equipo pueda operar el producto sin tocar la base de datos.
 2. **Administración**: lista de rechazados con motivo y reapertura (con historial de decisiones),
    editor de banners e imágenes, métricas con datos reales.
 3. **Docente**: estado de la cuenta de Mercado Pago, historial y cobros.
+3b. **Comisión por reputación**: escalones según calificaciones (menos comisión cuanto mejores
+   referencias), administrables desde el panel. Diseño en [docs/FASE-1-PLAN.md](docs/FASE-1-PLAN.md);
+   necesita el formulario real de calificaciones de la Fase 2.
 4. **Modelo del docente ampliado**: años de experiencia, universidad, cantidad de reseñas.
 5. Auditoría de acciones de administración.
 

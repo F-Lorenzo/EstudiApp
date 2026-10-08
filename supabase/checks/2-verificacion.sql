@@ -101,30 +101,68 @@ begin
       and column_name in ('starts_at', 'ends_at') and is_nullable = 'NO'
   ), 'FALLA';
 
-  -- 12. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).
+  -- 12 a 15. Cimientos del cobro (migración 0011).
+  insert into _verificacion
+  select 12, 'cobro: los tokens de Mercado Pago (mp_credentials) no se leen ni se escriben desde la API',
+    case when to_regclass('public.mp_credentials') is null then false
+         else not has_table_privilege('anon', 'public.mp_credentials', 'select')
+          and not has_table_privilege('authenticated', 'public.mp_credentials', 'select')
+          and not has_table_privilege('authenticated', 'public.mp_credentials', 'insert')
+          and not has_table_privilege('authenticated', 'public.mp_credentials', 'update')
+          and not has_table_privilege('authenticated', 'public.mp_credentials', 'delete') end,
+    'FALLA';
+  insert into _verificacion
+  select 13, 'cobro: los reembolsos solo se leen desde la API (los escribe el backend)',
+    case when to_regclass('public.refunds') is null then false
+         else not has_table_privilege('anon', 'public.refunds', 'select')
+          and not has_table_privilege('authenticated', 'public.refunds', 'insert')
+          and not has_table_privilege('authenticated', 'public.refunds', 'update')
+          and not has_table_privilege('authenticated', 'public.refunds', 'delete') end,
+    'FALLA';
+  insert into _verificacion
+  select 14, 'cobro: solo el backend registra reembolsos y avisos de pago',
+    case when to_regprocedure('public.mark_refund_result(uuid, refund_status, text, text)') is null
+           or to_regprocedure('public.begin_payment_event(text, jsonb)') is null
+           or to_regprocedure('public.finish_payment_event(text, text)') is null then false
+         else not has_function_privilege('anon', 'public.mark_refund_result(uuid, refund_status, text, text)', 'execute')
+          and not has_function_privilege('authenticated', 'public.mark_refund_result(uuid, refund_status, text, text)', 'execute')
+          and not has_function_privilege('anon', 'public.begin_payment_event(text, jsonb)', 'execute')
+          and not has_function_privilege('authenticated', 'public.begin_payment_event(text, jsonb)', 'execute')
+          and not has_function_privilege('anon', 'public.finish_payment_event(text, text)', 'execute')
+          and not has_function_privilege('authenticated', 'public.finish_payment_event(text, text)', 'execute')
+          and has_function_privilege('service_role', 'public.mark_refund_result(uuid, refund_status, text, text)', 'execute') end,
+    'FALLA';
+  insert into _verificacion
+  select 15, 'cada reserva guarda su comisión (commission_rate obligatoria)', (
+    select count(*) = 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'bookings'
+      and column_name = 'commission_rate' and is_nullable = 'NO'
+  ), 'FALLA';
+
+  -- 16. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).
   if to_regclass('public.bookings') is not null then
     select count(*) into v_n from public.bookings b
     where b.status in ('confirmada', 'completada')
       and not exists (select 1 from public.payments p where p.booking_id = b.id and p.status = 'aprobado');
     insert into _verificacion values
-      (12, format('reservas confirmadas o completadas sin pago aprobado: %s', v_n), v_n = 0, 'REVISAR');
+      (16, format('reservas confirmadas o completadas sin pago aprobado: %s', v_n), v_n = 0, 'REVISAR');
   end if;
 
-  -- 13. Hay al menos una cuenta de administración.
+  -- 17. Hay al menos una cuenta de administración.
   if to_regclass('public.profiles') is not null then
     select count(*) into v_n from public.profiles where role = 'administrador';
     insert into _verificacion values
-      (13, format('cuentas de administración: %s', v_n), v_n > 0, 'REVISAR');
+      (17, format('cuentas de administración: %s', v_n), v_n > 0, 'REVISAR');
   end if;
 
-  -- 14. Cuentas del seed de demo viejo (su contraseña era pública).
+  -- 18. Cuentas del seed de demo viejo (su contraseña era pública).
   if exists (select 1 from information_schema.columns
              where table_schema = 'auth' and table_name = 'users' and column_name = 'email') then
     execute $q$ select count(*) from auth.users where email like '%.demo@estudiapp.test' $q$ into v_n;
     insert into _verificacion values
-      (14, format('cuentas de demo (*.demo@estudiapp.test): %s', v_n), v_n = 0, 'REVISAR');
+      (18, format('cuentas de demo (*.demo@estudiapp.test): %s', v_n), v_n = 0, 'REVISAR');
   else
-    insert into _verificacion values (14, 'cuentas de demo: no se pudo comprobar', null, 'REVISAR');
+    insert into _verificacion values (18, 'cuentas de demo: no se pudo comprobar', null, 'REVISAR');
   end if;
 end;
 $$;

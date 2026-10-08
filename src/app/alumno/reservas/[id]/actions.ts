@@ -84,7 +84,7 @@ export async function simulatePayment(bookingId: string): Promise<BookingActionR
     p_booking_id: booking.id,
     p_provider_payment_id: `simulado-${booking.id}`,
     p_amount: booking.price ?? 0,
-    p_commission: 0,
+    // Sin `p_commission`: la base usa la comisión que la reserva guardó al crearse (migración 0011).
   });
   if (error) return failed(booking.id, error);
 

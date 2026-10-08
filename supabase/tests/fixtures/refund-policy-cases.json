@@ -1,0 +1,14 @@
+[
+  { "caso": "con 3 días de anticipación", "minutesBefore": 4320, "tutorOrAdmin": false, "percent": 100 },
+  { "caso": "exactamente 24 h antes (el límite es inclusive)", "minutesBefore": 1440, "tutorOrAdmin": false, "percent": 100 },
+  { "caso": "un minuto después del límite de 24 h", "minutesBefore": 1439, "tutorOrAdmin": false, "percent": 50 },
+  { "caso": "12 h antes", "minutesBefore": 720, "tutorOrAdmin": false, "percent": 50 },
+  { "caso": "exactamente 2 h antes (el límite es inclusive)", "minutesBefore": 120, "tutorOrAdmin": false, "percent": 50 },
+  { "caso": "un minuto después del límite de 2 h", "minutesBefore": 119, "tutorOrAdmin": false, "percent": 0 },
+  { "caso": "30 minutos antes", "minutesBefore": 30, "tutorOrAdmin": false, "percent": 0 },
+  { "caso": "justo cuando empieza", "minutesBefore": 0, "tutorOrAdmin": false, "percent": 0 },
+  { "caso": "la clase ya empezó", "minutesBefore": -30, "tutorOrAdmin": false, "percent": 0 },
+  { "caso": "cancela el docente con 3 días", "minutesBefore": 4320, "tutorOrAdmin": true, "percent": 100 },
+  { "caso": "cancela el docente 30 minutos antes", "minutesBefore": 30, "tutorOrAdmin": true, "percent": 100 },
+  { "caso": "cancela la administración con la clase empezada", "minutesBefore": -30, "tutorOrAdmin": true, "percent": 100 }
+]

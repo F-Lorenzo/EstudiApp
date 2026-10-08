@@ -48,7 +48,12 @@ ${
 -- Es para un proyecto NUEVO y vacío. Si el proyecto ya tiene tablas de EstudiApp, no lo uses:
 -- corré supabase/checks/1-diagnostico.sql y seguí lo que diga.
 `
-    : `--
+    : from > 8
+      ? `--
+-- Se aplica sobre un proyecto que ya tiene las migraciones anteriores. Antes, corré
+-- supabase/checks/1-diagnostico.sql para comprobar que la primera que falta es la ${pad(from)}.
+`
+      : `--
 -- ANTES de correrlo, en un proyecto con datos, corré estas consultas en el SQL Editor:
 --
 --   1) Franjas duplicadas (la 0007 se corta si hay alguna):

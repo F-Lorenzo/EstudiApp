@@ -24,12 +24,12 @@ los mismos pasos en el real. Si el proyecto solo tiene datos de prueba, podés i
 
 1. Supabase → tu proyecto → **SQL Editor** → **New query**.
 2. Pegá el contenido de `supabase/checks/1-diagnostico.sql` y apretá **Run**.
-3. Te muestra qué migraciones (0001 a 0010) tiene y, en la **última fila, qué hacer**:
+3. Te muestra qué migraciones (0001 a 0011) tiene y, en la **última fila, qué hacer**:
 
 | La última fila dice… | Hacé esto |
 |---|---|
 | «aplicá supabase/aplicar-0006-a-0010.sql…» | Seguí con el paso 2. Es el caso esperado. |
-| «proyecto vacío…» | **Instalación desde cero**: corré `npm run db:bundle -- 1 10`, copiá todo `supabase/aplicar-0001-a-0010.sql` (o `npm run db:bundle -- 1 10 --compacto` para la versión sin comentarios), pegalo en el SQL Editor y Run. Con eso quedan las diez migraciones y **saltás directo al paso 4** (verificación). |
+| «proyecto vacío…» | **Instalación desde cero**: corré `npm run db:bundle -- 1 11`, copiá todo `supabase/aplicar-0001-a-0011.sql` (o `npm run db:bundle -- 1 11 --compacto` para la versión sin comentarios), pegalo en el SQL Editor y Run. Con eso quedan las diez migraciones y **saltás directo al paso 4** (verificación). |
 | «faltan algunas de 0001 a 0005…» | Aplicá solo las de 0001 a 0005 que dicen NO, en orden. Volvé a correr el diagnóstico. |
 | «nada: están todas…» | Saltá al paso 4. |
 | «estado mezclado…» | **No sigas.** Mandame el resultado completo del diagnóstico. |
