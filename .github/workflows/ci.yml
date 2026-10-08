@@ -25,6 +25,11 @@ jobs:
 
       - run: npm ci
 
+      # Falla si una dependencia que llega a producción tiene una vulnerabilidad alta o crítica.
+      # (Las de herramientas de desarrollo, como el lint, no llegan al sitio y no cortan el CI.)
+      - name: Vulnerabilidades en dependencias de producción
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Tipos
         run: npm run typecheck
 
