@@ -10,11 +10,19 @@
 // service role key por accidente):
 //   NEXT_PUBLIC_SUPABASE_URL
 //   SUPABASE_SERVICE_ROLE_KEY
+//   SEED_DEMO_CONFIRM   el host del proyecto (por ejemplo abcd1234.supabase.co). Es una
+//                       confirmación explícita: este script crea cuentas con datos falsos y
+//                       NUNCA debe correr contra producción.
+//
+// Opcional:
+//   SEED_DEMO_PASSWORD  contraseña de las cuentas de demo. Si no se define, se genera una
+//                       aleatoria en cada ejecución y se muestra solo en la consola.
 //
 // Para BORRAR el modo demo completo: alcanza con correr el --cleanup
 // de arriba y después borrar este archivo. No toca ninguna migración
 // ni tabla, solo filas.
 
+import { randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -27,11 +35,24 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
   process.exit(1);
 }
 
+const SUPABASE_HOST = new URL(SUPABASE_URL).host;
+if (process.env.SEED_DEMO_CONFIRM !== SUPABASE_HOST) {
+  console.error(
+    `Este script crea (o borra) cuentas de demo en ${SUPABASE_HOST}.\n` +
+      "Si es un proyecto de DESARROLLO, confirmalo repitiendo su host:\n" +
+      `  SEED_DEMO_CONFIRM=${SUPABASE_HOST}`,
+  );
+  process.exit(1);
+}
+
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const DEMO_PASSWORD = "Demo1234!";
+// Las cuentas de demo son públicas por definición (el repo lo es): la contraseña no puede estar
+// escrita acá. Se genera en cada ejecución, o se toma del entorno.
+const DEMO_PASSWORD =
+  process.env.SEED_DEMO_PASSWORD || randomBytes(15).toString("base64url");
 
 // --- Definición de los datos de mock -------------------------------------
 
@@ -155,12 +176,17 @@ async function seed() {
         bio: docente.bio,
         nivel_academico: docente.nivelAcademico,
         tarifa_por_clase: docente.tarifaPorClase,
-        contacto_verificacion: docente.contactoVerificacion,
         verification_status: docente.verificationStatus,
         rating_promedio: docente.verificationStatus === "aprobado" ? 4.5 : 0,
       })
       .eq("id", userId);
     if (tutorError) throw tutorError;
+
+    // El contacto es un dato privado (migración 0010): va a tutor_private.
+    const { error: privateError } = await supabase
+      .from("tutor_private")
+      .upsert({ id: userId, contacto_verificacion: docente.contactoVerificacion });
+    if (privateError) throw privateError;
 
     const subjectRows = docente.materias
       .map((name) => subjectIdByName.get(name))
@@ -218,7 +244,7 @@ async function seed() {
       // Slot futuro que vamos a reservar como "confirmada".
       { tutor_id: juanId, starts_at: addHours(now, 50), ends_at: addHours(now, 51), is_booked: true },
     ])
-    .select("id, tutor_id, starts_at, is_booked");
+    .select("id, tutor_id, starts_at, ends_at, is_booked");
   if (slotsError) throw slotsError;
 
   const pastSlot = slots.find((s) => s.tutor_id === mariaId && s.is_booked);
@@ -231,32 +257,50 @@ async function seed() {
   const { data: bookings, error: bookingsError } = await supabase
     .from("bookings")
     .insert([
+      // Desde la migración 0008 la reserva guarda su propio horario y precio.
       {
         student_id: sofiaId,
         tutor_id: mariaId,
         slot_id: pastSlot.id,
         status: "completada",
+        starts_at: pastSlot.starts_at,
+        ends_at: pastSlot.ends_at,
+        price: 2500,
       },
       {
         student_id: tomasId,
         tutor_id: juanId,
         slot_id: upcomingSlot.id,
         status: "confirmada",
+        starts_at: upcomingSlot.starts_at,
+        ends_at: upcomingSlot.ends_at,
+        price: 3000,
       },
     ])
     .select("id, student_id, tutor_id, status");
   if (bookingsError) throw bookingsError;
 
   const completedBooking = bookings.find((b) => b.status === "completada");
+  const confirmedBooking = bookings.find((b) => b.status === "confirmada");
 
-  console.log("Creando pago y reseña de ejemplo...");
-  const { error: paymentError } = await supabase.from("payments").insert({
-    booking_id: completedBooking.id,
-    status: "aprobado",
-    amount: 2500,
-    commission_amount: 250,
-    tutor_amount: 2250,
-  });
+  console.log("Creando pagos y reseña de ejemplo...");
+  // Una reserva confirmada siempre tiene su pago aprobado (así la ven las reglas de cancelación).
+  const { error: paymentError } = await supabase.from("payments").insert([
+    {
+      booking_id: completedBooking.id,
+      status: "aprobado",
+      amount: 2500,
+      commission_amount: 250,
+      tutor_amount: 2250,
+    },
+    {
+      booking_id: confirmedBooking.id,
+      status: "aprobado",
+      amount: 3000,
+      commission_amount: 300,
+      tutor_amount: 2700,
+    },
+  ]);
   if (paymentError) throw paymentError;
 
   const { error: ratingError } = await supabase.from("ratings").insert({
@@ -269,7 +313,8 @@ async function seed() {
   if (ratingError) throw ratingError;
 
   console.log("\nListo. Credenciales de demo (todas usan la misma contraseña):\n");
-  console.log(`  Contraseña: ${DEMO_PASSWORD}\n`);
+  console.log(`  Contraseña: ${DEMO_PASSWORD}`);
+  console.log("  (generada para esta ejecución: no se guarda en ningún archivo)\n");
   console.log("  Docentes aprobados:");
   for (const d of DOCENTES.filter((d) => d.verificationStatus === "aprobado")) {
     console.log(`    - ${d.email}`);

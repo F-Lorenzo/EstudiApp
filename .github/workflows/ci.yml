@@ -1,0 +1,41 @@
+name: CI
+
+# Corre en cada cambio a la rama principal y en cada pull request. No usa ningún secreto: las
+# pruebas de base de datos corren contra un Postgres en memoria, nunca contra Supabase.
+on:
+  push:
+    branches: [claude/google-docs-link-review-19lx7g, main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Pruebas unitarias
+        run: npm test
+
+      - name: Pruebas de la base de datos (RLS, reservas)
+        run: npm run test:db
+
+      - name: Build
+        run: npm run build

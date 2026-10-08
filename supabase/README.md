@@ -11,25 +11,33 @@ pendiente (tarjeta "Setup de Supabase").
    aprovisionarse).
 2. `cp .env.local.example .env.local` y completar `NEXT_PUBLIC_SUPABASE_URL`
    y `NEXT_PUBLIC_SUPABASE_ANON_KEY` desde Project Settings → API.
-3. Aplicar las migraciones (`supabase/migrations/0001` a `0009`) en el
+3. Aplicar las migraciones (`supabase/migrations/0001` a `0010`) en el
    SQL Editor del dashboard, en orden, pegando el contenido de cada
    archivo. (Alternativa con la CLI: ver más abajo.)
-4. Cargar datos de mock para la demo (ver `scripts/seed-demo.mjs`):
+4. Cargar datos de mock para la demo (ver `scripts/seed-demo.mjs`).
+   **Solo en un proyecto de desarrollo**: el script crea cuentas con datos
+   falsos y se niega a correr si no confirmás el host del proyecto.
 
    ```bash
-   NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run seed:demo
+   NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
+   SEED_DEMO_CONFIRM=<host del proyecto, por ejemplo abcd1234.supabase.co> \
+   npm run seed:demo
    ```
 
    La service role key está en Project Settings → API → service_role.
    No hace falta ponerla en `.env.local` para esto — pasarla solo en la
    línea de comando evita dejarla guardada en un archivo.
 5. `npm run dev` y entrar con cualquiera de las cuentas que imprime el
-   script (todas comparten la contraseña `Demo1234!`).
+   script. Todas comparten una contraseña **aleatoria que se genera en cada
+   ejecución** y se muestra solo en la consola (el repo es público, así que
+   no hay una contraseña fija). Para elegir una vos, definí
+   `SEED_DEMO_PASSWORD`.
 
-Para sacar los datos de mock después de la demo:
+Para sacar los datos de mock después de la demo (pide la misma confirmación):
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run seed:demo:cleanup
+NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
+SEED_DEMO_CONFIRM=<host del proyecto> npm run seed:demo:cleanup
 ```
 
 Eso borra únicamente los usuarios `*.demo@estudiapp.test` (y en cascada
@@ -90,10 +98,19 @@ las dos entradas `seed:demo*` de `package.json`.
   la 0008**: sin ella, el sistema de reservas cobraría a docentes que nadie
   revisó.
 
-Las migraciones 0006 a 0009 se probaron con 96 casos en un Postgres real
-(roles anónimo, alumno, docente, administrador y service role), pero **no
-contra tu proyecto de Supabase**: revisalas y probalas en un proyecto de
-prueba antes de aplicarlas en el real.
+- `0010_tutor_private_data.sql`: el contacto de verificación, el respaldo y
+  la cuenta de Mercado Pago de un docente salen de `tutor_profiles` (legible
+  por cualquiera con la clave pública) y pasan a `tutor_private`, que solo
+  lee el propio docente y la administración. Copia los datos existentes
+  antes de borrar las columnas. La cuenta de Mercado Pago solo la puede
+  fijar el backend (service role) o la administración. **Aplicala antes de
+  guardar credenciales de cobro de cualquier docente.**
+
+Las migraciones 0006 a 0010 se probaron con 134 casos en un Postgres real
+(roles anónimo, alumno, docente, administrador y service role; ver
+[tests/README.md](tests/README.md) y `npm run test:db`), pero **no contra tu
+proyecto de Supabase**: revisalas y probalas en un proyecto de prueba antes de
+aplicarlas en el real.
 
 ## Paso manual pendiente: asignar el rol administrador
 

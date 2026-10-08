@@ -74,12 +74,39 @@ export type TutorDetail = {
   tutor_subjects: { subjects: { name: string } | null }[];
 };
 
+type PrivateEmbed = {
+  credential_url: string | null;
+  contacto_verificacion: string | null;
+};
+
+type TutorDetailRow = Omit<TutorDetail, "credential_url" | "contacto_verificacion"> & {
+  tutor_private: PrivateEmbed | PrivateEmbed[] | null;
+};
+
+/**
+ * Ficha de un docente para la administración. El contacto y el respaldo viven en
+ * `tutor_private` (migración 0010), que solo lee la administración y el propio
+ * docente; acá se aplanan para que la pantalla no dependa de dónde se guardan.
+ */
 export async function getTutorDetail(supabase: SupabaseClient, tutorId: string) {
-  return supabase
+  const { data, error } = await supabase
     .from("tutor_profiles")
     .select(
-      "id, created_at, bio, nivel_academico, credential_url, tarifa_por_clase, contacto_verificacion, verification_status, verification_reason, profiles(full_name, avatar_url), tutor_subjects(subjects(name))",
+      "id, created_at, bio, nivel_academico, tarifa_por_clase, verification_status, verification_reason, profiles(full_name, avatar_url), tutor_subjects(subjects(name)), tutor_private(credential_url, contacto_verificacion)",
     )
     .eq("id", tutorId)
-    .single<TutorDetail>();
+    .maybeSingle<TutorDetailRow>();
+
+  if (!data) return { data: null, error };
+
+  const { tutor_private, ...tutor } = data;
+  const priv = Array.isArray(tutor_private) ? tutor_private[0] : tutor_private;
+  return {
+    data: {
+      ...tutor,
+      credential_url: priv?.credential_url ?? null,
+      contacto_verificacion: priv?.contacto_verificacion ?? null,
+    } satisfies TutorDetail,
+    error,
+  };
 }

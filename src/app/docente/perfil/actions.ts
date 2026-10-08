@@ -58,13 +58,26 @@ export async function updateTutorProfile(
     .update({
       bio,
       nivel_academico: nivelAcademico,
-      credential_url: credentialUrl || null,
       tarifa_por_clase: tarifaPorClase,
-      contacto_verificacion: contactoVerificacion,
     })
     .eq("id", user.id);
 
   if (tutorError) {
+    return { error: "No se pudieron guardar los cambios. Intentá de nuevo." };
+  }
+
+  // Contacto y respaldo van a la tabla privada (migración 0010). El upsert solo
+  // manda estas dos columnas: la cuenta de Mercado Pago no se toca desde acá.
+  const { error: privateError } = await supabase.from("tutor_private").upsert(
+    {
+      id: user.id,
+      credential_url: credentialUrl || null,
+      contacto_verificacion: contactoVerificacion,
+    },
+    { onConflict: "id" },
+  );
+
+  if (privateError) {
     return { error: "No se pudieron guardar los cambios. Intentá de nuevo." };
   }
 

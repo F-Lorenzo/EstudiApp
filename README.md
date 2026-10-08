@@ -17,13 +17,18 @@ npm run dev
 
 La app queda en <http://localhost:3000>. Para cargar datos de ejemplo (docentes, reservas) usá `npm run seed:demo`; las instrucciones están en `supabase/README.md`.
 
-Antes de entregar cambios:
+Antes de entregar cambios (el CI de GitHub corre lo mismo en cada cambio):
 
 ```bash
-npm run lint
-npx tsc --noEmit
+npm run check   # tipos + lint + pruebas unitarias + pruebas de la base de datos
 npm run build
 ```
+
+Las pruebas de la base de datos (`npm run test:db`) aplican las migraciones reales sobre un Postgres en memoria y comprueban la RLS rol por rol; no necesitan Supabase. Ver [supabase/tests](supabase/tests/README.md).
+
+## Hoja de ruta
+
+El proyecto se construye por fases, ordenadas por prioridad. Ver [ROADMAP.md](ROADMAP.md): ahora estamos en la **Fase 0 (bases sólidas)**; después, el cobro real con Mercado Pago.
 
 ## Qué funciona y qué es una vista de muestra
 
@@ -54,4 +59,4 @@ Black Forest `#023618`, Floral White `#FFFCF2`, Spicy Paprika `#EB5E28`, Oxidize
 
 ## Pendiente conocido
 
-Ver «Pendiente conocido» en [CLAUDE.md](CLAUDE.md). Lo más importante: **aplicar `supabase/migrations/0006_visibility_and_hardening.sql`** (sin ella el alumno no ve sus reservas y la RLS tiene huecos de seguridad), y construir reservas y pagos reales, sala de video, disponibilidad y gestión de contenido.
+Ver «Pendiente conocido» en [CLAUDE.md](CLAUDE.md) y el [ROADMAP](ROADMAP.md). Lo más importante: **aplicar las migraciones 0006 a 0010 en orden** (sin ellas el alumno no ve sus reservas y la RLS tiene huecos de seguridad), y construir reservas y pagos reales, sala de video, disponibilidad y gestión de contenido.

@@ -18,12 +18,20 @@ Este repo combina la funcionalidad (Supabase, roles, aprobación de docentes) co
 - Las mutaciones son server actions con validación Zod (`src/lib/validation`). Un campo que la base no tiene (años de experiencia, universidad) queda en `null` y la interfaz lo omite.
 - Las pantallas que todavía no tienen backend muestran `<SampleBanner>` y no persisten nada. Al conectarlas, quitá el banner.
 
+## Cómo se trabaja
+
+- El plan está en [ROADMAP.md](ROADMAP.md): fases ordenadas por prioridad de construcción, cada una con su criterio de salida. **No empieces trabajo de una fase posterior mientras la anterior tenga huecos de seguridad o sin pruebas.** Estado actual: Fase 0 (bases sólidas).
+- `npm run check` (tipos, lint, pruebas unitarias y de base de datos) tiene que pasar antes de fusionar; el CI de GitHub corre lo mismo.
+- Toda regla que mueve dinero o protege datos vive en la base (funciones y RLS) **y** tiene un caso en `supabase/tests` que intenta romperla.
+- Una migración que ya se aplicó en un proyecto real no se edita: se agrega una nueva. Las que todavía no se aplicaron en ninguno (0006 a 0010) se pueden corregir.
+- Los datos privados del docente (contacto, respaldo y cuenta de Mercado Pago) viven en `tutor_private`, nunca en `tutor_profiles`, que es legible por cualquiera.
+
 ## Pendiente conocido
 
 Base de datos (aplicar antes de usar la app con datos reales):
 
-- **Aplicá las migraciones 0006, 0007, 0008 y 0009 (`supabase/migrations`), en orden.** Sin la 0006 el alumno no ve sus reservas, la ficha de revisión del admin no muestra las materias, y cualquier usuario puede cambiarse el rol a administrador o aprobarse como docente desde la API de Supabase. Sin la 0009 cualquier cuenta puede crearse un perfil de docente ya «aprobado» (y la 0008 lo convierte en un camino de cobro). Se probaron con 96 casos en un Postgres real, pero no contra tu proyecto de Supabase: revisalas antes.
-- Sigue abierto: `tutor_profiles_select_public_when_approved` es por fila y expone todas las columnas de un docente aprobado, incluidas `contacto_verificacion`, `credential_url` y `mercadopago_account_id`. Cerrarlo exige mover esos datos a una tabla privada (o a una vista) y cambiar las consultas de la app.
+- **Aplicá las migraciones 0006, 0007, 0008, 0009 y 0010 (`supabase/migrations`), en orden.** Sin la 0006 el alumno no ve sus reservas, la ficha de revisión del admin no muestra las materias, y cualquier usuario puede cambiarse el rol a administrador o aprobarse como docente desde la API de Supabase. Sin la 0009 cualquier cuenta puede crearse un perfil de docente ya «aprobado» (y la 0008 lo convierte en un camino de cobro). Se probaron con 96 casos en un Postgres real, pero no contra tu proyecto de Supabase: revisalas antes.
+- Resuelto en la 0010: `tutor_profiles_select_public_when_approved` es por fila y exponía todas las columnas de un docente aprobado. El contacto, el respaldo y la cuenta de Mercado Pago pasaron a `tutor_private` (solo el dueño y la administración). Lo que queda público en `tutor_profiles` es a propósito: biografía, formación, tarifa, calificación y estado de verificación.
 - Las server actions de aprobar y rechazar verifican el rol en la app, pero la barrera real es la RLS.
 
 Funcional:

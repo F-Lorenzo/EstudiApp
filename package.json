@@ -7,6 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:db": "node supabase/tests/run.mjs",
+    "check": "npm run typecheck && npm run lint && npm test && npm run test:db",
     "seed:demo": "node scripts/seed-demo.mjs",
     "seed:demo:cleanup": "node scripts/seed-demo.mjs --cleanup"
   },
@@ -22,11 +26,13 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/node": "^24.19.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.3"
   }
 }

@@ -420,8 +420,8 @@ export function TeacherOnboarding({
                 <input
                   name="tarifaPorClase"
                   type="number"
-                  min="1"
-                  step="500"
+                  min="100"
+                  step="100"
                   placeholder="14500"
                   value={draft.tarifa}
                   onChange={(event) =>

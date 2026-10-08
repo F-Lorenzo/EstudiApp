@@ -12,6 +12,7 @@ export default async function PerfilDocentePage() {
   const [
     { data: profile },
     { data: tutorProfile },
+    { data: tutorPrivate },
     { data: subjects },
     { data: tutorSubjects },
   ] = await Promise.all([
@@ -23,10 +24,16 @@ export default async function PerfilDocentePage() {
     supabase
       .from("tutor_profiles")
       .select(
-        "bio, nivel_academico, credential_url, tarifa_por_clase, contacto_verificacion, verification_status, verification_reason",
+        "bio, nivel_academico, tarifa_por_clase, verification_status, verification_reason",
       )
       .eq("id", user!.id)
       .single(),
+    // Contacto y respaldo son privados (migración 0010): solo los lee su dueño.
+    supabase
+      .from("tutor_private")
+      .select("credential_url, contacto_verificacion")
+      .eq("id", user!.id)
+      .maybeSingle(),
     supabase.from("subjects").select("id, name").order("name"),
     supabase.from("tutor_subjects").select("subject_id").eq("tutor_id", user!.id),
   ]);
@@ -38,9 +45,9 @@ export default async function PerfilDocentePage() {
         avatarUrl: profile?.avatar_url ?? "",
         bio: tutorProfile?.bio ?? "",
         nivelAcademico: tutorProfile?.nivel_academico ?? "",
-        credentialUrl: tutorProfile?.credential_url ?? "",
+        credentialUrl: tutorPrivate?.credential_url ?? "",
         tarifaPorClase: Number(tutorProfile?.tarifa_por_clase) || 0,
-        contactoVerificacion: tutorProfile?.contacto_verificacion ?? "",
+        contactoVerificacion: tutorPrivate?.contacto_verificacion ?? "",
         selectedSubjectIds: (tutorSubjects ?? []).map((row) => row.subject_id),
       }}
       subjects={subjects ?? []}
