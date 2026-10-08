@@ -95,8 +95,9 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Todo menos los archivos estáticos y las imágenes de marca.
+  // Todo menos los archivos estáticos, las imágenes de marca y los avisos de Mercado Pago (los manda
+  // un servidor, sin sesión ni cookies: no tiene sentido consultar al usuario ni demorar la respuesta).
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|brand/|api/mercadopago/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map)$).*)",
   ],
 };

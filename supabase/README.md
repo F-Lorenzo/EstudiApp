@@ -11,16 +11,16 @@ pendiente (tarjeta "Setup de Supabase").
    aprovisionarse).
 2. `cp .env.local.example .env.local` y completar `NEXT_PUBLIC_SUPABASE_URL`
    y `NEXT_PUBLIC_SUPABASE_ANON_KEY` desde Project Settings → API.
-3. Aplicar las migraciones (`supabase/migrations/0001` a `0010`) en el
+3. Aplicar las migraciones (`supabase/migrations/0001` a `0012`) en el
    SQL Editor del dashboard. (Alternativa con la CLI: ver más abajo.)
 
-   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 11` genera
-   `supabase/aplicar-0001-a-0011.sql` (con `--compacto`, la misma versión sin
+   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 12` genera
+   `supabase/aplicar-0001-a-0012.sql` (con `--compacto`, la misma versión sin
    comentarios).
 
-   **Proyecto que ya tiene hasta la 0010** (el de EstudiApp hoy):
-   `npm run db:bundle -- 11 11` genera `supabase/aplicar-0011-a-0011.sql` con
-   los cimientos del cobro. Corré antes `supabase/checks/1-diagnostico.sql`:
+   **Proyecto que ya tiene hasta la 0011** (el de EstudiApp hoy):
+   `npm run db:bundle -- 12 12` genera `supabase/aplicar-0012-a-0012.sql` con
+   la decisión sobre los avisos de pago. Corré antes `supabase/checks/1-diagnostico.sql`:
    su última fila te dice qué comando usar. Se pega entero y se corre una vez, dentro de una transacción.
    Una prueba automática (`supabase/tests/fresh-install.db.mjs`) comprueba que
    el resultado es idéntico a aplicar todas las migraciones una por una.
@@ -136,10 +136,19 @@ las dos entradas `seed:demo*` de `package.json`.
   de Mercado Pago de cada docente (`mp_credentials`, que ni el propio docente
   puede leer) y los avisos de pago idempotentes (`begin_payment_event`,
   `finish_payment_event`). `cancel_booking` no cambia: una reserva paga sigue
-  sin poder cancelarse hasta la 0012 (cancelación con reembolso). Detalle del
+  sin poder cancelarse hasta la 0013 (cancelación con reembolso). Detalle del
   diseño en [docs/FASE-1-PLAN.md](../docs/FASE-1-PLAN.md).
+- `0012_payment_notifications.sql`: qué hace la base con cada pago que informa
+  Mercado Pago (`apply_payment_notification`). Confirma la reserva si el pago
+  es aceptable, encola el reembolso total si no se puede aceptar (retención
+  vencida, reserva cancelada, segundo pago, monto o moneda distintos, clase
+  empezada), deja para revisión lo raro (cuenta de cobro distinta, reembolsos
+  o contracargos hechos por fuera) y no hace nada ante repeticiones o avisos
+  fuera de orden. Incluye `enqueue_refund` (un solo reembolso por pago). Solo
+  las ejecuta la service role. No cambia lo que ven los usuarios; hace falta
+  recién cuando se conecte el webhook.
 
-Las migraciones 0006 a 0011 se probaron con más de 300 comprobaciones (más la matriz de la RLS: 553 intentos por rol) en un Postgres real
+Las migraciones 0006 a 0012 se probaron con más de 370 comprobaciones (más la matriz de la RLS: 553 intentos por rol) en un Postgres real
 (roles anónimo, alumno, docente, administrador y service role; ver
 [tests/README.md](tests/README.md) y `npm run test:db`), pero **no contra tu
 proyecto de Supabase**: revisalas y probalas en un proyecto de prueba antes de

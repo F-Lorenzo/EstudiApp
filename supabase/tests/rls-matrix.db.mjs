@@ -227,6 +227,10 @@ const FUNCIONES = [
   ["public.commission_rate_for(uuid)", ["authenticated", "service_role"]],
   ["public.booking_commission(numeric, numeric)", ["authenticated", "service_role"]],
   ["public.refund_percent(timestamptz, timestamptz, boolean)", ["authenticated", "service_role"]],
+  // 0012: las decisiones sobre los pagos las toma solo el backend.
+  ["public.apply_payment_notification(text, uuid, text, numeric, text, text, numeric)", ["service_role"]],
+  ["public.enqueue_refund(text, uuid, uuid, integer, numeric, text)", ["service_role"]],
+  ["public.refund_summary(public.refunds)", ["service_role"]], // ayudante interno; service_role conserva el permiso por defecto
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {

@@ -20,6 +20,7 @@ npm run test:db -- bookings  # solo las que tengan «bookings» en el nombre
 | `seed-compat.db.mjs` | Que las escrituras de `scripts/seed-demo.mjs` sigan siendo válidas con el esquema actual |
 | `fresh-install.db.mjs` | Instalación desde cero: el archivo único `npm run db:bundle -- 1 <última>` (completo y compacto) sobre una base vacía deja un esquema IDÉNTICO (675 elementos comparados) al de todas las migraciones una por una, y la app anda encima |
 | `payments.db.mjs` | Cimientos del cobro (0011): política de reembolsos con la tabla de casos límite compartida con TypeScript, comisión y su foto en cada reserva, confirmación de pago, cola de reembolsos, avisos idempotentes y credenciales de Mercado Pago |
+| `payment-notifications.db.mjs` | Avisos de pago (0012): cada resultado de `apply_payment_notification` (aprobado, pendiente, rechazado, tardío, duplicado, monto o moneda distintos, cuenta de cobro equivocada, reembolsos externos), idempotencia, curación de un reembolso de resultado incierto, que un error inesperado no se confunda con «pago no aceptable» y los permisos. Se le hicieron mutaciones para comprobar que las pruebas detectan cada regla rota |
 | `checks.db.mjs` | Que las consultas de `supabase/checks` (diagnóstico y verificación para el SQL Editor) funcionen en cualquier estado de la base y digan lo correcto |
 
 ### La matriz de la RLS

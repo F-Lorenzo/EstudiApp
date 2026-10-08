@@ -52,9 +52,10 @@ se prueba en el paso 1.5 antes de dar nada por cerrado.
 
 | Migración | Contenido | Estado |
 |---|---|---|
-| `0011_payments_foundation` | `commission_rate_for(docente)` (12 %) y su **foto en cada reserva** (`bookings.commission_rate`); `confirm_booking_payment` valida la comisión contra esa foto; `refund_percent()` con la política; tabla `refunds` (cola de reembolsos con clave de idempotencia); `payments.refunded_amount`; `mark_refund_result()`; `mp_credentials` (tokens, solo `service_role`); `begin_payment_event()` / `finish_payment_event()` para avisos idempotentes | En construcción |
-| `0012_cancel_with_refund` | `cancel_booking` deja de rechazar reservas pagas: calcula el reembolso según la política y lo encola. **Va junto con el ejecutor de reembolsos** (hasta que exista, una reserva paga no se puede cancelar: es la protección actual) | Después del ejecutor |
-| `0013_require_payout_account` | `create_booking` exige que el docente tenga la cuenta de cobro vinculada | Con el OAuth |
+| `0011_payments_foundation` | `commission_rate_for(docente)` (12 %) y su **foto en cada reserva** (`bookings.commission_rate`); `confirm_booking_payment` valida la comisión contra esa foto; `refund_percent()` con la política; tabla `refunds` (cola de reembolsos con clave de idempotencia); `payments.refunded_amount`; `mark_refund_result()`; `mp_credentials` (tokens, solo `service_role`); `begin_payment_event()` / `finish_payment_event()` para avisos idempotentes | ✅ Aplicada y verificada en el proyecto real |
+| `0012_payment_notifications` | `apply_payment_notification()`: **la base decide qué hacer con cada pago** que informa Mercado Pago (confirmar, reembolsar el 100 % lo que no se puede aceptar, dejar para revisar lo raro, no hacer nada ante repeticiones o avisos fuera de orden). `enqueue_refund()`: encola un reembolso una sola vez por pago (la usará también la cancelación). Solo `service_role` | ✅ Escrita y probada (73 comprobaciones + mutaciones). **Sin aplicar en el proyecto real:** hace falta recién para el paso 1.5 |
+| `0013_cancel_with_refund` | `cancel_booking` deja de rechazar reservas pagas: calcula el reembolso según la política y lo encola con `enqueue_refund`. **Va junto con el ejecutor de reembolsos** (hasta que exista, una reserva paga no se puede cancelar: es la protección actual) | Paso 1.6 |
+| `0014_require_payout_account` | `create_booking` exige que el docente tenga la cuenta de cobro vinculada | Paso 1.4 (se aplica después de vincular al menos un docente de prueba) |
 
 ## Flujos
 
@@ -64,13 +65,26 @@ preferencia con el token del docente (`external_reference` = id de la reserva, `
 Mercado Pago → vuelve a `/alumno/reservas/{id}` (pantalla «Estamos confirmando tu pago» que consulta el
 estado, sin confiar en los parámetros de la URL) → llega el aviso → `confirm_booking_payment`.
 
-**Aviso (webhook, `POST /api/mercadopago/webhook`).** Verificar firma → `begin_payment_event` (descarta
-duplicados ya procesados) → buscar al docente por `user_id` → consultar el pago con su token →
-según el estado: aprobado = confirmar (si falla, reembolso automático); rechazado = registrar (la reserva
-sigue pendiente y puede reintentar dentro de los 15 min); reembolsado/contracargo = actualizar `payments`
-→ `finish_payment_event`. Si algo falla por causas transitorias se responde 5xx para que Mercado Pago reintente.
+**Aviso (webhook, `POST /api/mercadopago/webhook`).** Verificar firma (si falta la clave o la firma no
+cierra, no se hace nada) → `begin_payment_event` (descarta duplicados ya procesados) → buscar el token
+del docente por el `user_id` del aviso → **consultar el pago con ese token** (el aviso solo es una pista)
+→ `apply_payment_notification` (la base decide, en una transacción) → `finish_payment_event`.
 
-**Cancelar y reembolsar** (migración 0012). `cancel_booking` calcula `refund_percent` (el docente y la
+La base responde una de estas cosas, y el servidor hace lo que corresponde:
+
+| Resultado | Qué pasó | Qué hace el servidor |
+|---|---|---|
+| `confirmada` / `ya_confirmada` | Pago aprobado y aceptable; o el mismo pago otra vez / un aviso viejo fuera de orden | Nada más. 200 |
+| `pendiente` / `rechazada` | Todavía no se acreditó, o se rechazó | Nada: la reserva sigue pendiente y el alumno puede reintentar dentro de los 15 min. 200 |
+| `reembolso_encolado` / `reembolso_existente` | Pago aprobado que **no se puede aceptar** (retención vencida, reserva cancelada, segundo pago de la misma reserva, monto o moneda distintos, clase empezada, reserva inexistente) | Ejecuta el reembolso total en Mercado Pago con la clave de idempotencia de la fila y anota el resultado. Si falla de forma pasajera: 500 (Mercado Pago reintenta) |
+| `reembolso_confirmado` | Un reembolso nuestro había quedado con resultado incierto y el aviso muestra que Mercado Pago ya devolvió el monto | Nada más (se da por hecho) |
+| `requiere_revision` | Cuenta de cobro desconocida o distinta a la del docente de la reserva, reembolso o contracargo hecho por fuera de la app, monto inválido, estado desconocido | **No toca plata.** Queda anotado en `payment_webhook_events.process_error` (con `processed_at` vacío). 200 |
+| error de la base o de Mercado Pago | Falla pasajera | 500: Mercado Pago reintenta a los 15 min, 30 min, 6 h, 48 h y 96 h |
+
+Cada entrega distinta (otra acción, otra marca de tiempo) es un evento distinto: nunca se descarta un
+aviso nuevo por parecerse a uno anterior. Repetir uno cerrado no hace nada.
+
+**Cancelar y reembolsar** (migración 0013). `cancel_booking` calcula `refund_percent` (el docente y la
 administración siempre 100 %), libera el horario si todavía es futuro y encola la fila de `refunds`; el
 servidor ejecuta el reembolso en Mercado Pago con la clave de idempotencia y llama a
 `mark_refund_result`. Un barrido reintenta los reembolsos pendientes o fallidos. La pantalla le dice
@@ -110,18 +124,53 @@ Idea: **cuanto mejores referencias tiene el docente, menos comisión paga.**
 
 | # | Trabajo | Necesita |
 |---|---|---|
-| 1.1 | Migración `0011` + pruebas + matriz de RLS | Nada |
-| 1.2 | Cliente de Mercado Pago tipado (preferencias, pagos, reembolsos, OAuth) con clave de idempotencia y reintentos; verificación de firma del aviso; interfaz de proveedor con una versión simulada para pruebas | Nada |
-| 1.3 | Ruta del webhook y su procesamiento, probados con el proveedor simulado (pago aprobado, rechazado, duplicado, tardío, fuera de orden, firma inválida, reintentos) | Nada |
-| 1.4 | Vinculación del docente (OAuth), cifrado de tokens, renovación, `0013` | Aplicación de Mercado Pago creada (paso 1 a 5 de la guía) |
-| 1.5 | «Pagar con Mercado Pago» y pantalla de retorno; **prueba de punta a punta en sandbox** (comprador y vendedor de prueba) y verificación de los puntos abiertos de arriba | Claves de prueba cargadas, webhook configurado |
-| 1.6 | Cancelación con reembolso (`0012`), ejecutor y barrido de reembolsos; textos de la política en la pantalla y en `/cancelacion` | Sandbox |
+| 1.1 ✅ | Migración `0011` + pruebas + matriz de RLS | Nada |
+| 1.2 ✅ | Cliente de Mercado Pago tipado (preferencias, pagos, reembolsos, OAuth) con clave de idempotencia y reintentos; verificación de firma del aviso; cifrado de tokens (AES-GCM); interfaz de proveedor con una versión simulada para pruebas. En `src/lib/payments` | Nada |
+| 1.3 ✅ | Ruta del webhook y su procesamiento + migración `0012`, probados con el proveedor simulado y un Postgres real (pago aprobado, rechazado, duplicado, tardío, fuera de orden, firma inválida, reintentos, cuenta distinta, reembolso con falla pasajera) | Nada |
+| 1.4 | Vinculación del docente (OAuth: ruta de retorno, guardado cifrado, renovación), `0014` | Aplicación de Mercado Pago creada (paso 1 a 5 de la guía) |
+| 1.5 | «Pagar con Mercado Pago» (`createCheckout` ya existe en el cliente) y pantalla de retorno; **aplicar la `0012`**; **prueba de punta a punta en sandbox** (comprador y vendedor de prueba) y verificación de los puntos abiertos de abajo | Claves de prueba cargadas, webhook configurado |
+| 1.6 | Cancelación con reembolso (`0013`), barrido de reembolsos pendientes o fallidos (el ejecutor `executeRefund` ya existe); textos de la política en la pantalla y en `/cancelacion` | Sandbox |
 | 1.7 | Emails con Resend: reserva confirmada, nueva reserva al docente, pago recibido | Dominio verificado y API key |
 | 1.8 | Revisión adversarial del dinero, retiro del pago simulado fuera de desarrollo, pruebas de pagos duplicados/tardíos/rechazados, cierre de la fase | Todo lo anterior |
 
 **Criterio de salida de la fase** (de [ROADMAP.md](../ROADMAP.md)): con cuentas de prueba, una reserva se
 paga, la confirma el webhook, el docente queda acreditado con la comisión descontada y una cancelación
 dentro del plazo devuelve el dinero; probado además con pagos duplicados, tardíos y rechazados.
+
+## Qué está probado y qué no (al terminar los pasos 1.2 y 1.3)
+
+**Probado** (275 pruebas unitarias, 11 suites de base de datos, mutaciones sobre la `0012`):
+
+- Las reglas del dinero en un Postgres real: cada resultado de `apply_payment_notification`, idempotencia, que un
+  error inesperado no se confunda con «pago no aceptable», permisos (solo `service_role`).
+- El recorrido completo del aviso (firma → registro → consulta → base → reembolso → cierre) contra un
+  proveedor **simulado** y la base real, incluidos reintentos, fallas pasajeras y avisos repetidos o desordenados.
+- El cliente de Mercado Pago contra respuestas **escritas a mano** según la documentación: formato de los
+  pedidos, reintentos, que el OAuth nunca reintente solo, que ningún error muestre un token.
+- La firma, contra valores calculados aparte con `openssl`.
+
+**No probado contra Mercado Pago real** (se verifica en el paso 1.5 con la cuenta de prueba):
+
+- Que los pedidos y respuestas reales coincidan con lo que dice la documentación (campos, `collector_id`, formato de fechas de
+  la preferencia, el aviso trayendo `user_id`).
+- Que la firma real coincida con el formato documentado, y si los reintentos de un mismo aviso conservan la marca de tiempo.
+- Con qué token se hace el reembolso (el código usa el del docente), qué pasa con la tarifa de Mercado Pago al reembolsar, y
+  si «tarjeta» funciona en el modelo marketplace.
+
+## Puntos abiertos (decisiones o mejoras detectadas al construir)
+
+1. **Pago a tiempo con aviso tardío.** Hoy `confirm_booking_payment` compara contra la hora en que **llega** el aviso: si el alumno paga
+   al minuto 14 y el aviso llega al minuto 16, el pago se reembolsa solo aunque haya sido a tiempo. Es seguro (nunca se queda con plata
+   sin dar la clase) pero molesto. Propuesta: aceptar si la fecha de aprobación del pago cae dentro de los 15 minutos y el horario
+   sigue siendo de esa reserva. Requiere una migración y es una decisión de producto.
+2. **Reembolsos y contracargos hechos por fuera de la app** (el docente reembolsa desde Mercado Pago, o el alumno desconoce el cobro):
+   hoy solo quedan marcados «requiere revisión»; no se actualiza el pago ni la reserva. Falta definir qué pasa con la clase.
+3. **Pago rechazado visible para el alumno.** La base no guarda los intentos rechazados; la pantalla de retorno (1.5) podrá consultar el estado
+   directamente a Mercado Pago para decirle «tu pago fue rechazado, probá con otro medio».
+4. **Un reembolso por pago.** `refunds.mercadopago_payment_id` es único: por política hay un solo reembolso por pago. Si alguna vez hiciera falta
+   uno parcial y después otro, hay que cambiar esa restricción.
+5. **Token de reembolso.** Si Mercado Pago exige el token de la plataforma en vez del del docente, solo cambia qué token recibe
+   `executeRefund`; hay que dejar guardado el de la plataforma en una variable de entorno.
 
 ## Qué necesito de vos
 

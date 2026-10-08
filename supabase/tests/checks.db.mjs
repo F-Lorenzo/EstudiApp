@@ -17,13 +17,14 @@ async function correr(db, sql) {
 }
 
 // --- Diagnóstico en cada estado ------------------------------------------------------------------------
-const TODAS = ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010", "0011"];
+const TODAS = ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010", "0011", "0012"];
 const casos = [
-  [0, [], /proyecto vacío: corré «npm run db:bundle -- 1 11»/],
-  [3, TODAS.slice(0, 3), /faltan de la 0004 en adelante: corré «npm run db:bundle -- 4 11»/],
-  [5, TODAS.slice(0, 5), /faltan de la 0006 en adelante: corré «npm run db:bundle -- 6 11»/],
-  [7, TODAS.slice(0, 7), /faltan de la 0008 en adelante: corré «npm run db:bundle -- 8 11»/],
-  [10, TODAS.slice(0, 10), /faltan de la 0011 en adelante: corré «npm run db:bundle -- 11 11» y pegá supabase\/aplicar-0011-a-0011\.sql/],
+  [0, [], /proyecto vacío: corré «npm run db:bundle -- 1 12»/],
+  [3, TODAS.slice(0, 3), /faltan de la 0004 en adelante: corré «npm run db:bundle -- 4 12»/],
+  [5, TODAS.slice(0, 5), /faltan de la 0006 en adelante: corré «npm run db:bundle -- 6 12»/],
+  [7, TODAS.slice(0, 7), /faltan de la 0008 en adelante: corré «npm run db:bundle -- 8 12»/],
+  [10, TODAS.slice(0, 10), /faltan de la 0011 en adelante: corré «npm run db:bundle -- 11 12» y pegá supabase\/aplicar-0011-a-0012\.sql/],
+  [11, TODAS.slice(0, 11), /faltan de la 0012 en adelante: corré «npm run db:bundle -- 12 12» y pegá supabase\/aplicar-0012-a-0012\.sql/],
   [999, TODAS, /nada: están todas/],
 ];
 for (const [upTo, esperadas, consejo] of casos) {
@@ -49,12 +50,12 @@ for (const [upTo, esperadas, consejo] of casos) {
   await seed(db);
   const filas = await correr(db, VERIFICACION);
   const por = Object.fromEntries(filas.map((f) => [f.orden, f]));
-  const migracionesOk = filas.filter((f) => f.orden <= 15).every((f) => f.resultado === "OK");
-  r.push([migracionesOk && filas.length === 18, `verificación completa: las 15 comprobaciones de migraciones dan OK (${filas.length} filas)`]);
+  const migracionesOk = filas.filter((f) => f.orden <= 16).every((f) => f.resultado === "OK");
+  r.push([migracionesOk && filas.length === 19, `verificación completa: las 16 comprobaciones de migraciones dan OK (${filas.length} filas)`]);
   // El seed de las pruebas tiene una reserva «confirmada» sin pago: la verificación tiene que verla.
-  r.push([por[16].resultado === "REVISAR", `detecta reservas confirmadas sin pago: ${por[16].comprobacion} → ${por[16].resultado}`]);
-  r.push([por[17].resultado === "OK", `ve la cuenta de administración: ${por[17].comprobacion}`]);
-  r.push([por[18].resultado === "NO SE PUDO COMPROBAR", "sin columna email en auth.users no se rompe (no se pudo comprobar)"]);
+  r.push([por[17].resultado === "REVISAR", `detecta reservas confirmadas sin pago: ${por[17].comprobacion} → ${por[17].resultado}`]);
+  r.push([por[18].resultado === "OK", `ve la cuenta de administración: ${por[18].comprobacion}`]);
+  r.push([por[19].resultado === "NO SE PUDO COMPROBAR", "sin columna email en auth.users no se rompe (no se pudo comprobar)"]);
 
   // Con el pago y con auth.users como en Supabase (con email), y una cuenta de demo vieja.
   await db.exec(`
@@ -63,8 +64,8 @@ for (const [upTo, esperadas, consejo] of casos) {
     insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000ee', 'maria.gonzalez.demo@estudiapp.test');
   `);
   const filas2 = Object.fromEntries((await correr(db, VERIFICACION)).map((f) => [f.orden, f]));
-  r.push([filas2[16].resultado === "OK", "con el pago registrado, la comprobación de reservas da OK"]);
-  r.push([filas2[18].resultado === "REVISAR", `detecta cuentas del seed viejo: ${filas2[18].comprobacion}`]);
+  r.push([filas2[17].resultado === "OK", "con el pago registrado, la comprobación de reservas da OK"]);
+  r.push([filas2[19].resultado === "REVISAR", `detecta cuentas del seed viejo: ${filas2[19].comprobacion}`]);
 }
 
 // --- Verificación sin la 0010: tiene que avisar, no romperse ------------------------------------------------
@@ -79,18 +80,24 @@ for (const [upTo, esperadas, consejo] of casos) {
   if (filas) {
     const fallas = filas.filter((f) => f.resultado === "FALLA").map((f) => f.orden);
     r.push([
-      JSON.stringify(fallas) === JSON.stringify([2, 3, 4, 9, 12, 13, 14, 15]),
-      `sin la 0010 ni la 0011 marca FALLA en datos privados, guardas y cobro (filas ${fallas.join(", ")})`,
+      JSON.stringify(fallas) === JSON.stringify([2, 3, 4, 9, 12, 13, 14, 15, 16]),
+      `sin la 0010, la 0011 ni la 0012 marca FALLA en datos privados, guardas y cobro (filas ${fallas.join(", ")})`,
     ]);
   }
 }
 
-// --- Verificación con 0001 a 0010 (falta solo la 0011) -------------------------------------------------------
-{
-  const db = await makeDb({ upTo: 10 });
+// --- Verificación con 0001 a 0010 (faltan la 0011 y la 0012) y con 0001 a 0011 (falta solo la 0012) -------------
+for (const [upTo, esperadas] of [
+  [10, [12, 13, 14, 15, 16]],
+  [11, [16]],
+]) {
+  const db = await makeDb({ upTo });
   const filas = await correr(db, VERIFICACION);
   const fallas = filas.filter((f) => f.resultado === "FALLA").map((f) => f.orden);
-  r.push([JSON.stringify(fallas) === JSON.stringify([12, 13, 14, 15]), `con 0001 a 0010 solo marca FALLA el cobro (filas ${fallas.join(", ")})`]);
+  r.push([
+    JSON.stringify(fallas) === JSON.stringify(esperadas),
+    `con 0001 a ${String(upTo).padStart(4, "0")} solo marca FALLA el cobro (filas ${fallas.join(", ")})`,
+  ]);
 }
 
 // --- Diagnóstico con un hueco: 0008 aplicada pero no la 0007 ---------------------------------------------------

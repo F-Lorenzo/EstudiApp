@@ -21,7 +21,9 @@ with estado(n, nombre, aplicada) as (
     (8, '0008 sistema de reservas', to_regprocedure('public.sync_bookings()') is not null),
     (9, '0009 guardas al crear docentes', to_regprocedure('public.is_docente()') is not null),
     (10, '0010 datos privados del docente', to_regclass('public.tutor_private') is not null),
-    (11, '0011 cimientos del cobro (comisión, reembolsos, credenciales)', to_regclass('public.refunds') is not null)
+    (11, '0011 cimientos del cobro (comisión, reembolsos, credenciales)', to_regclass('public.refunds') is not null),
+    (12, '0012 avisos de pago (qué hacer con cada pago)',
+        to_regprocedure('public.apply_payment_notification(text, uuid, text, numeric, text, text, numeric)') is not null)
 ),
 -- Primera migración que falta, y si desde ahí faltan TODAS las siguientes (un tramo limpio).
 resumen as (

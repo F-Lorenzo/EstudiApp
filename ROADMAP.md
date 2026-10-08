@@ -75,8 +75,12 @@ Diseño y plan de trabajo detallados en [docs/FASE-1-PLAN.md](docs/FASE-1-PLAN.m
 docente; emails con Resend. **Falta:** que se cree la cuenta y la aplicación de Mercado Pago
 ([guía](docs/MERCADO-PAGO-CUENTA.md)).
 
-**Avance:** ✅ 1.1 cimientos en la base (migración `0011`: comisión con su foto en cada reserva,
-política de reembolsos, cola de reembolsos, tokens de Mercado Pago, avisos idempotentes), con pruebas.
+**Avance:** ✅ 1.1 cimientos en la base (migración `0011`, ya aplicada: comisión con su foto en cada
+reserva, política de reembolsos, cola de reembolsos, tokens de Mercado Pago, avisos idempotentes), con
+pruebas. ✅ 1.2 y 1.3 (sin credenciales, probados contra un proveedor simulado): cliente de Mercado Pago
+tipado, verificación de la firma de los avisos, cifrado de tokens, webhook y la migración `0012` (la base
+decide qué hacer con cada pago: confirmar, reembolsar solo lo que no se puede aceptar, o dejarlo para
+revisar). **Todavía sin probar contra Mercado Pago real.**
 
 Objetivo: una clase reservada se paga con Mercado Pago, el pago confirma la reserva de forma
 segura y se puede devolver.
