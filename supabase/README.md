@@ -12,8 +12,13 @@ pendiente (tarjeta "Setup de Supabase").
 2. `cp .env.local.example .env.local` y completar `NEXT_PUBLIC_SUPABASE_URL`
    y `NEXT_PUBLIC_SUPABASE_ANON_KEY` desde Project Settings → API.
 3. Aplicar las migraciones (`supabase/migrations/0001` a `0010`) en el
-   SQL Editor del dashboard, en orden, pegando el contenido de cada
-   archivo. (Alternativa con la CLI: ver más abajo.)
+   SQL Editor del dashboard. (Alternativa con la CLI: ver más abajo.)
+
+   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 10` genera
+   `supabase/aplicar-0001-a-0010.sql` (con `--compacto`, la misma versión sin
+   comentarios). Se pega entero y se corre una vez, dentro de una transacción.
+   Una prueba automática (`supabase/tests/fresh-install.db.mjs`) comprueba que
+   el resultado es idéntico a aplicar las diez migraciones una por una.
 
    **Si el proyecto ya tiene las migraciones 0001 a 0005** (y datos), no
    hace falta pegar de a una: `npm run db:bundle` genera
