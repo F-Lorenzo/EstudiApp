@@ -26,6 +26,14 @@ Este repo combina la funcionalidad (Supabase, roles, aprobación de docentes) co
 - Una migración que ya se aplicó en un proyecto real no se edita: se agrega una nueva. Las que todavía no se aplicaron en ninguno (0006 a 0010) se pueden corregir.
 - Los datos privados del docente (contacto, respaldo y cuenta de Mercado Pago) viven en `tutor_private`, nunca en `tutor_profiles`, que es legible por cualquiera.
 
+## Versiones (actualizadas al 8 de octubre de 2026)
+
+Todo está en la última versión estable, con tres excepciones a propósito:
+
+- **TypeScript 6.0.3, no 7.** Con TypeScript 7 el build y `tsc` funcionan, pero el lint se rompe: `typescript-eslint` (que trae `eslint-config-next`) solo soporta hasta la 6.0.x. Subir a la 7 cuando `typescript-eslint` lo soporte (`npm ls typescript` no debe mostrar «invalid»).
+- **Node 24 (LTS), no 26.** La 26 todavía es «Current». `@types/node` sigue en la 24 para coincidir con lo que corre. Pasar a la 26 cuando sea LTS y Vercel la ofrezca.
+- **ESLint 10 con aviso de npm.** Tres plugins que trae `eslint-config-next` (`import`, `jsx-a11y`, `react`) todavía no declaran soporte para ESLint 10 y npm avisa «overriding peer dependency». Se comprobó que sus reglas siguen funcionando (hooks, `key`, `alt`, `<img>`). Si alguna vez el lint falla de forma rara, la primera sospecha es esta: volver a ESLint 9 es `npm install -D eslint@9`.
+
 ## Pendiente conocido
 
 Base de datos (aplicar antes de usar la app con datos reales):
