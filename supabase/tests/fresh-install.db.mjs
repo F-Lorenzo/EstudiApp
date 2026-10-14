@@ -1,6 +1,6 @@
 // Instalación desde cero: un proyecto de Supabase NUEVO y vacío recibe el archivo único
-// (`npm run db:bundle -- 1 10`, con y sin comentarios). El resultado tiene que ser EXACTAMENTE el
-// mismo que aplicar las diez migraciones una por una, y la app tiene que andar encima.
+// (`npm run db:bundle -- 1 <última>`, con y sin comentarios). El resultado tiene que ser EXACTAMENTE el
+// mismo que aplicar todas las migraciones una por una, y la app tiene que andar encima.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -59,7 +59,7 @@ async function huella(db) {
   return (await q(db, HUELLA)).rows.map((x) => `${x.tipo}|${x.dato}`);
 }
 
-// Camino de referencia: las diez migraciones, una por una.
+// Camino de referencia: todas las migraciones, una por una.
 const referencia = await makeDb();
 const huellaReferencia = await huella(referencia);
 
@@ -84,7 +84,31 @@ for (const [nombre, sql] of [["completo", COMPLETO], ["compacto", COMPACTO]]) {
   const diag = (await db.exec(leer("../checks/1-diagnostico.sql"))).at(-1).rows;
   r.push([/nada: están todas/.test(diag.at(-1).migracion), `el diagnóstico dice que están todas (${nombre})`]);
   const verif = (await db.exec(leer("../checks/2-verificacion.sql"))).at(-1).rows;
-  r.push([verif.filter((f) => f.orden <= 15).every((f) => f.resultado === "OK"), `la verificación da OK en las filas 1 a 15 (${nombre})`]);
+  r.push([verif.filter((f) => f.orden <= 19).every((f) => f.resultado === "OK"), `la verificación da OK en las filas 1 a 19 (${nombre})`]);
+}
+
+// --- Tramos finales: un proyecto que ya tiene parte de las migraciones y DATOS recibe solo las que faltan --------
+//   (el de EstudiApp hoy tiene hasta la 0011; el README recomienda aplicar 12–13 y, tras vincular un docente, 14–15)
+for (const [desde, tiene] of [[12, 11], [13, 12], [14, 13], [15, 14]]) {
+  const pad = (n) => String(n).padStart(4, "0");
+  r.push([generar(String(desde), String(LAST)), `npm run db:bundle -- ${desde} ${LAST} genera el tramo final`]);
+  const sql = leer(`../aplicar-${pad(desde)}-a-${N}.sql`);
+  const db = await makeDb({ upTo: tiene });
+  await seed(db);
+  const reservas = (await q(db, "select count(*)::int as n from public.bookings")).rows[0].n;
+  let ok = true;
+  try {
+    await db.exec(sql);
+  } catch (e) {
+    ok = false;
+    console.log(e.message);
+  }
+  r.push([ok, `...y se aplica de una vez sobre una base con 0001 a ${pad(tiene)} y datos`]);
+  if (!ok) continue;
+  const h = await huella(db);
+  const distintas = [...h.filter((x) => !huellaReferencia.includes(x)), ...huellaReferencia.filter((x) => !h.includes(x))];
+  r.push([distintas.length === 0, `...y el esquema queda IDÉNTICO al de todas las migraciones una por una${distintas.length ? " · difieren: " + distintas.slice(0, 3).join(" ; ") : ""}`]);
+  r.push([(await q(db, "select count(*)::int as n from public.bookings")).rows[0].n === reservas, "...sin perder ninguna reserva"]);
 }
 
 // --- La app anda sobre la instalación nueva (se usa el archivo compacto) ---------------------------------

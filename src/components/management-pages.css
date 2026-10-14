@@ -2441,3 +2441,119 @@
   outline: 2px solid var(--orange);
   outline-offset: 1px;
 }
+
+/* Cuenta de cobro del docente: aviso del resultado, recordatorio y confirmación para desvincular. */
+.mgmt-payout-notice,
+.mgmt-payout-nudge {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 24px;
+  padding: 14px 16px;
+  border: 1px solid #c8d4b9;
+  border-radius: 8px;
+  background: #e9eddd;
+  color: var(--ink);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.mgmt-payout-notice p,
+.mgmt-payout-nudge p {
+  flex: 1 1 220px;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.mgmt-payout-notice-info {
+  background: #f7f5ec;
+  border-color: var(--line);
+}
+.mgmt-payout-notice-error {
+  background: #f9e9e0;
+  border-color: #e5c5b2;
+}
+.mgmt-payout-nudge {
+  flex-wrap: wrap;
+  background: #f7ecd5;
+  border-color: #e9d6ac;
+}
+.mgmt-payout-notice-symbol {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.mgmt-payout-notice-error .mgmt-payout-notice-symbol {
+  color: var(--rust);
+}
+.mgmt-payout-notice-close {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  margin: -10px -10px -10px 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.mgmt-payout-notice-close:hover {
+  background: rgba(2, 54, 24, 0.08);
+}
+.mgmt-payout-nudge .mgmt-text-button {
+  flex-shrink: 0;
+}
+.mgmt-payout-cta {
+  max-width: 100%;
+  gap: 10px;
+  text-align: center;
+  white-space: normal;
+}
+.mgmt-payout-confirm {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--cream);
+  color: var(--ink);
+}
+.mgmt-payout-confirm > strong {
+  font-size: 0.9rem;
+}
+.mgmt-payout-confirm > p {
+  margin: 0;
+  font-size: 0.8rem;
+}
+.mgmt-payout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.mgmt-payout-done {
+  font-weight: 650;
+  color: var(--forest);
+}
+.mgmt-payment-form > .mgmt-field-error {
+  margin: 0;
+}
+@media (max-width: 480px) {
+  .mgmt-payment-form > .mgmt-button,
+  .mgmt-payout-actions > .mgmt-button {
+    width: 100%;
+  }
+  .mgmt-payout-nudge .mgmt-text-button {
+    padding-left: 36px;
+  }
+}

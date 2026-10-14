@@ -20,9 +20,12 @@ if (files.length === 0) {
 let failed = 0;
 for (const file of files) {
   console.log(`\n=== ${file} ===`);
-  const result = spawnSync(process.execPath, [fileURLToPath(new URL(file, import.meta.url))], {
-    stdio: "inherit",
-  });
+  // Algunas suites importan código TypeScript de src/ (Node 24 lo lee directo); el aviso es por el package.json sin "type".
+  const result = spawnSync(
+    process.execPath,
+    ["--disable-warning=MODULE_TYPELESS_PACKAGE_JSON", fileURLToPath(new URL(file, import.meta.url))],
+    { stdio: "inherit" },
+  );
   if (result.status !== 0) failed++;
 }
 

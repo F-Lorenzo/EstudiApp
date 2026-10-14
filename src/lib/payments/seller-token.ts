@@ -20,6 +20,9 @@ export class SellerTokenError extends Error {
 
 export type SellerToken = { tutorId: string; accessToken: string };
 
+type CredentialsRow = { tutor_id: string; access_token: string; expires_at: string };
+type Lookup = { key: Buffer; now?: Date };
+
 /**
  * Token de la cuenta de cobro de un docente, por su id de Mercado Pago. Solo corre en el servidor con
  * la service role (la tabla `mp_credentials` no se puede leer desde la API pública).
@@ -27,14 +30,39 @@ export type SellerToken = { tutorId: string; accessToken: string };
 export async function loadSellerToken(
   db: Pick<SupabaseClient, "from">,
   mpUserId: string,
-  { key, now = new Date() }: { key: Buffer; now?: Date },
+  { key, now = new Date() }: Lookup,
 ): Promise<SellerToken> {
   const { data, error } = await db
     .from("mp_credentials")
     .select("tutor_id, access_token, expires_at")
     .eq("mp_user_id", mpUserId)
-    .maybeSingle();
+    .maybeSingle<CredentialsRow>();
+  return readCredentials(data, error, { key, now });
+}
 
+/**
+ * Lo mismo, pero buscando por el docente (para cobrar una reserva: se sabe quién es el docente, no su
+ * cuenta de Mercado Pago). Mismos errores tipados que `loadSellerToken`; `unknown_seller` significa que
+ * ese docente no vinculó su cuenta de cobro.
+ */
+export async function loadSellerTokenByTutor(
+  db: Pick<SupabaseClient, "from">,
+  tutorId: string,
+  { key, now = new Date() }: Lookup,
+): Promise<SellerToken> {
+  const { data, error } = await db
+    .from("mp_credentials")
+    .select("tutor_id, access_token, expires_at")
+    .eq("tutor_id", tutorId)
+    .maybeSingle<CredentialsRow>();
+  return readCredentials(data, error, { key, now });
+}
+
+function readCredentials(
+  data: CredentialsRow | null,
+  error: unknown,
+  { key, now }: { key: Buffer; now: Date },
+): SellerToken {
   if (error) throw new SellerTokenError("lookup_failed");
   if (!data) throw new SellerTokenError("unknown_seller");
   if (new Date(data.expires_at).getTime() <= now.getTime()) throw new SellerTokenError("expired");

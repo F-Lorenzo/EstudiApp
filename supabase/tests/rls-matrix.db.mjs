@@ -31,6 +31,7 @@ const W1 = "e1000000-0000-0000-0000-000000000001";
 const V2 = "e2000000-0000-0000-0000-000000000002";
 const R3 = "e3000000-0000-0000-0000-000000000003";
 const RF = "e4000000-0000-0000-0000-000000000004";
+const EM = "e5000000-0000-0000-0000-000000000005";
 const NEW_ID = "99999999-9999-9999-9999-999999999999";
 
 await db.exec(`
@@ -49,8 +50,12 @@ await db.exec(`
     values ('${R3}', '${B3}', '${A1}', '${D1}', 5);
   insert into public.refunds (id, booking_id, payment_id, mercadopago_payment_id, percent, amount, reason)
     values ('${RF}', '${B2}', '${P2}', 'mp-rf1', 100, 10000, 'prueba');
-  insert into public.mp_credentials (tutor_id, mp_user_id, access_token, refresh_token, expires_at)
-    values ('${D1}', '555', 'cifrado-a', 'cifrado-r', now() + interval '180 days');
+  -- (El docente base ya tiene credenciales de relleno desde el seed: se le ponen las de la matriz.)
+  update public.mp_credentials
+    set mp_user_id = '555', access_token = 'cifrado-a', refresh_token = 'cifrado-r', expires_at = now() + interval '180 days'
+    where tutor_id = '${D1}';
+  insert into public.email_outbox (id, kind, booking_id, recipient_id, payload)
+    values ('${EM}', 'reserva_confirmada', '${B2}', '${A1}', '{"x":1}');
   update public.tutor_private set contacto_verificacion = 'c1', mercadopago_account_id = 'mp1' where id = '${D1}';
   update public.tutor_private set contacto_verificacion = 'c2' where id = '${D2}';
 `);
@@ -189,6 +194,13 @@ P("mp_credentials", "crear", "tokens para D2", `insert into public.mp_credential
 P("mp_credentials", "editar", "el token de D1", `update public.mp_credentials set access_token='x' where tutor_id='${D1}' returning tutor_id`, ["service"]);
 P("mp_credentials", "borrar", "los tokens de D1", `delete from public.mp_credentials where tutor_id='${D1}' returning tutor_id`, ["service"]);
 
+// email_outbox (0015): la bandeja de emails es solo del backend, ni siquiera el destinatario la lee
+P("email_outbox", "leer", "el email de A1 (ni el propio destinatario)", `select id from public.email_outbox where id='${EM}'`, ["service"]);
+P("email_outbox", "leer", "la bandeja entera", `select id from public.email_outbox`, ["service"]);
+P("email_outbox", "crear", "un email falso", `insert into public.email_outbox (kind, booking_id, recipient_id, payload) values ('reserva_confirmada', '${B3}', '${A1}', '{}') returning id`, ["service"]);
+P("email_outbox", "editar", "marcar un email como enviado", `update public.email_outbox set status='enviado' where id='${EM}' returning id`, ["service"]);
+P("email_outbox", "borrar", "un email", `delete from public.email_outbox where id='${EM}' returning id`, ["service"]);
+
 // tutor_catalog (vista)
 P("tutor_catalog", "leer", "catálogo público de docentes", `select id from public.tutor_catalog where id='${D1}'`, ALL);
 P("tutor_catalog", "leer", "un docente pendiente NO aparece", `select id from public.tutor_catalog where id='${D2}'`, []);
@@ -229,14 +241,48 @@ const FUNCIONES = [
   ["public.refund_percent(timestamptz, timestamptz, boolean)", ["authenticated", "service_role"]],
   // 0012: las decisiones sobre los pagos las toma solo el backend.
   ["public.apply_payment_notification(text, uuid, text, numeric, text, text, numeric)", ["service_role"]],
-  ["public.enqueue_refund(text, uuid, uuid, integer, numeric, text)", ["service_role"]],
+  ["public.enqueue_refund(text, uuid, uuid, integer, numeric, text, text)", ["service_role"]], // 0013: con la cuenta de cobro
   ["public.refund_summary(public.refunds)", ["service_role"]], // ayudante interno; service_role conserva el permiso por defecto
+  // 0013: el barrido de reembolsos lo corre el servidor.
+  ["public.retryable_refunds(integer)", ["service_role"]],
+  // 0014: la cuenta de cobro de los docentes. Guardar y renovar tokens es del backend; desvincular, del propio docente.
+  ["public.save_mp_credentials(uuid, text, text, text, text, timestamptz, boolean)", ["service_role"]],
+  ["public.rotate_mp_tokens(uuid, text, text, timestamptz)", ["service_role"]],
+  ["public.unlink_my_mp_account()", ["authenticated", "service_role"]],
+  ["public.tutor_can_receive_payments(uuid)", ["anon", "authenticated", "service_role"]], // solo un sí o un no
+  ["public.mp_account_blocker(uuid)", ["service_role"]], // ayudante interno
+  // 0015: la bandeja de emails es solo del backend; los triggers y el armado del mensaje, internos.
+  ["public.claim_pending_emails(integer)", ["service_role"]],
+  ["public.mark_email_result(uuid, text, text)", ["service_role"]],
+  ["public.email_booking_payload(public.bookings)", ["service_role"]],
+  ["public.enqueue_confirmed_booking_emails()", ["service_role"]],
+  ["public.enqueue_cancelled_booking_emails()", ["service_role"]],
+  ["public.enqueue_approved_refund_email()", ["service_role"]],
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {
     const real = (await db.query(`select has_function_privilege('${rol}', '${fn}', 'execute') as ok`)).rows[0].ok;
     resultados.push([real === permitidos.includes(rol), `${fn} · ${rol} ${permitidos.includes(rol) ? "puede" : "NO puede"} ejecutarla`]);
   }
+}
+
+// --- Ninguna función nueva queda abierta sin que alguien lo haya decidido -------------------------------------------------------------
+// Toda función de `public` que anon o authenticated pueden ejecutar tiene que figurar arriba (con su permiso a la vista) o ser una
+// de las ayudantes y guardas de las migraciones 0001 a 0010. Si una migración nueva agrega una función y se olvida del `revoke`,
+// esta comprobación la marca.
+{
+  const LEGADAS = new Set(["handle_new_user", "is_admin", "is_docente", "protect_profile_role", "protect_tutor_insert", "protect_tutor_private",
+    "protect_tutor_review_fields", "refresh_tutor_rating", "set_booking_commission", "set_updated_at"]);
+  const declaradas = new Set();
+  for (const [fn] of FUNCIONES) declaradas.add(String((await db.query(`select to_regprocedure('${fn}')::oid as oid`)).rows[0].oid));
+  const abiertas = (await db.query(`
+    select p.oid::text as oid, p.oid::regprocedure::text as firma, p.proname
+    from pg_proc p
+    where p.pronamespace = 'public'::regnamespace
+      and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))`)).rows;
+  const sinDeclarar = abiertas.filter((x) => !LEGADAS.has(x.proname) && !declaradas.has(x.oid));
+  resultados.push([sinDeclarar.length === 0, `toda función expuesta a la API está declarada en esta matriz${sinDeclarar.length ? ": " + sinDeclarar.map((x) => x.firma).join(", ") : ""}`]);
+  resultados.push([[...declaradas].every((oid) => oid !== "null" && oid !== ""), "...y todas las declaradas existen"]);
 }
 
 // --- Informe ------------------------------------------------------------------------------------------------------------------

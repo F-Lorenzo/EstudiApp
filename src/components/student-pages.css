@@ -2122,6 +2122,71 @@
   padding: 8px 18px;
   font-size: 14px;
 }
+.stu-cancel-confirm p strong {
+  display: block;
+  margin-top: 6px;
+}
+.stu-cancel-confirm p .stu-text-link {
+  font-size: 13px;
+}
+
+/* Aviso de estado del pago al volver de Mercado Pago («Estamos confirmando tu pago», «No se completó el pago»). */
+.stu-pay-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  margin-bottom: 28px;
+  border: 1px solid #c8d4b9;
+  border-radius: 10px;
+  background: #e9eddd;
+  color: var(--forest);
+}
+.stu-pay-status strong {
+  display: block;
+  font-size: 15px;
+}
+.stu-pay-status p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.stu-pay-status-mark {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.stu-pay-status-failed {
+  border-color: #f0c5ad;
+  background: #fff5ec;
+  color: #85270a;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .stu-pay-status:not(.stu-pay-status-failed) .stu-pay-status-mark {
+    animation: stu-pay-pulse 1.6s ease-in-out infinite;
+  }
+}
+@keyframes stu-pay-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Cómo quedó el reembolso de una reserva cancelada. */
+.stu-result-page .stu-refund-note {
+  max-width: 460px;
+  margin: 4px auto 0;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f0f1e4;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--forest);
+}
 .stu-day-grid button small {
   font-size: 10px;
   text-transform: uppercase;

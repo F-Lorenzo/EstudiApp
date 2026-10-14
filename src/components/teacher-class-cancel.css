@@ -1,0 +1,136 @@
+/* Cancelación de una clase por el docente (teacher-class-cancel.tsx). Estilos propios para no depender de otras hojas. */
+.tcc {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+.tcc-trigger {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--rust);
+  font: inherit;
+  font-size: 0.825rem;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.tcc-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.tcc-confirm {
+  width: 100%;
+  max-width: 520px;
+  padding: 16px 18px;
+  border: 1px solid #f0c5ad;
+  border-radius: 10px;
+  background: #fff5ec;
+  color: #85270a;
+}
+.tcc-confirm h3 {
+  margin: 0 0 8px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+.tcc-confirm p {
+  margin: 0 0 10px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.tcc-refund {
+  font-weight: 650;
+}
+.tcc-reason {
+  display: block;
+  margin: 12px 0;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.tcc-reason textarea {
+  display: block;
+  width: 100%;
+  min-height: 72px;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid #e3b79f;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+.tcc-reason textarea:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 2px;
+}
+.tcc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.tcc-danger {
+  min-height: 40px;
+  padding: 8px 18px;
+  border: 1px solid var(--rust);
+  border-radius: 100px;
+  background: var(--rust);
+  color: var(--cream);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.tcc-danger:hover:not(:disabled) {
+  background: #922408;
+}
+.tcc-danger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.tcc-keep {
+  min-height: 36px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--forest);
+  font: inherit;
+  font-size: 0.825rem;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.tcc-keep:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.tcc-error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--rust);
+}
+.tcc-done {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #c8d4b9;
+  border-radius: 8px;
+  background: #e9eddd;
+  color: var(--forest);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.tcc button:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 3px;
+}

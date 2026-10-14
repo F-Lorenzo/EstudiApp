@@ -138,6 +138,28 @@ function addHours(date, hours) {
   return new Date(date.getTime() + hours * 60 * 60 * 1000);
 }
 
+// Desde la migración 0014 no se puede reservar con un docente sin cuenta de cobro vigente. Los docentes de
+// demo tienen una de RELLENO: la cuenta «demo-…» no existe en Mercado Pago y los tokens «demo-no-usable» no
+// están cifrados, así que `decryptToken` los rechaza y NUNCA sirven para cobrar ni reembolsar de verdad.
+// Sirven para que el catálogo deje reservar y para probar el recorrido con el pago simulado.
+async function linkDemoPayoutAccount(tutorId, email) {
+  const { error } = await supabase.rpc("save_mp_credentials", {
+    p_tutor_id: tutorId,
+    p_mp_user_id: `demo-${email.split(".")[0]}`,
+    p_access_token: "demo-no-usable",
+    p_refresh_token: "demo-no-usable",
+    p_public_key: null,
+    p_expires_at: addHours(new Date(), 150 * 24).toISOString(),
+    p_live_mode: false,
+  });
+  // PGRST202: la función no existe, o sea, el proyecto todavía no tiene la migración 0014. Se sigue sin cuenta.
+  if (error?.code === "PGRST202") {
+    console.warn("  (el proyecto no tiene la migración 0014: los docentes de demo quedan sin cuenta de cobro)");
+    return;
+  }
+  if (error) throw error;
+}
+
 // --- Cleanup -----------------------------------------------------------
 
 async function cleanup() {
@@ -187,6 +209,8 @@ async function seed() {
       .from("tutor_private")
       .upsert({ id: userId, contacto_verificacion: docente.contactoVerificacion });
     if (privateError) throw privateError;
+
+    await linkDemoPayoutAccount(userId, docente.email);
 
     const subjectRows = docente.materias
       .map((name) => subjectIdByName.get(name))
@@ -284,10 +308,13 @@ async function seed() {
   const confirmedBooking = bookings.find((b) => b.status === "confirmada");
 
   console.log("Creando pagos y reseña de ejemplo...");
-  // Una reserva confirmada siempre tiene su pago aprobado (así la ven las reglas de cancelación).
+  // Una reserva confirmada siempre tiene su pago aprobado (así la ven las reglas de cancelación). El pago
+  // lleva un identificador «simulado-…»: es el que usa el pago simulado, y `cancel_booking` lo necesita para
+  // poder encolar el reembolso (el ejecutor de reembolsos reconoce ese prefijo y no llama a Mercado Pago).
   const { error: paymentError } = await supabase.from("payments").insert([
     {
       booking_id: completedBooking.id,
+      mercadopago_payment_id: "simulado-demo-1",
       status: "aprobado",
       amount: 2500,
       commission_amount: 250,
@@ -295,6 +322,7 @@ async function seed() {
     },
     {
       booking_id: confirmedBooking.id,
+      mercadopago_payment_id: "simulado-demo-2",
       status: "aprobado",
       amount: 3000,
       commission_amount: 300,

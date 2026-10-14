@@ -101,7 +101,8 @@ begin
       and column_name in ('starts_at', 'ends_at') and is_nullable = 'NO'
   ), 'FALLA';
 
-  -- 12 a 15. Cimientos del cobro (migración 0011). La 16 es de la 0012.
+  -- 12 a 15. Cimientos del cobro (migración 0011). La 16 es de la 0012, la 17 de la 0013, la 18 de la 0014
+  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano.
   insert into _verificacion
   select 12, 'cobro: los tokens de Mercado Pago (mp_credentials) no se leen ni se escriben desde la API',
     case when to_regclass('public.mp_credentials') is null then false
@@ -140,41 +141,113 @@ begin
   ), 'FALLA';
 
   -- 16. Avisos de pago (migración 0012): las decisiones sobre el dinero las toma solo el backend.
+  --     `enqueue_refund` tiene seis parámetros con la 0012 y siete desde la 0013: vale cualquiera de las dos.
   insert into _verificacion
   select 16, 'cobro: solo el backend decide qué hacer con cada pago y encola reembolsos',
     case when to_regprocedure('public.apply_payment_notification(text, uuid, text, numeric, text, text, numeric)') is null
-           or to_regprocedure('public.enqueue_refund(text, uuid, uuid, integer, numeric, text)') is null then false
+           or coalesce(to_regprocedure('public.enqueue_refund(text, uuid, uuid, integer, numeric, text, text)'),
+                       to_regprocedure('public.enqueue_refund(text, uuid, uuid, integer, numeric, text)')) is null then false
          else not has_function_privilege('anon', 'public.apply_payment_notification(text, uuid, text, numeric, text, text, numeric)', 'execute')
           and not has_function_privilege('authenticated', 'public.apply_payment_notification(text, uuid, text, numeric, text, text, numeric)', 'execute')
-          and not has_function_privilege('anon', 'public.enqueue_refund(text, uuid, uuid, integer, numeric, text)', 'execute')
-          and not has_function_privilege('authenticated', 'public.enqueue_refund(text, uuid, uuid, integer, numeric, text)', 'execute')
+          and not has_function_privilege('anon', coalesce(to_regprocedure('public.enqueue_refund(text, uuid, uuid, integer, numeric, text, text)'),
+                                                          to_regprocedure('public.enqueue_refund(text, uuid, uuid, integer, numeric, text)'))::oid, 'execute')
+          and not has_function_privilege('authenticated', coalesce(to_regprocedure('public.enqueue_refund(text, uuid, uuid, integer, numeric, text, text)'),
+                                                                   to_regprocedure('public.enqueue_refund(text, uuid, uuid, integer, numeric, text)'))::oid, 'execute')
           and has_function_privilege('service_role', 'public.apply_payment_notification(text, uuid, text, numeric, text, text, numeric)', 'execute') end,
     'FALLA';
 
-  -- 17. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).
+  -- 17. Cancelar con reembolso (migración 0013): la cancelación devuelve el resumen del reembolso (jsonb)
+  --     y solo el backend encola reembolsos con la cuenta de cobro o reintenta los pendientes.
+  insert into _verificacion
+  select 17, 'cobro: cancelar calcula el reembolso (jsonb) y solo el backend reintenta reembolsos',
+    case when to_regprocedure('public.cancel_booking(uuid, text)') is null
+           or to_regprocedure('public.retryable_refunds(integer)') is null
+           or to_regprocedure('public.enqueue_refund(text, uuid, uuid, integer, numeric, text, text)') is null
+           or to_regclass('public.refunds') is null then false
+         else (select p.prorettype = 'jsonb'::regtype from pg_proc p where p.oid = to_regprocedure('public.cancel_booking(uuid, text)'))
+          and exists (select 1 from information_schema.columns
+                      where table_schema = 'public' and table_name = 'refunds' and column_name = 'mp_user_id')
+          and has_function_privilege('authenticated', 'public.cancel_booking(uuid, text)', 'execute')
+          and not has_function_privilege('anon', 'public.cancel_booking(uuid, text)', 'execute')
+          and not has_function_privilege('anon', 'public.retryable_refunds(integer)', 'execute')
+          and not has_function_privilege('authenticated', 'public.retryable_refunds(integer)', 'execute')
+          and has_function_privilege('service_role', 'public.retryable_refunds(integer)', 'execute')
+          and not has_function_privilege('anon', 'public.enqueue_refund(text, uuid, uuid, integer, numeric, text, text)', 'execute')
+          and not has_function_privilege('authenticated', 'public.enqueue_refund(text, uuid, uuid, integer, numeric, text, text)', 'execute') end,
+    'FALLA';
+
+  -- 18. Cuentas de cobro (migración 0014): solo el backend guarda y renueva tokens; el docente solo
+  --     desvincula la suya; cualquiera puede saber si un docente cobra; y reservar exige que cobre.
+  insert into _verificacion
+  select 18, 'cobro: solo el backend guarda y renueva tokens; reservar exige un docente que pueda cobrar',
+    case when to_regprocedure('public.save_mp_credentials(uuid, text, text, text, text, timestamptz, boolean)') is null
+           or to_regprocedure('public.rotate_mp_tokens(uuid, text, text, timestamptz)') is null
+           or to_regprocedure('public.unlink_my_mp_account()') is null
+           or to_regprocedure('public.tutor_can_receive_payments(uuid)') is null
+           or to_regprocedure('public.create_booking(uuid)') is null then false
+         else not has_function_privilege('anon', 'public.save_mp_credentials(uuid, text, text, text, text, timestamptz, boolean)', 'execute')
+          and not has_function_privilege('authenticated', 'public.save_mp_credentials(uuid, text, text, text, text, timestamptz, boolean)', 'execute')
+          and has_function_privilege('service_role', 'public.save_mp_credentials(uuid, text, text, text, text, timestamptz, boolean)', 'execute')
+          and not has_function_privilege('anon', 'public.rotate_mp_tokens(uuid, text, text, timestamptz)', 'execute')
+          and not has_function_privilege('authenticated', 'public.rotate_mp_tokens(uuid, text, text, timestamptz)', 'execute')
+          and has_function_privilege('service_role', 'public.rotate_mp_tokens(uuid, text, text, timestamptz)', 'execute')
+          and not has_function_privilege('anon', 'public.unlink_my_mp_account()', 'execute')
+          and has_function_privilege('authenticated', 'public.unlink_my_mp_account()', 'execute')
+          and has_function_privilege('anon', 'public.tutor_can_receive_payments(uuid)', 'execute')
+          and has_function_privilege('authenticated', 'public.tutor_can_receive_payments(uuid)', 'execute')
+          and exists (select 1 from pg_proc p
+                      where p.oid = to_regprocedure('public.create_booking(uuid)') and p.prosrc like '%tutor_not_payable%') end,
+    'FALLA';
+
+  -- 19. Bandeja de emails (migración 0015): la tabla es solo del backend (con la RLS activada y sin permisos
+  --     para la API), también sus funciones, y los tres triggers que anotan los emails están instalados.
+  insert into _verificacion
+  select 19, 'emails: la bandeja (email_outbox) y sus funciones son solo del backend, y los triggers están',
+    case when to_regclass('public.email_outbox') is null
+           or to_regprocedure('public.claim_pending_emails(integer)') is null
+           or to_regprocedure('public.mark_email_result(uuid, text, text)') is null then false
+         else (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.email_outbox'))
+          and not has_table_privilege('anon', 'public.email_outbox', 'select')
+          and not has_table_privilege('anon', 'public.email_outbox', 'insert')
+          and not has_table_privilege('authenticated', 'public.email_outbox', 'select')
+          and not has_table_privilege('authenticated', 'public.email_outbox', 'insert')
+          and not has_table_privilege('authenticated', 'public.email_outbox', 'update')
+          and not has_table_privilege('authenticated', 'public.email_outbox', 'delete')
+          and not has_function_privilege('anon', 'public.claim_pending_emails(integer)', 'execute')
+          and not has_function_privilege('authenticated', 'public.claim_pending_emails(integer)', 'execute')
+          and has_function_privilege('service_role', 'public.claim_pending_emails(integer)', 'execute')
+          and not has_function_privilege('anon', 'public.mark_email_result(uuid, text, text)', 'execute')
+          and not has_function_privilege('authenticated', 'public.mark_email_result(uuid, text, text)', 'execute')
+          and has_function_privilege('service_role', 'public.mark_email_result(uuid, text, text)', 'execute')
+          and (select count(*) = 3 from pg_trigger
+               where tgname in ('bookings_enqueue_confirmed_emails', 'bookings_enqueue_cancelled_emails', 'refunds_enqueue_approved_email')
+                 and not tgisinternal) end,
+    'FALLA';
+
+  -- 20. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).
   if to_regclass('public.bookings') is not null then
     select count(*) into v_n from public.bookings b
     where b.status in ('confirmada', 'completada')
       and not exists (select 1 from public.payments p where p.booking_id = b.id and p.status = 'aprobado');
     insert into _verificacion values
-      (17, format('reservas confirmadas o completadas sin pago aprobado: %s', v_n), v_n = 0, 'REVISAR');
+      (20, format('reservas confirmadas o completadas sin pago aprobado: %s', v_n), v_n = 0, 'REVISAR');
   end if;
 
-  -- 18. Hay al menos una cuenta de administración.
+  -- 21. Hay al menos una cuenta de administración.
   if to_regclass('public.profiles') is not null then
     select count(*) into v_n from public.profiles where role = 'administrador';
     insert into _verificacion values
-      (18, format('cuentas de administración: %s', v_n), v_n > 0, 'REVISAR');
+      (21, format('cuentas de administración: %s', v_n), v_n > 0, 'REVISAR');
   end if;
 
-  -- 19. Cuentas del seed de demo viejo (su contraseña era pública).
+  -- 22. Cuentas del seed de demo viejo (su contraseña era pública).
   if exists (select 1 from information_schema.columns
              where table_schema = 'auth' and table_name = 'users' and column_name = 'email') then
     execute $q$ select count(*) from auth.users where email like '%.demo@estudiapp.test' $q$ into v_n;
     insert into _verificacion values
-      (19, format('cuentas de demo (*.demo@estudiapp.test): %s', v_n), v_n = 0, 'REVISAR');
+      (22, format('cuentas de demo (*.demo@estudiapp.test): %s', v_n), v_n = 0, 'REVISAR');
   else
-    insert into _verificacion values (19, 'cuentas de demo: no se pudo comprobar', null, 'REVISAR');
+    insert into _verificacion values (22, 'cuentas de demo: no se pudo comprobar', null, 'REVISAR');
   end if;
 end;
 $$;

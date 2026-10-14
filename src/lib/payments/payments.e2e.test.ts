@@ -107,8 +107,10 @@ beforeAll(async () => {
   const { seed } = (await load("seed.mjs")) as { seed(db: PGlite): Promise<void> };
   db = await harness.makeDb();
   await seed(db);
+  // El seed ya deja una cuenta de cobro de relleno para el docente base: se pasa a la de esta prueba.
   await db.exec(`insert into public.mp_credentials (tutor_id, mp_user_id, access_token, refresh_token, expires_at)
-    values ('${harness.ids.docente}', '${SELLER_MP_ID}', 'cifrado', 'cifrado', now() + interval '100 days')`);
+    values ('${harness.ids.docente}', '${SELLER_MP_ID}', 'cifrado', 'cifrado', now() + interval '100 days')
+    on conflict (tutor_id) do update set mp_user_id = excluded.mp_user_id, expires_at = excluded.expires_at`);
 }, 120_000);
 
 afterAll(async () => {

@@ -38,7 +38,8 @@ describe("cancelBooking", () => {
     const supabase = fakeSupabase();
     createClient.mockResolvedValue(supabase.client);
 
-    expect(await cancelBooking(BOOKING)).toEqual({ ok: true });
+    // Una reserva sin pago: no hay nada que reembolsar.
+    expect(await cancelBooking(BOOKING)).toEqual({ ok: true, refund: null });
     expect(supabase.client.rpc).toHaveBeenCalledWith("cancel_booking", { p_booking_id: BOOKING, p_reason: null });
     expect(revalidatePath).toHaveBeenCalledWith(`/alumno/reservas/${BOOKING}`);
   });
@@ -50,11 +51,11 @@ describe("cancelBooking", () => {
     expect(revalidatePath).toHaveBeenCalledWith(`/alumno/reservas/${BOOKING}`);
   });
 
-  it("una reserva pagada pide escribir a soporte (reembolso todavía no disponible)", async () => {
+  it("ya no existe el aviso «reembolso todavía no disponible»: un código viejo da el mensaje genérico", async () => {
     createClient.mockResolvedValue(fakeSupabase({ rpc: { cancel_booking: { error: { hint: "refund_required" } } } }).client);
 
     const result = await cancelBooking(BOOKING);
-    expect(result).toEqual({ ok: false, error: expect.stringMatching(/reembolso/) });
+    expect(result).toEqual({ ok: false, error: expect.stringMatching(/No pudimos completar la operación/) });
   });
 });
 

@@ -1,15 +1,26 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   cancelBooking,
+  reconcileBooking,
   simulatePayment,
+  startCheckout,
 } from "@/app/alumno/reservas/[id]/actions";
 import { BookingSummary, ProgressSteps } from "@/components/booking-summary";
 import { Badge, ButtonLink, Icon, PageHeading } from "@/components/ui";
+import {
+  PAYMENT_POLL_INTERVAL_MS,
+  PAYMENT_POLL_MAX_MS,
+  isConfirmingPayment,
+  refundSummaryText,
+  shouldReconcile,
+  type PaymentReturn,
+} from "@/lib/bookings/payment-ui";
 import type { BookingDetail } from "@/lib/bookings/queries";
+import { refundExplanation, refundPercent, type RefundPercent } from "@/lib/bookings/refund-policy";
 import { longDate, timeRange } from "@/lib/format";
 
 function mmss(milliseconds: number) {
@@ -20,18 +31,27 @@ function mmss(milliseconds: number) {
 /** Cada cuánto se vuelve a consultar al servidor una vez que la cuenta llegó a cero. */
 const RETRY_REFRESH_MS = 5000;
 
+/** Lo que se le muestra a la persona ANTES de confirmar la cancelación de una reserva paga. */
+type RefundPreview = { percent: RefundPercent; text: string };
+
 /**
  * «Cancelar reserva» con confirmación en línea: cancelar libera el horario para
  * cualquier otra persona y no se puede deshacer, así que un toque accidental no
- * debe alcanzar.
+ * debe alcanzar. Si la reserva ya está paga, antes de confirmar se le dice cuánto
+ * se le devuelve (`preview`, calculado en el momento de abrir la confirmación).
  */
 function CancelControl({
   disabled,
+  preview,
   onConfirm,
 }: {
   disabled: boolean;
-  onConfirm: () => void;
+  /** Solo para reservas pagas: qué reembolso corresponde si cancela ahora. */
+  preview?: () => RefundPreview;
+  /** Recibe el porcentaje que se le mostró, para que el servidor avise si cambió mientras decidía. */
+  onConfirm: (shownPercent?: number) => void;
 }) {
+  const [shown, setShown] = useState<RefundPreview | null>(null);
   const [asking, setAsking] = useState(false);
   if (!asking)
     return (
@@ -39,21 +59,35 @@ function CancelControl({
         type="button"
         className="stu-text-link"
         disabled={disabled}
-        onClick={() => setAsking(true)}
+        onClick={() => {
+          setShown(preview ? preview() : null);
+          setAsking(true);
+        }}
       >
         Cancelar reserva
       </button>
     );
   return (
     <div className="stu-cancel-confirm" role="group" aria-label="Confirmar cancelación">
-      <p>¿Cancelar la reserva? El horario queda libre para otras personas.</p>
+      <p>
+        ¿Cancelar la reserva? El horario queda libre para otras personas.
+        {shown && (
+          <>
+            {" "}
+            <strong>{shown.text}</strong>{" "}
+            <Link href="/cancelacion" className="stu-text-link">
+              Ver la política de reembolsos
+            </Link>
+          </>
+        )}
+      </p>
       <button
         type="button"
         className="stu-button"
         disabled={disabled}
         onClick={() => {
           setAsking(false);
-          onConfirm();
+          onConfirm(shown?.percent);
         }}
       >
         Sí, cancelar
@@ -70,12 +104,44 @@ function CancelControl({
   );
 }
 
+/**
+ * Mientras el pago se confirma: «Estamos confirmando tu pago». Se avisa con `role="status"` (anuncio amable, no
+ * interrumpe). Pasados 90 segundos deja de insistir y le habla con calma a la persona.
+ */
+function PaymentConfirmingNotice({ gaveUp }: { gaveUp: boolean }) {
+  return (
+    <div className="stu-pay-status" role="status" aria-live="polite">
+      <span className="stu-pay-status-mark" aria-hidden="true">
+        <Icon name="clock" size={20} />
+      </span>
+      <div>
+        {gaveUp ? (
+          <>
+            <strong>Todavía no vemos tu pago acreditado</strong>
+            <p>
+              Si ya pagaste, tu reserva se confirma en unos minutos y te avisamos por email. No hace falta que
+              vuelvas a pagar.
+            </p>
+          </>
+        ) : (
+          <>
+            <strong>Estamos confirmando tu pago</strong>
+            <p>Esto suele tardar unos segundos. Dejá esta página abierta.</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** Una reserva del alumno: pago pendiente, confirmada, cancelada o completada. */
 export function BookingDetailView({
   booking,
   expiresAt,
   now,
   simulationEnabled,
+  paymentsEnabled = false,
+  paymentReturn = null,
 }: {
   booking: BookingDetail;
   /** Cuándo vence la reserva si sigue sin pagarse (ISO). */
@@ -83,6 +149,10 @@ export function BookingDetailView({
   /** Instante del servidor (ms): evita diferencias de reloj al hidratar. */
   now: number;
   simulationEnabled: boolean;
+  /** El cobro con Mercado Pago está configurado en el servidor. */
+  paymentsEnabled?: boolean;
+  /** Cómo volvió el alumno del checkout (`?pago=`). Solo decide qué mensaje se muestra: nunca confirma nada. */
+  paymentReturn?: PaymentReturn | null;
 }) {
   const router = useRouter();
   const [remaining, setRemaining] = useState(
@@ -90,7 +160,21 @@ export function BookingDetailView({
   );
   const [error, setError] = useState("");
   const [working, startWorking] = useTransition();
+  const [redirecting, setRedirecting] = useState(false);
+  const [gaveUp, setGaveUp] = useState(false);
   const pending = booking.status === "pendiente_pago";
+  const confirming = isConfirmingPayment(paymentReturn, booking.status);
+
+  // Reloj del servidor: la hora de la persona puede estar adelantada o atrasada. Se usa para decir, al abrir la
+  // confirmación de cancelar, qué reembolso corresponde en ESE momento.
+  const clock = useRef<{ serverNow: number; at: number } | null>(null);
+  useEffect(() => {
+    clock.current = { serverNow: now, at: performance.now() };
+  }, [now]);
+  function estimatedServerNow() {
+    const base = clock.current;
+    return base ? base.serverNow + (performance.now() - base.at) : now;
+  }
 
   // La cuenta parte de la hora del servidor (`now`) y avanza con un reloj
   // monotónico, no con la hora del navegador: si el reloj de la persona está
@@ -114,6 +198,42 @@ export function BookingDetailView({
     return () => clearInterval(timer);
   }, [pending, expiresAt, now, router]);
 
+  // Volvió de Mercado Pago y la reserva sigue pendiente: se vuelve a leer la reserva cada 3 segundos hasta 90. De
+  // cada tres lecturas, una también le pregunta a Mercado Pago por el pago, así un aviso perdido o tardío no deja
+  // al alumno esperando. El estado REAL sale siempre de la base: esto solo hace que se entere antes.
+  useEffect(() => {
+    if (!confirming) return;
+    const startedAt = performance.now();
+    let tick = 0;
+    let stopped = false;
+
+    async function check() {
+      if (stopped) return;
+      if (shouldReconcile(tick++)) {
+        try {
+          await reconcileBooking(booking.id);
+        } catch {
+          // Una consulta que falla no rompe la pantalla: el aviso normal sigue en pie.
+        }
+      }
+      if (!stopped) router.refresh();
+    }
+
+    void check();
+    const timer = setInterval(() => {
+      if (performance.now() - startedAt >= PAYMENT_POLL_MAX_MS) {
+        clearInterval(timer);
+        setGaveUp(true);
+        return;
+      }
+      void check();
+    }, PAYMENT_POLL_INTERVAL_MS);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [confirming, booking.id, router]);
+
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
     setError("");
     startWorking(async () => {
@@ -121,6 +241,32 @@ export function BookingDetailView({
       if (!result.ok) setError(result.error ?? "No pudimos completar la operación.");
     });
   }
+
+  function pay() {
+    setError("");
+    startWorking(async () => {
+      try {
+        const result = await startCheckout(booking.id);
+        if (result.ok) {
+          // El botón queda deshabilitado hasta que el navegador cambie de página.
+          setRedirecting(true);
+          window.location.assign(result.url);
+        } else {
+          setError(result.error);
+        }
+      } catch {
+        setError("No pudimos iniciar el pago. Intentá de nuevo en unos minutos.");
+      }
+    });
+  }
+
+  const busy = working || redirecting;
+
+  // Qué reembolso corresponde si cancela AHORA (solo para reservas pagas).
+  const refundPreview = (): RefundPreview => {
+    const percent = refundPercent({ startsAt: booking.startsAt, at: new Date(estimatedServerNow()) });
+    return { percent, text: refundExplanation(percent, booking.price) };
+  };
 
   const summary = (
     <BookingSummary
@@ -156,17 +302,11 @@ export function BookingDetailView({
         <ButtonLink href="/alumno">
           Ir a mi espacio <Icon name="arrow-right" size={18} />
         </ButtonLink>
-        {booking.paid ? (
-          <p className="stu-result-note">
-            Para cancelar o reprogramar una clase ya paga, escribinos: la
-            cancelación con reembolso todavía no está disponible.
-          </p>
-        ) : (
-          <CancelControl
-            disabled={working}
-            onConfirm={() => run(() => cancelBooking(booking.id))}
-          />
-        )}
+        <CancelControl
+          disabled={busy}
+          preview={booking.paid ? refundPreview : undefined}
+          onConfirm={(shownPercent) => run(() => cancelBooking(booking.id, shownPercent))}
+        />
         {error && (
           <p className="stu-field-error" role="alert">
             {error}
@@ -175,7 +315,8 @@ export function BookingDetailView({
       </div>
     );
 
-  if (booking.status === "cancelada")
+  if (booking.status === "cancelada") {
+    const refundNote = refundSummaryText(booking.refund, booking.everPaid);
     return (
       <div className="stu-page stu-result-page">
         <div className="stu-result-mark">
@@ -184,6 +325,16 @@ export function BookingDetailView({
         <Badge tone="muted">Reserva cancelada</Badge>
         <h1>Esta reserva ya no está activa.</h1>
         <p>{booking.cancellationReason ?? "La reserva fue cancelada."}</p>
+        {refundNote && (
+          <p className="stu-refund-note" role="status">
+            {refundNote}
+          </p>
+        )}
+        {!booking.everPaid && (paymentReturn === "ok" || paymentReturn === "pendiente") && (
+          <p className="stu-refund-note" role="status">
+            Si llegaste a pagar, te devolvemos el 100 % automáticamente y te avisamos por email.
+          </p>
+        )}
         <div className="stu-confirmed-details">
           <strong>Clase individual con {booking.tutorName}</strong>
           <span>
@@ -198,6 +349,7 @@ export function BookingDetailView({
         </Link>
       </div>
     );
+  }
 
   if (booking.status === "completada")
     return (
@@ -241,21 +393,63 @@ export function BookingDetailView({
               <p>Si no completás el pago a tiempo, el horario vuelve a quedar libre.</p>
             </div>
           </div>
-          <h2>Forma de pago</h2>
-          <div className="stu-payment-method">
-            <span className="stu-radio-mark" />
-            <div>
-              <strong>Mercado Pago</strong>
-              <span>Tarjeta de crédito, débito o dinero en cuenta</span>
+          {confirming && <PaymentConfirmingNotice gaveUp={gaveUp} />}
+          {paymentReturn === "fallido" && (
+            <div className="stu-pay-status stu-pay-status-failed" role="status" aria-live="polite">
+              <span className="stu-pay-status-mark" aria-hidden="true">
+                <Icon name="info" size={20} />
+              </span>
+              <div>
+                <strong>No se completó el pago</strong>
+                <p>Podés intentarlo de nuevo mientras dure tu reserva.</p>
+              </div>
             </div>
-            <span className="stu-mp-wordmark">mp</span>
-          </div>
-          <button type="button" className="stu-button stu-wide-button" disabled>
-            Pagar con Mercado Pago <Icon name="arrow-right" size={18} />
-          </button>
-          <p className="stu-payment-caption">
-            El pago con Mercado Pago todavía no está disponible.
-          </p>
+          )}
+          {/* Mientras se confirma un pago no se ofrece pagar otra vez: sería cobrar dos veces. */}
+          {(!confirming || gaveUp) && (
+            <>
+              <h2>Forma de pago</h2>
+              <div className="stu-payment-method">
+                <span className="stu-radio-mark" />
+                <div>
+                  <strong>Mercado Pago</strong>
+                  <span>Tarjeta de crédito, débito o dinero en cuenta</span>
+                </div>
+                <span className="stu-mp-wordmark">mp</span>
+              </div>
+              {paymentsEnabled ? (
+                <>
+                  <button
+                    type="button"
+                    className="stu-button stu-wide-button"
+                    disabled={busy}
+                    aria-busy={busy}
+                    onClick={pay}
+                  >
+                    {busy ? "Te llevamos a Mercado Pago…" : "Pagar con Mercado Pago"}{" "}
+                    <Icon name="arrow-right" size={18} />
+                  </button>
+                  <p className="stu-payment-caption">
+                    Pagás en la página segura de Mercado Pago y después volvés acá. Si cancelás con tiempo, te
+                    devolvemos la plata:{" "}
+                    <Link href="/cancelacion" className="stu-text-link">
+                      mirá cómo funciona
+                    </Link>
+                    .
+                  </p>
+                </>
+              ) : (
+                <>
+                  <button type="button" className="stu-button stu-wide-button" disabled>
+                    Pagar con Mercado Pago <Icon name="arrow-right" size={18} />
+                  </button>
+                  <p className="stu-payment-caption">
+                    El pago con Mercado Pago todavía no está disponible.
+                  </p>
+                </>
+              )}
+            </>
+          )}
           {simulationEnabled && (
             <div className="stu-demo-banner">
               <Icon name="shield" size={20} />
@@ -265,7 +459,7 @@ export function BookingDetailView({
                 <button
                   type="button"
                   className="stu-button"
-                  disabled={working}
+                  disabled={busy}
                   onClick={() => run(() => simulatePayment(booking.id))}
                 >
                   {working ? "Procesando…" : "Simular pago aprobado"}{" "}
@@ -280,7 +474,7 @@ export function BookingDetailView({
             </p>
           )}
           <CancelControl
-            disabled={working}
+            disabled={busy}
             onConfirm={() => run(() => cancelBooking(booking.id))}
           />
           <div className="stu-checkout-help">

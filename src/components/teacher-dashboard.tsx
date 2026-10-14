@@ -2,17 +2,23 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Notice, Tabs } from "@/components/management-ui";
+import { Tabs } from "@/components/management-ui";
 import {
   Badge,
   ButtonLink,
   EmptyState,
   PageHeading,
-  SampleBanner,
 } from "@/components/ui";
+import { TeacherClassCancel } from "@/components/teacher-class-cancel";
 import { VerificationStatusBanner } from "@/components/verification-status-banner";
+import {
+  PayoutAccountPanel,
+  PayoutAccountReminder,
+} from "@/app/docente/cuenta-de-cobro/payout-account-card";
+import type { PayoutAccountView } from "@/app/docente/cuenta-de-cobro/state";
 import type { TutorClass } from "@/lib/bookings/tutor-queries";
 import { dayParts, isToday, longDate, timeAR, timeRange } from "@/lib/format";
+import type { AccountNotice } from "@/lib/payments/account-notice";
 
 export function TeacherDashboard({
   tutorId,
@@ -23,6 +29,8 @@ export function TeacherDashboard({
   completed,
   nextOpenSlot,
   loadFailed,
+  payoutAccount,
+  accountNotice,
 }: {
   tutorId: string;
   status: string;
@@ -32,12 +40,15 @@ export function TeacherDashboard({
   completed: TutorClass[];
   nextOpenSlot: string | null;
   loadFailed: boolean;
+  /** Estado de la cuenta de cobro (Mercado Pago), calculado en el servidor. */
+  payoutAccount: PayoutAccountView;
+  /** Resultado de la vinculación recién hecha (`?cuenta=`), si vuelve de Mercado Pago. */
+  accountNotice: AccountNotice | null;
 }) {
-  const [tab, setTab] = useState("Próximas clases");
-  const [connected, setConnected] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [email, setEmail] = useState("");
-  const [notice, setNotice] = useState("");
+  // Al volver de Mercado Pago se abre directo la pestaña donde está el resultado.
+  const [tab, setTab] = useState(
+    accountNotice ? "Cuenta de cobro" : "Próximas clases",
+  );
   const next = upcoming[0];
   const later = upcoming.slice(1, 4);
 
@@ -64,6 +75,12 @@ export function TeacherDashboard({
               }
         }
       />
+      {tab !== "Cuenta de cobro" && (
+        <PayoutAccountReminder
+          status={payoutAccount.status}
+          onOpen={() => setTab("Cuenta de cobro")}
+        />
+      )}
       <div className="mgmt-summary-line">
         <span>
           <strong>{upcoming.length}</strong>{" "}
@@ -118,6 +135,7 @@ export function TeacherDashboard({
                   </div>
                   <h3>Clase con un estudiante</h3>
                   <p>Online, uno a uno.</p>
+                  <TeacherClassCancel bookingId={next.id} startsAt={next.startsAt} endsAt={next.endsAt} />
                 </article>
                 {later.length > 0 && (
                   <>
@@ -139,6 +157,7 @@ export function TeacherDashboard({
                           <div className="mgmt-agenda-info">
                             <strong>Clase individual</strong>
                             <span>{timeRange(item.startsAt, item.endsAt)}</span>
+                            <TeacherClassCancel bookingId={item.id} startsAt={item.startsAt} endsAt={item.endsAt} />
                           </div>
                         </article>
                       );
@@ -245,99 +264,8 @@ export function TeacherDashboard({
         </section>
       )}
       {tab === "Cuenta de cobro" && (
-        <>
-          <SampleBanner>
-            La vinculación con Mercado Pago todavía no está conectada. Esta
-            pantalla muestra cómo se verá: no se vincula ninguna cuenta real.
-          </SampleBanner>
-          <section className="mgmt-payment-panel">
-            <div>
-              <span className="mgmt-small-label">TUS CLASES, TUS COBROS</span>
-              <h2>Enseñá con todo en orden.</h2>
-              <p>
-                Vinculá tu cuenta de Mercado Pago para recibir el pago de tus
-                clases.
-              </p>
-              <ul className="mgmt-check-list">
-                <li>Una cuenta a tu nombre</li>
-                <li>El detalle de cada clase en tu historial</li>
-                <li>Tu información siempre bajo tu control</li>
-              </ul>
-            </div>
-            <div className="mgmt-payment-form">
-              <div className="mgmt-payment-logo" aria-hidden="true">
-                mp
-              </div>
-              <h3>Mercado Pago</h3>
-              <Badge tone={connected ? "green" : "orange"}>
-                {connected ? "Cuenta vinculada" : "Pendiente de vinculación"}
-              </Badge>
-              {connected ? (
-                <>
-                  <p>
-                    Cuenta de muestra: <strong>{email}</strong>
-                  </p>
-                  <button
-                    type="button"
-                    className="mgmt-button mgmt-button-secondary"
-                    onClick={() => {
-                      setConnected(false);
-                      setNotice("La cuenta de muestra quedó desvinculada.");
-                    }}
-                  >
-                    Desvincular cuenta
-                  </button>
-                </>
-              ) : connecting ? (
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    setConnected(true);
-                    setConnecting(false);
-                    setNotice(
-                      "Cuenta vinculada en esta vista de muestra. No se conectó una cuenta real de Mercado Pago.",
-                    );
-                  }}
-                >
-                  <label className="mgmt-field">
-                    Email de la cuenta
-                    <input
-                      type="email"
-                      required
-                      placeholder="tu@email.com"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                    />
-                  </label>
-                  <button className="mgmt-button" type="submit">
-                    Confirmar vinculación de muestra
-                  </button>
-                  <button
-                    className="mgmt-text-button"
-                    type="button"
-                    onClick={() => setConnecting(false)}
-                  >
-                    Volver
-                  </button>
-                </form>
-              ) : (
-                <>
-                  <p>La vinculación se realiza una sola vez.</p>
-                  <button
-                    type="button"
-                    className="mgmt-button"
-                    onClick={() => setConnecting(true)}
-                  >
-                    Vincular cuenta <span aria-hidden="true">↗</span>
-                  </button>
-                </>
-              )}
-              <small>No se realizan conexiones ni cobros reales.</small>
-            </div>
-          </section>
-        </>
+        <PayoutAccountPanel view={payoutAccount} notice={accountNotice} />
       )}
-      <Notice message={notice} />
     </div>
   );
 }

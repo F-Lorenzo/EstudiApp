@@ -75,8 +75,9 @@ await as(db, "service", () => expectOk("sin informar la comisión usa la de la r
 await as(db, "service", () => expectOk("repetir el mismo pago con la comisión correcta es idempotente", q(`select public.confirm_booking_payment('${b1}', 'mp-1', 10000, 1200)`), r));
 await expectHint("el alumno NO puede confirmar un pago", "alumno", () => q(`select public.confirm_booking_payment('${b1}', 'mp-x', 10000)`), "sin hint: permission denied for function confirm_booking_payment");
 
-// Una reserva paga todavía no se puede cancelar (hasta que exista el ejecutor de reembolsos, 0012).
-await expectHint("cancelar una reserva paga sigue bloqueado hasta la 0012", "alumno", () => q(`select public.cancel_booking('${b1}')`), "refund_required");
+// (Hasta la 0012 una reserva paga no se podía cancelar: hint `refund_required`. Desde la 0013 se cancela y se
+// reembolsa; eso se prueba en cancel-refund.db.mjs. Acá la reserva sigue confirmada porque más abajo se
+// registran a mano reembolsos de su pago.)
 
 // --- 4. Cola de reembolsos y su resultado --------------------------------------------------------------------------
 const pago1 = (await q(`select id from public.payments where booking_id = '${b1}'`)).rows[0].id;
@@ -163,9 +164,12 @@ await as(db, "service", async () => {
 });
 
 // --- 7. Credenciales de Mercado Pago: solo la service role ------------------------------------------------------------
+// (El docente base ya tiene credenciales de relleno desde el seed: el backend las reemplaza.)
 await as(db, "service", () => expectOk("el backend guarda las credenciales de un docente", q(
   `insert into public.mp_credentials (tutor_id, mp_user_id, access_token, refresh_token, expires_at)
-   values ('${ids.docente}', '555', 'cifrado-a', 'cifrado-r', now() + interval '180 days')`), r));
+   values ('${ids.docente}', '555', 'cifrado-a', 'cifrado-r', now() + interval '180 days')
+   on conflict (tutor_id) do update set mp_user_id = excluded.mp_user_id, access_token = excluded.access_token,
+     refresh_token = excluded.refresh_token, expires_at = excluded.expires_at`), r));
 await as(db, "docente", () => expectFail("el docente NO puede leer SUS PROPIOS tokens", q(`select * from public.mp_credentials`), r));
 await as(db, "docente", () => expectFail("el docente NO puede escribir tokens", q(`update public.mp_credentials set access_token = 'x'`), r));
 await as(db, "docente2", () => expectFail("otro docente NO puede crear credenciales", q(

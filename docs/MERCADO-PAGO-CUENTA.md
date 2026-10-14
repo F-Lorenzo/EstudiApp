@@ -119,6 +119,16 @@ eso Mercado Pago pide la cuenta verificada y que completes el formulario de la a
 sitio, rubro, etc.). Se hace en la Fase 4, con un cobro real de bajo monto. Los docentes reales
 también tienen que tener su cuenta de Mercado Pago verificada para cobrar.
 
+## Datos ya cargados (11 de octubre de 2026, ninguno es secreto)
+
+| Dato | Valor |
+|---|---|
+| Dominio de producción | `https://estudiapp.app` (va en `NEXT_PUBLIC_SITE_URL`) |
+| Redirect URL cargada en Mercado Pago | `https://estudiapp.app/api/mercadopago/oauth/callback` |
+| Webhook (a configurar cuando la ruta esté subida) | `https://estudiapp.app/api/mercadopago/webhook` |
+| Número de aplicación (Client ID) | `3206837453843096` |
+| User ID informado | `224438158` (falta aclarar de qué cuenta es) |
+
 ## Qué mandarme cuando termines
 
 Un mensaje así, **sin ninguna clave**:

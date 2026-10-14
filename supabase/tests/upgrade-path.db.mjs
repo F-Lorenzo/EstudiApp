@@ -63,9 +63,9 @@ const contar = async (db) =>
       (select count(*) from public.tutor_subjects)::int as materias`)).rows[0];
 const conteoAntes = await contar(antes);
 
-// --- Se aplican 0006 a 0010 en orden, una por una -------------------------------------------------------------------
+// --- Se aplican 0006 a la última en orden, una por una --------------------------------------------------------------
 let falla = null;
-for (const n of [6, 7, 8, 9, 10, 11]) {
+for (const n of [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) {
   try {
     await applyMigration(antes, n);
     r.push([true, `la migración ${String(n).padStart(4, "0")} se aplica sobre datos existentes`]);
@@ -90,6 +90,27 @@ if (!falla) {
   r.push([comisiones.n === 4 && comisiones.doce === 4, `las 4 reservas existentes quedan con la comisión de 12 % (${comisiones.doce} de ${comisiones.n})`]);
   const sinReembolsos = (await q(antes, `select count(*)::int as n from public.payments where refunded_amount = 0`)).rows[0].n;
   r.push([sinReembolsos === 2, "los pagos existentes arrancan con 0 reembolsado"]);
+
+  // 0013: los reembolsos guardan la cuenta de cobro; 0014: ningún docente existente cobra hasta vincular su cuenta
+  // (por eso la 0014 se aplica después de vincular al menos un docente de prueba); 0015: la bandeja arranca vacía.
+  const mpCol = (await q(antes, `select count(*)::int as n from information_schema.columns where table_schema = 'public' and table_name = 'refunds' and column_name = 'mp_user_id'`)).rows[0].n;
+  r.push([mpCol === 1, "0013: refunds tiene la columna mp_user_id"]);
+  const cobran = (await q(antes, `select count(*) filter (where public.tutor_can_receive_payments(id))::int as n from public.tutor_profiles`)).rows[0].n;
+  r.push([cobran === 0, "0014: ningún docente existente puede recibir pagos hasta que vincule su cuenta"]);
+  const bandeja = (await q(antes, `select count(*)::int as n from public.email_outbox`)).rows[0].n;
+  r.push([bandeja === 0, "0015: aplicar la migración no encola emails de reservas anteriores"]);
+  // Un pago viejo sin identificador de Mercado Pago (cargado a mano antes del cobro real) no se puede reembolsar solo:
+  // la cancelación se rechaza entera en lugar de dejar la plata sin devolver, y la reserva queda como estaba.
+  await as(antes, "alumno", async () => {
+    try {
+      await q(antes, `select public.cancel_booking('b0000000-0000-0000-0000-00000000a002')`);
+      r.push([false, "cancelar una reserva con un pago viejo sin identificador debería rechazarse"]);
+    } catch (e) {
+      r.push([e.hint === "invalid_payment", `un pago viejo sin identificador de Mercado Pago no se reembolsa solo: se rechaza la cancelación (hint=${e.hint})`]);
+    }
+  });
+  const sigue = (await q(antes, `select status from public.bookings where id = 'b0000000-0000-0000-0000-00000000a002'`)).rows[0].status;
+  r.push([sigue === "confirmada", "...y la reserva sigue confirmada"]);
 
   // 0010: los datos privados se copiaron.
   const priv = (await q(antes, `select * from public.tutor_private where id = '${ids.docente}'`)).rows[0];

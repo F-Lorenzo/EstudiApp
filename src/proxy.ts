@@ -95,9 +95,11 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Todo menos los archivos estáticos, las imágenes de marca y los avisos de Mercado Pago (los manda
-  // un servidor, sin sesión ni cookies: no tiene sentido consultar al usuario ni demorar la respuesta).
+  // Todo menos los archivos estáticos, las imágenes de marca y los avisos (webhook) de Mercado Pago: los
+  // manda un servidor, sin sesión ni cookies, así que no tiene sentido consultar al usuario ni demorar la
+  // respuesta. El resto de `/api/mercadopago/` SÍ pasa por acá: la vinculación de la cuenta de cobro
+  // (`oauth/start` y `oauth/callback`) necesita que el proxy refresque la sesión antes de leerla.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|brand/|api/mercadopago/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|brand/|api/mercadopago/webhook(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map)$).*)",
   ],
 };

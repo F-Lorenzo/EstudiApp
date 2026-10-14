@@ -11,19 +11,26 @@ pendiente (tarjeta "Setup de Supabase").
    aprovisionarse).
 2. `cp .env.local.example .env.local` y completar `NEXT_PUBLIC_SUPABASE_URL`
    y `NEXT_PUBLIC_SUPABASE_ANON_KEY` desde Project Settings → API.
-3. Aplicar las migraciones (`supabase/migrations/0001` a `0012`) en el
+3. Aplicar las migraciones (`supabase/migrations/0001` a `0015`) en el
    SQL Editor del dashboard. (Alternativa con la CLI: ver más abajo.)
 
-   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 12` genera
-   `supabase/aplicar-0001-a-0012.sql` (con `--compacto`, la misma versión sin
+   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 15` genera
+   `supabase/aplicar-0001-a-0015.sql` (con `--compacto`, la misma versión sin
    comentarios).
 
    **Proyecto que ya tiene hasta la 0011** (el de EstudiApp hoy):
-   `npm run db:bundle -- 12 12` genera `supabase/aplicar-0012-a-0012.sql` con
-   la decisión sobre los avisos de pago. Corré antes `supabase/checks/1-diagnostico.sql`:
+   `npm run db:bundle -- 12 15` genera `supabase/aplicar-0012-a-0015.sql` con
+   los avisos de pago, la cancelación con reembolso, las cuentas de cobro de los
+   docentes y la bandeja de emails. Corré antes `supabase/checks/1-diagnostico.sql`:
    su última fila te dice qué comando usar. Se pega entero y se corre una vez, dentro de una transacción.
    Una prueba automática (`supabase/tests/fresh-install.db.mjs`) comprueba que
    el resultado es idéntico a aplicar todas las migraciones una por una.
+
+   **Ojo con la 0014:** desde ella no se puede reservar con un docente que no
+   tenga su cuenta de Mercado Pago vinculada (`tutor_not_payable`). Si el proyecto
+   ya tiene docentes y querés seguir probando reservas mientras tanto, aplicá en
+   dos tandas: `npm run db:bundle -- 12 13` ahora y `npm run db:bundle -- 14 15`
+   después de vincular al menos un docente de prueba.
 
    **Si el proyecto ya tiene las migraciones 0001 a 0005** (y datos), no
    hace falta pegar de a una: `npm run db:bundle` genera
@@ -46,6 +53,11 @@ pendiente (tarjeta "Setup de Supabase").
    La service role key está en Project Settings → API → service_role.
    No hace falta ponerla en `.env.local` para esto — pasarla solo en la
    línea de comando evita dejarla guardada en un archivo.
+
+   Desde la 0014 los docentes de demo traen una cuenta de cobro **de relleno**
+   (cuenta `demo-…` y tokens `demo-no-usable`, sin cifrar): sirve para poder
+   reservar con ellos y probar el recorrido con el pago simulado, y nunca
+   sirve para cobrar ni reembolsar de verdad.
 5. `npm run dev` y entrar con cualquiera de las cuentas que imprime el
    script. Todas comparten una contraseña **aleatoria que se genera en cada
    ejecución** y se muestra solo en la consola (el repo es público, así que
@@ -147,8 +159,38 @@ las dos entradas `seed:demo*` de `package.json`.
   fuera de orden. Incluye `enqueue_refund` (un solo reembolso por pago). Solo
   las ejecuta la service role. No cambia lo que ven los usuarios; hace falta
   recién cuando se conecte el webhook.
+- `0013_cancel_with_refund.sql`: **cancelar con reembolso.** `cancel_booking`
+  deja de rechazar las reservas ya pagas (se va `refund_required`) y devuelve un
+  resumen (`paid`, `percent`, `amount`, `refund`, `cancelled_by`): calcula el
+  reembolso con la política (`refund_percent`; si cancela el docente o la
+  administración, siempre 100 %), lo encola con `enqueue_refund` y libera el
+  horario. Bloquea la reserva y el pago, así que dos cancelaciones simultáneas
+  no encolan dos reembolsos. `refunds.mp_user_id` guarda la cuenta de cobro de
+  la que sale la plata (`enqueue_refund` y `apply_payment_notification` la
+  pasan) y `retryable_refunds` lista, para el barrido del servidor, los
+  reembolsos pendientes o fallidos que conviene reintentar (solo service role).
+  **Cambia el tipo de lo que devuelve `cancel_booking` (de `void` a `jsonb`):
+  la app tiene que desplegarse junto con la migración.**
+- `0014_payout_accounts.sql`: **cuentas de cobro de los docentes.**
+  `save_mp_credentials` y `rotate_mp_tokens` (solo service role) guardan y
+  renuevan las credenciales de Mercado Pago de un docente (los tokens llegan ya
+  cifrados desde la app); `unlink_my_mp_account` deja que el docente desvincule
+  la suya, salvo que tenga reservas por dar o reembolsos sin cerrar;
+  `tutor_can_receive_payments` dice (sí o no, sin abrir la tabla) si un docente
+  tiene una cuenta vigente; y `create_booking` rechaza con `tutor_not_payable`
+  a los docentes que no pueden cobrar. **Ver «Ojo con la 0014» arriba.**
+- `0015_email_outbox.sql`: **bandeja de salida de emails.** `email_outbox` (solo
+  service role) y tres triggers anotan, en la misma transacción que el hecho,
+  los avisos a enviar: reserva confirmada (al alumno) y nueva reserva (al
+  docente), reserva cancelada (a las dos partes, con el reembolso que le
+  corresponde al alumno) y reembolso realizado. Son idempotentes y nunca hacen
+  fallar la operación que los dispara. `claim_pending_emails` los reclama con
+  reintentos espaciados y `mark_email_result` anota el resultado (una fila
+  enviada no vuelve atrás). El `payload` es una foto sin el email del
+  destinatario, que se lee de `auth.users` recién al reclamar. Las reservas que
+  vencen o se cancelan sin pago no generan emails.
 
-Las migraciones 0006 a 0012 se probaron con más de 370 comprobaciones (más la matriz de la RLS: 553 intentos por rol) en un Postgres real
+Las migraciones 0006 a 0015 se probaron con unas 1.000 comprobaciones (la matriz de la RLS hace además 588 intentos por rol) y con 74 mutaciones (se rompe una regla a propósito y se comprueba que alguna prueba falle) en un Postgres real
 (roles anónimo, alumno, docente, administrador y service role; ver
 [tests/README.md](tests/README.md) y `npm run test:db`), pero **no contra tu
 proyecto de Supabase**: revisalas y probalas en un proyecto de prueba antes de
@@ -184,6 +226,9 @@ propio en vez de a la app. El texto completo de las dos plantillas está en
 
 - `1-diagnostico.sql`: qué migraciones tiene el proyecto y qué hacer a continuación.
 - `2-verificacion.sql`: después de aplicar, comprueba la RLS, los permisos, las guardas y los datos
-  que hay que revisar a mano. Cada fila tiene que decir OK.
+  que hay que revisar a mano. Son 22 filas: las 1 a 19 son comprobaciones de las migraciones (la 16 es
+  de la 0012, la 17 de la 0013, la 18 de la 0014 y la 19 de la 0015) y tienen que decir OK; las 20 a 22
+  son datos para revisar (reservas confirmadas sin pago, cuentas de administración y cuentas del seed de
+  demo viejo) y pueden decir REVISAR (qué hacer con cada una: [docs/FASE-0-PASO-A-PASO.md](../docs/FASE-0-PASO-A-PASO.md), paso 4).
 
 Las dos solo leen y se prueban en cada estado posible de la base (`supabase/tests/checks.db.mjs`).

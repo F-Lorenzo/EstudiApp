@@ -5,16 +5,31 @@ import {
   getNextOpenSlot,
   getTutorClasses,
 } from "@/lib/bookings/tutor-queries";
+import { parseAccountNotice } from "@/lib/payments/account-notice";
 import { createClient } from "@/lib/supabase/server";
+import { buildPayoutAccountView } from "./cuenta-de-cobro/state";
 
 export const metadata = { title: "Espacio docente" };
 
-export default async function DocenteInicioPage() {
+export default async function DocenteInicioPage({
+  searchParams,
+}: {
+  // `cuenta`: resultado de la vinculación con Mercado Pago (lo deja la ruta de retorno del OAuth).
+  searchParams: Promise<{ cuenta?: string | string[] }>;
+}) {
   const viewer = await getViewer();
   if (!viewer) redirect("/login");
 
+  const { cuenta } = await searchParams;
   const supabase = await createClient();
-  const [{ data: tutor }, upcoming, completed, nextOpenSlot] =
+  const [
+    { data: tutor },
+    upcoming,
+    completed,
+    nextOpenSlot,
+    privateData,
+    canReceive,
+  ] =
     await Promise.all([
       supabase
         .from("tutor_profiles")
@@ -28,6 +43,14 @@ export default async function DocenteInicioPage() {
       getTutorClasses(supabase, viewer.id, "confirmada"),
       getTutorClasses(supabase, viewer.id, "completada"),
       getNextOpenSlot(supabase, viewer.id),
+      // Cuenta de cobro: la cuenta vinculada (solo la lee el dueño, por la RLS) y si sus credenciales
+      // siguen vigentes. Los tokens nunca salen de la base.
+      supabase
+        .from("tutor_private")
+        .select("mercadopago_account_id")
+        .eq("id", viewer.id)
+        .maybeSingle<{ mercadopago_account_id: string | null }>(),
+      supabase.rpc("tutor_can_receive_payments", { p_tutor: viewer.id }),
     ]);
 
   return (
@@ -40,6 +63,12 @@ export default async function DocenteInicioPage() {
       completed={completed.classes}
       nextOpenSlot={nextOpenSlot}
       loadFailed={Boolean(upcoming.error || completed.error)}
+      payoutAccount={buildPayoutAccountView({
+        accountId: privateData.data?.mercadopago_account_id,
+        canReceive: canReceive.data,
+        failed: Boolean(privateData.error || canReceive.error),
+      })}
+      accountNotice={parseAccountNotice(cuenta)}
     />
   );
 }

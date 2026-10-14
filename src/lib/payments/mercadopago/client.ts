@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import { z } from "zod";
 import type {
   AccessContext,
   CreateCheckoutInput,
@@ -25,6 +25,17 @@ const DEFAULT_TIMEOUT_MS = 8_000;
 const DEFAULT_MAX_ATTEMPTS = 3;
 const MAX_RETRY_AFTER_MS = 4_000;
 const PAYMENT_ID = /^\d{1,20}$/;
+// La referencia externa es el id de una reserva (UUID). Se valida antes de armar con ella una dirección.
+const EXTERNAL_REFERENCE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Una reserva tiene uno o dos pagos como mucho; el tope evita leer una respuesta desmedida.
+const SEARCH_LIMIT = 10;
+
+/**
+ * Respuesta de la búsqueda de pagos. Cada resultado se valida por separado: uno con un formato
+ * inesperado se descarta en lugar de tirar abajo toda la consulta (es una ayuda de reconciliación; el
+ * camino principal sigue siendo el aviso).
+ */
+const paymentSearchResponseSchema = z.object({ results: z.array(z.unknown()) });
 
 export type MercadoPagoClientOptions = {
   clientId?: string;
@@ -95,21 +106,46 @@ export class MercadoPagoClient implements PaymentProvider {
       accessToken,
       retry: "always",
     });
-    return {
-      id: payment.id,
-      status: payment.status,
-      statusDetail: payment.status_detail ?? null,
-      amount: payment.transaction_amount,
-      currency: payment.currency_id ?? null,
-      externalReference: payment.external_reference || null,
-      collectorId: payment.collector_id ?? payment.collector?.id ?? null,
-      refundedAmount: payment.transaction_amount_refunded ?? 0,
-    };
+    return toProviderPayment(payment);
+  }
+
+  /**
+   * Busca los pagos de una referencia externa (el id de la reserva) con el token del docente, del más viejo
+   * al más nuevo: si la reserva tuviera dos pagos aprobados, gana el primero y la base devuelve el segundo.
+   *
+   * A VERIFICAR EN SANDBOX: que `GET /v1/payments/search` acepte `external_reference`, `sort`, `criteria` y
+   * `limit` con el token de un vendedor del marketplace, y que devuelva los campos que lee
+   * `paymentResponseSchema` (en particular `collector_id`). Mientras no se compruebe, esto es solo una ayuda
+   * para recuperar avisos perdidos: si falla, el alumno sigue pudiendo confirmar por el aviso normal.
+   */
+  async searchPaymentsByReference({ accessToken }: AccessContext, externalReference: string): Promise<ProviderPayment[]> {
+    if (!EXTERNAL_REFERENCE.test(externalReference)) {
+      throw new MercadoPagoError("La referencia del pago no es válida.", { kind: "invalid_request", retryable: false });
+    }
+    const query = new URLSearchParams({
+      external_reference: externalReference,
+      sort: "date_created",
+      criteria: "asc",
+      limit: String(SEARCH_LIMIT),
+    });
+    const { results } = await this.request(paymentSearchResponseSchema, {
+      method: "GET",
+      url: `${this.baseUrl}/v1/payments/search?${query.toString()}`,
+      accessToken,
+      retry: "always",
+    });
+    return results.flatMap((result) => {
+      const parsed = paymentResponseSchema.safeParse(result);
+      return parsed.success ? [toProviderPayment(parsed.data)] : [];
+    });
   }
 
   /**
    * Crea la preferencia de pago con el token del docente: la plata entra a su cuenta y la comisión
    * (`marketplace_fee`) a la de la plataforma. Repetirla es inocuo (la referencia es la misma reserva).
+   *
+   * A VERIFICAR EN SANDBOX: si con credenciales de prueba el link correcto es `init_point` o
+   * `sandbox_init_point` (devolvemos los dos; hoy el checkout usa `init_point`).
    */
   async createCheckout({ accessToken }: AccessContext, input: CreateCheckoutInput): Promise<ProviderCheckout> {
     const preference = await this.request(preferenceResponseSchema, {
@@ -325,6 +361,19 @@ function describeErrorBody(text: string): { message: string | null; code: string
 
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
+}
+
+function toProviderPayment(payment: z.infer<typeof paymentResponseSchema>): ProviderPayment {
+  return {
+    id: payment.id,
+    status: payment.status,
+    statusDetail: payment.status_detail ?? null,
+    amount: payment.transaction_amount,
+    currency: payment.currency_id ?? null,
+    externalReference: payment.external_reference || null,
+    collectorId: payment.collector_id ?? payment.collector?.id ?? null,
+    refundedAmount: payment.transaction_amount_refunded ?? 0,
+  };
 }
 
 /** Cliente con las credenciales de la aplicación de Mercado Pago (variables de entorno del servidor). */

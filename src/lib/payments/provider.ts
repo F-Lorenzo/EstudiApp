@@ -75,6 +75,12 @@ export type ProviderRefund = {
 
 export interface PaymentProvider {
   getPayment(ctx: AccessContext, paymentId: string): Promise<ProviderPayment>;
+  /**
+   * Pagos de esa referencia externa (el id de la reserva) visibles con ese token. Sirve para
+   * reconciliar: si un aviso se perdió o llegó tarde, se le pregunta a Mercado Pago qué pagos tiene la
+   * reserva. Devuelve una lista vacía si no hay ninguno.
+   */
+  searchPaymentsByReference(ctx: AccessContext, externalReference: string): Promise<ProviderPayment[]>;
   createCheckout(ctx: AccessContext, input: CreateCheckoutInput): Promise<ProviderCheckout>;
   refundPayment(ctx: AccessContext, input: RefundInput): Promise<ProviderRefund>;
 }

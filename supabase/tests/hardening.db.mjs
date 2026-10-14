@@ -1,6 +1,6 @@
 // Un caso por cada hallazgo confirmado de la revisión adversarial de las reservas.
 import { makeDb, as, ids, expectFail, expectOk, report } from "./harness.mjs";
-import { seed } from "./seed.mjs";
+import { seed, linkPayoutAccount } from "./seed.mjs";
 
 const r = [];
 const db = await makeDb();
@@ -32,7 +32,9 @@ await as(db, "docente2", () => expectFail("docente NO puede crearse la fila con 
 await as(db, "docente2", () => expectOk("docente SI puede crearse la fila como pendiente",
   q(`insert into public.tutor_profiles (id, bio) values ('${ids.docente2}', 'mi bio')`), r));
 await db.exec(`update public.tutor_profiles set verification_status = 'aprobado', tarifa_por_clase = 8000 where id = '${ids.docente2}'`);
-// docente2 aprobado, con cuatro horarios en días distintos.
+// docente2 aprobado, con su cuenta de cobro vinculada (desde la 0014 hace falta para reservarle) y
+// cuatro horarios en días distintos.
+await linkPayoutAccount(db, ids.docente2, "seed-mp-d2");
 await db.exec(`
   update public.tutor_profiles set verification_status = 'aprobado', tarifa_por_clase = 8000 where id = '${ids.docente2}';
   insert into public.availability_slots (id, tutor_id, starts_at, ends_at) values

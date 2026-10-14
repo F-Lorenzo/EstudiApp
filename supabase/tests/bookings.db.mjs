@@ -1,5 +1,5 @@
 import { makeDb, as, ids, expectFail, expectOk, report } from "./harness.mjs";
-import { seed } from "./seed.mjs";
+import { seed, linkPayoutAccount } from "./seed.mjs";
 
 const r = [];
 const db = await makeDb();
@@ -25,7 +25,9 @@ await db.exec(`
   insert into public.availability_slots (id, tutor_id, starts_at, ends_at)
     values ('${S_OVERLAP}', '${ids.docente2}', '${t.starts_at.toISOString()}', '${t.ends_at.toISOString()}');
 `);
-// docente2 queda aprobado; el horario con docente "sin aprobar" usa un tercer docente.
+// docente2 queda aprobado (y, desde la 0014, con su cuenta de cobro vinculada: si no, no se le puede reservar);
+// el horario con docente "sin aprobar" usa un tercer docente.
+await linkPayoutAccount(db, ids.docente2, "seed-mp-d2");
 await db.exec(`
   insert into auth.users (id, raw_user_meta_data) values ('00000000-0000-0000-0000-0000000000d3', '{"full_name":"docente pendiente","role":"docente"}');
   update public.availability_slots set tutor_id = '00000000-0000-0000-0000-0000000000d3' where id = '${S_PENDING_TUTOR}';
@@ -119,7 +121,16 @@ await as(db, "service", () => expectOk("service_role SI confirma el pago", q(`se
   r.push([b.status === "confirmada" && p.status === "aprobado" && Number(p.tutor_amount) === 8800, `reserva confirmada y pago registrado (docente recibe ${p.tutor_amount})`]);
 }
 await as(db, "service", () => expectOk("confirmar dos veces es idempotente", q(`select public.confirm_booking_payment('${booking4}', 'mp-1', 10000, 1200)`), r));
-await failWithHint("no se cancela una reserva ya paga (falta el reembolso)", "alumno", () => q(`select public.cancel_booking('${booking4}')`), "refund_required");
+// Desde la 0013 una reserva paga SÍ se cancela: la base calcula el reembolso (6 días antes: 100 %) y lo encola.
+// La matriz completa de cancelaciones con reembolso está en cancel-refund.db.mjs.
+{
+  let c;
+  await as(db, "alumno", async () => { c = (await q(`select public.cancel_booking('${booking4}') as r`)).rows[0].r; });
+  r.push([c.paid === true && c.percent === 100 && Number(c.amount) === 10000 && c.refund?.status === "pendiente" && c.cancelled_by === "alumno",
+    `una reserva paga se cancela y encola el reembolso del 100 % (${JSON.stringify({ paid: c.paid, percent: c.percent, amount: c.amount, cancelled_by: c.cancelled_by })})`]);
+  const b = (await q(`select status from public.bookings where id = '${booking4}'`)).rows[0];
+  r.push([b.status === "cancelada", "...y la reserva queda cancelada"]);
+}
 await as(db, "service", async () => {
   try { await q(`select public.confirm_booking_payment('${booking1}', 'mp-2', 10000)`); r.push([false, "confirmar una reserva cancelada (debia fallar)"]); }
   catch (e) { r.push([e.hint === "not_pending", `no se confirma una reserva cancelada/vencida  → hint=${e.hint}`]); }

@@ -126,6 +126,7 @@ describe("fallas al consultar el pago", () => {
     const db = fakeRpc();
     const provider: PaymentProvider = {
       getPayment: async () => ({ id: "999", status: "approved", statusDetail: null, amount: 1, currency: "ARS", externalReference: BOOKING_ID, collectorId: SELLER_MP_ID, refundedAmount: 0 }),
+      searchPaymentsByReference: vi.fn(),
       createCheckout: vi.fn(),
       refundPayment: vi.fn(),
     };

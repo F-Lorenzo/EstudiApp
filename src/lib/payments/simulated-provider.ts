@@ -12,13 +12,14 @@ import type {
 // Los identificadores de reembolso son únicos en todo Mercado Pago, no por cuenta ni por instancia.
 let refundSequence = 0;
 
-type Operation = "getPayment" | "createCheckout" | "refundPayment";
+type Operation = "getPayment" | "searchPaymentsByReference" | "createCheckout" | "refundPayment";
 
 /**
  * Proveedor de cobro simulado, en memoria. Se comporta como Mercado Pago en lo que importa para
  * probar el recorrido sin plata ni red:
  *
- *  - un pago solo lo ve el token de la cuenta que cobró (con otro token, «no existe»);
+ *  - un pago solo lo ve el token de la cuenta que cobró (con otro token, «no existe»); la búsqueda por
+ *    referencia devuelve solo los pagos de esa cuenta;
  *  - reembolsar con la misma clave de idempotencia devuelve lo mismo y NO devuelve dos veces;
  *  - no se puede devolver más de lo que se cobró;
  *  - se pueden programar fallas (`failNext`) para probar reintentos.
@@ -84,6 +85,14 @@ export class SimulatedPaymentProvider implements PaymentProvider {
   async getPayment(ctx: AccessContext, paymentId: string): Promise<ProviderPayment> {
     this.record("getPayment", ctx, { paymentId });
     return { ...this.visiblePayment(ctx, paymentId) };
+  }
+
+  async searchPaymentsByReference(ctx: AccessContext, externalReference: string): Promise<ProviderPayment[]> {
+    this.record("searchPaymentsByReference", ctx, { externalReference });
+    const seller = this.sellers.get(ctx.accessToken);
+    return [...this.payments.values()]
+      .filter((payment) => payment.externalReference === externalReference && (seller === undefined || payment.collectorId === seller))
+      .map((payment) => ({ ...payment }));
   }
 
   async createCheckout(ctx: AccessContext, input: CreateCheckoutInput): Promise<ProviderCheckout> {

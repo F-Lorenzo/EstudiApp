@@ -28,6 +28,11 @@ await as(db, "service", async () => {
   await expectOk("seed: contacto del docente en tutor_private (upsert)",
     q(`insert into public.tutor_private (id, contacto_verificacion) values ('${MARIA}', '+54 9 11 5555-0001')
        on conflict (id) do update set contacto_verificacion = excluded.contacto_verificacion`), r);
+  // 0014: cuenta de cobro de relleno (tokens «demo-no-usable», sin cifrar) vía save_mp_credentials, como el seed.
+  await expectOk("seed: cuenta de cobro de relleno del docente (0014)",
+    q(`select public.save_mp_credentials('${MARIA}', 'demo-maria', 'demo-no-usable', 'demo-no-usable', null, now() + interval '150 days', false)`), r);
+  await expectOk("seed: ...y otra para el segundo docente",
+    q(`select public.save_mp_credentials('${JUAN}', 'demo-juan', 'demo-no-usable', 'demo-no-usable', null, now() + interval '150 days', false)`), r);
   await expectOk("seed: materias del docente",
     q(`insert into public.tutor_subjects (tutor_id, subject_id) select '${MARIA}', id from public.subjects where name = 'Matemática'`), r);
   await expectOk("seed: pasar a un alumno a administrador",
@@ -48,8 +53,8 @@ await as(db, "service", async () => {
        from public.availability_slots s where s.id = '51000000-0000-0000-0000-0000000000f2'`), r);
 
   await expectOk("seed: un pago aprobado por reserva",
-    q(`insert into public.payments (booking_id, status, amount, commission_amount, tutor_amount)
-       select id, 'aprobado', 2500, 250, 2250 from public.bookings`), r);
+    q(`insert into public.payments (booking_id, mercadopago_payment_id, status, amount, commission_amount, tutor_amount)
+       select id, 'simulado-demo-' || (row_number() over (order by id)), 'aprobado', 2500, 250, 2250 from public.bookings`), r);
 
   await expectOk("seed: reseña de la clase completada",
     q(`insert into public.ratings (booking_id, student_id, tutor_id, score, comment)
@@ -61,14 +66,17 @@ await as(db, "service", async () => {
   r.push([Number(x.rating_promedio) === 5, "el promedio del docente se recalcula con la reseña"]);
 }
 await as(db, TOMAS, async () => {
-  // La reserva confirmada del seed está paga: no se puede cancelar sin reembolso.
+  // La reserva confirmada del seed está paga (con un identificador «simulado-…»): al cancelarla se encola el
+  // reembolso. Empieza en 50 horas, así que corresponde el 100 % (2500).
   const id = (await q(`select id from public.bookings where status = 'confirmada'`)).rows[0].id;
-  try {
-    await q(`select public.cancel_booking('${id}')`);
-    r.push([false, "una reserva confirmada del seed no debería cancelarse sin reembolso"]);
-  } catch (e) {
-    r.push([e.hint === "refund_required", `la reserva confirmada del seed está paga (hint=${e.hint})`]);
-  }
+  const c = (await q(`select public.cancel_booking('${id}') as r`)).rows[0].r;
+  r.push([c.paid === true && c.percent === 100 && Number(c.amount) === 2500 && /^simulado-demo-/.test(c.refund?.mercadopago_payment_id ?? ""),
+    `la reserva confirmada del seed está paga: al cancelarla se encola el reembolso (${c.percent} %, ${c.amount})`]);
 });
+// ...y el docente de demo tiene cuenta de cobro de relleno: se puede reservar con él (el seed deja franjas libres).
+{
+  const x = (await q(`select public.tutor_can_receive_payments('${MARIA}') as ok, public.tutor_can_receive_payments('${JUAN}') as ok2`)).rows[0];
+  r.push([x.ok === true && x.ok2 === true, "los docentes de demo pueden recibir pagos (cuenta de cobro de relleno vigente)"]);
+}
 
 report(r);

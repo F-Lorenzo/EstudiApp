@@ -23,7 +23,14 @@ with estado(n, nombre, aplicada) as (
     (10, '0010 datos privados del docente', to_regclass('public.tutor_private') is not null),
     (11, '0011 cimientos del cobro (comisión, reembolsos, credenciales)', to_regclass('public.refunds') is not null),
     (12, '0012 avisos de pago (qué hacer con cada pago)',
-        to_regprocedure('public.apply_payment_notification(text, uuid, text, numeric, text, text, numeric)') is not null)
+        to_regprocedure('public.apply_payment_notification(text, uuid, text, numeric, text, text, numeric)') is not null),
+    -- Cada una de las tres últimas se reconoce por algo que SOLO crea esa migración.
+    (13, '0013 cancelar con reembolso (retryable_refunds)',
+        to_regprocedure('public.retryable_refunds(integer)') is not null),
+    (14, '0014 cuentas de cobro de los docentes (tutor_can_receive_payments)',
+        to_regprocedure('public.tutor_can_receive_payments(uuid)') is not null),
+    (15, '0015 bandeja de emails (email_outbox)',
+        to_regclass('public.email_outbox') is not null)
 ),
 -- Primera migración que falta, y si desde ahí faltan TODAS las siguientes (un tramo limpio).
 resumen as (

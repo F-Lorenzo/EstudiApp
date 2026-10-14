@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { MercadoPagoError } from "./mercadopago/errors";
-import type { PaymentProvider } from "./provider";
+import type { PaymentProvider, ProviderPayment } from "./provider";
 import { executeRefund, refundRowSchema, type PaymentsRpc } from "./refunds";
 import { SellerTokenError, type SellerToken } from "./seller-token";
 
@@ -11,6 +11,10 @@ import { SellerTokenError, type SellerToken } from "./seller-token";
  *
  * Como siempre se actúa sobre el estado ACTUAL del pago, no importa en qué orden lleguen los
  * avisos ni cuántas veces se repitan.
+ *
+ * El tramo que sigue a la consulta (`applyProviderPayment`) lo comparte la reconciliación
+ * (`reconcile.ts`): cuando el alumno vuelve del checkout se le pregunta a Mercado Pago por los pagos de
+ * la reserva y cada uno pasa por el MISMO camino que un aviso.
  */
 export type NotificationDeps = {
   db: PaymentsRpc;
@@ -63,6 +67,19 @@ export async function processPaymentNotification(
   }
   if (payment.id !== dataId) return attention("pago_distinto_al_avisado");
 
+  return applyProviderPayment({ db, provider }, payment, seller);
+}
+
+/**
+ * Le pasa a la base un pago YA consultado al proveedor (`apply_payment_notification`) y hace lo que la
+ * base decida: si el pago no se puede aceptar, ejecuta el reembolso total con el token del docente que
+ * cobró. Es idempotente: repetirlo con el mismo pago no cambia nada.
+ */
+export async function applyProviderPayment(
+  { db, provider }: { db: PaymentsRpc; provider: PaymentProvider },
+  payment: ProviderPayment,
+  seller: SellerToken,
+): Promise<NotificationResult> {
   const reference = z.uuid().safeParse(payment.externalReference);
   const { data, error } = await db.rpc("apply_payment_notification", {
     p_mp_payment_id: payment.id,

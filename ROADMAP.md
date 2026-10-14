@@ -80,7 +80,11 @@ reserva, política de reembolsos, cola de reembolsos, tokens de Mercado Pago, av
 pruebas. ✅ 1.2 y 1.3 (sin credenciales, probados contra un proveedor simulado): cliente de Mercado Pago
 tipado, verificación de la firma de los avisos, cifrado de tokens, webhook y la migración `0012` (la base
 decide qué hacer con cada pago: confirmar, reembolsar solo lo que no se puede aceptar, o dejarlo para
-revisar). **Todavía sin probar contra Mercado Pago real.**
+revisar). ✅ Código de 1.4, 1.6 y 1.7 (migraciones `0013` a `0015`): vinculación OAuth del docente con tokens
+cifrados y renovación, pagar con Mercado Pago y volver a la reserva, cancelar con reembolso (alumno y
+docente), barrido de reembolsos, emails con Resend y mantenimiento diario. **Todo probado solo con Mercado
+Pago simulado.** Falta para cerrar la fase: dominio conectado, claves cargadas, aplicar `0012` a `0015`,
+la prueba de punta a punta en sandbox (1.5) y la revisión adversarial (1.8).
 
 Objetivo: una clase reservada se paga con Mercado Pago, el pago confirma la reserva de forma
 segura y se puede devolver.

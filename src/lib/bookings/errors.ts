@@ -11,14 +11,16 @@ const MESSAGES: Record<string, string> = {
   slot_too_soon:
     "Ese horario ya no se puede reservar: las clases se reservan con al menos una hora de anticipación.",
   tutor_unavailable: "Este docente no está disponible por ahora.",
+  tutor_not_payable:
+    "Este docente todavía no puede recibir pagos. Probá más tarde o elegí otro docente.",
   student_overlap: "Ya tenés una clase reservada en ese horario.",
   too_many_holds:
     "Ya tenés dos reservas sin pagar. Pagá o cancelá una para reservar otra.",
   not_found: "No encontramos esa reserva.",
   not_cancellable: "Esta reserva ya no se puede cancelar.",
   already_started: "La clase ya empezó, así que no se puede cancelar.",
-  refund_required:
-    "Esta reserva ya está paga y la cancelación con reembolso todavía no está disponible. Escribinos para resolverlo.",
+  invalid_payment:
+    "No pudimos preparar el reembolso de esta reserva, así que no la cancelamos. Escribinos y lo resolvemos.",
   not_pending: "Esta reserva ya no está pendiente de pago.",
   hold_expired: "Pasaron los 15 minutos y la reserva venció.",
   class_started: "La clase ya empezó.",

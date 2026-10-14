@@ -1,9 +1,9 @@
 // Junta varias migraciones en UN solo archivo para pegarlo de una vez en el SQL Editor de Supabase.
 //
-//   npm run db:bundle                       migraciones 6 a la última -> supabase/aplicar-0006-a-0010.sql
-//   npm run db:bundle -- 8 10               migraciones 8 a 10
-//   npm run db:bundle -- 1 10               INSTALACIÓN DESDE CERO    -> supabase/aplicar-0001-a-0010.sql
-//   npm run db:bundle -- 1 10 --compacto    igual, sin los comentarios (más corto para copiar y pegar)
+//   npm run db:bundle                       migraciones 6 a la última -> supabase/aplicar-0006-a-0015.sql
+//   npm run db:bundle -- 12 15              migraciones 12 a 15 (las que le faltan a un proyecto que tiene hasta la 0011)
+//   npm run db:bundle -- 1 15               INSTALACIÓN DESDE CERO    -> supabase/aplicar-0001-a-0015.sql
+//   npm run db:bundle -- 1 15 --compacto    igual, sin los comentarios (más corto para copiar y pegar)
 //
 // El archivo se genera a partir de supabase/migrations (no se edita a mano ni se guarda en git). Va
 // envuelto en una transacción: si algo falla, no queda nada a medias.
@@ -68,6 +68,15 @@ ${
 --                          where p.booking_id = b.id and p.status = 'aprobado');
 --
 `
+}${
+  // La 0014 cambia qué se puede reservar: en un proyecto con docentes en uso, hay que vincular uno antes.
+  !fromScratch && selected.some((f) => numberOf(f) === 14)
+    ? `--
+-- ATENCIÓN (0014): desde esa migración no se puede reservar con un docente que no tenga su cuenta de
+-- Mercado Pago vinculada. Si el proyecto ya tiene docentes y reservas en uso, aplicá primero las anteriores
+-- (hasta la 0013), vinculá al menos un docente de prueba y recién entonces la 0014 y la 0015.
+`
+    : ""
 }-- Migraciones incluidas: ${selected.join(", ")}
 
 begin;

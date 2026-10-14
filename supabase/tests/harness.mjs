@@ -7,7 +7,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const MIGRATIONS = fileURLToPath(new URL("../migrations", import.meta.url));
+// ESTUDIAPP_MIGRATIONS_DIR apunta a otra carpeta de migraciones: así se prueban las MUTACIONES (una regla rota a
+// propósito en una copia) sin tocar los archivos reales. Ver «Mutaciones» en supabase/tests/README.md.
+const MIGRATIONS = process.env.ESTUDIAPP_MIGRATIONS_DIR ?? fileURLToPath(new URL("../migrations", import.meta.url));
 
 export const ids = {
   alumno: "00000000-0000-0000-0000-0000000000a1",
@@ -44,7 +46,7 @@ export async function makeDb({ upTo = 999 } = {}) {
   const db = new PGlite();
   await db.exec(`
     create schema auth;
-    create table auth.users (id uuid primary key, raw_user_meta_data jsonb not null default '{}');
+    create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb not null default '{}');
     create role anon nologin;
     create role authenticated nologin;
     create role service_role nologin bypassrls;
@@ -94,6 +96,20 @@ export async function expectOk(label, promise, results) {
   } catch (e) {
     results.push([false, `${label}  → ${String(e.message).split("\n")[0].slice(0, 120)}`]);
   }
+}
+
+/**
+ * Registra la lista de resultados de una suite: si la prueba se corta con una excepción (por ejemplo, porque una regla
+ * rota dejó datos que el resto de la prueba daba por hechos), se imprime lo que se alcanzó a comprobar más el motivo,
+ * en vez de perder todo el informe. Uso: `const r = track([]);`
+ */
+export function track(results) {
+  process.on("uncaughtException", (e) => {
+    results.push([false, `la suite se interrumpió: ${e?.hint ? `(hint=${e.hint}) ` : ""}${String(e?.message ?? e).split("\n")[0].slice(0, 200)}`]);
+    report(results);
+    process.exit(1);
+  });
+  return results;
 }
 
 export function report(results) {

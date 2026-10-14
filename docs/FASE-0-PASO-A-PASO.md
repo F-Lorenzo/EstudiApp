@@ -24,12 +24,12 @@ los mismos pasos en el real. Si el proyecto solo tiene datos de prueba, podés i
 
 1. Supabase → tu proyecto → **SQL Editor** → **New query**.
 2. Pegá el contenido de `supabase/checks/1-diagnostico.sql` y apretá **Run**.
-3. Te muestra qué migraciones (0001 a 0012) tiene y, en la **última fila, qué hacer**:
+3. Te muestra qué migraciones (0001 a 0015) tiene y, en la **última fila, qué hacer**:
 
 | La última fila dice… | Hacé esto |
 |---|---|
 | «aplicá supabase/aplicar-0006-a-0010.sql…» | Seguí con el paso 2. Es el caso esperado. |
-| «proyecto vacío…» | **Instalación desde cero**: corré `npm run db:bundle -- 1 12`, copiá todo `supabase/aplicar-0001-a-0012.sql` (o `npm run db:bundle -- 1 12 --compacto` para la versión sin comentarios), pegalo en el SQL Editor y Run. Con eso quedan las doce migraciones y **saltás directo al paso 4** (verificación). |
+| «proyecto vacío…» | **Instalación desde cero**: corré `npm run db:bundle -- 1 15`, copiá todo `supabase/aplicar-0001-a-0015.sql` (o `npm run db:bundle -- 1 15 --compacto` para la versión sin comentarios), pegalo en el SQL Editor y Run. Con eso quedan las quince migraciones y **saltás directo al paso 4** (verificación). |
 | «faltan algunas de 0001 a 0005…» | Aplicá solo las de 0001 a 0005 que dicen NO, en orden. Volvé a correr el diagnóstico. |
 | «nada: están todas…» | Saltá al paso 4. |
 | «estado mezclado…» | **No sigas.** Mandame el resultado completo del diagnóstico. |
@@ -70,12 +70,14 @@ SQL Editor:
 
 ## 4. Verificación (2 min)
 
-Pegá `supabase/checks/2-verificacion.sql` en el SQL Editor y apretá **Run**. Son 19 filas:
+Pegá `supabase/checks/2-verificacion.sql` en el SQL Editor y apretá **Run**. Son 22 filas:
 
-- Las filas **1 a 16** tienen que decir **OK**. Si alguna dice FALLA, no sigas y mandame el resultado.
-- Las filas **17 a 19** pueden decir **REVISAR**:
+- Las filas **1 a 19** tienen que decir **OK**. Si alguna dice FALLA, no sigas y mandame el resultado.
+  (Las filas 16 a 19 comprueban las migraciones del cobro y de los emails: 0012, 0013, 0014 y 0015. Si
+  todavía no las aplicaste, van a decir FALLA y es lo esperado: esas migraciones no son parte de este paso.)
+- Las filas **20 a 22** pueden decir **REVISAR**:
 
-**Fila 17 · reservas confirmadas sin pago.** Para verlas, corré la consulta 2 del paso 2. Como no
+**Fila 20 · reservas confirmadas sin pago.** Para verlas, corré la consulta 2 del paso 2. Como no
 hubo cobros reales, lo recomendado es cancelarlas:
 
 ```sql
@@ -85,16 +87,16 @@ where status in ('confirmada', 'completada')
   and not exists (select 1 from public.payments p where p.booking_id = bookings.id and p.status = 'aprobado');
 ```
 
-**Fila 18 · no hay administración.** Se resuelve en el paso 5.
+**Fila 21 · no hay administración.** Se resuelve en el paso 5.
 
-**Fila 19 · cuentas del seed de demo viejo.** Su contraseña está publicada en el repo, así que hay
+**Fila 22 · cuentas del seed de demo viejo.** Su contraseña está publicada en el repo, así que hay
 que borrarlas. Borrar la cuenta borra en cascada su perfil, sus reservas y demás:
 
 ```sql
 delete from auth.users where email like '%.demo@estudiapp.test';
 ```
 
-Volvé a correr la verificación hasta que las filas 1 a 17 y la 19 digan OK.
+Volvé a correr la verificación hasta que las filas 1 a 20 y la 22 digan OK.
 
 ---
 
@@ -229,7 +231,9 @@ hiciste y qué viste (una captura ayuda).
 - [ ] 13. Con el docente aprobado: `/docente/disponibilidad` → abrir 3 franjas de la semana próxima
       → Guardar.
 - [ ] 14. Con el alumno: perfil del docente → elegir un horario → «Reservar y continuar» → pantalla
-      de pago con la cuenta regresiva de 15 minutos.
+      de pago con la cuenta regresiva de 15 minutos. (Si el proyecto ya tiene la migración 0014, solo se
+      puede reservar con un docente que vinculó su cuenta de cobro; los docentes de `npm run seed:demo`
+      traen una de relleno.)
 - [ ] 15. «Cancelar reserva» pide confirmación → la reserva queda cancelada y el horario vuelve a
       estar libre en el perfil del docente.
 - [ ] 16. Reservar otro horario. En Vercel el botón de Mercado Pago aparece deshabilitado (es lo

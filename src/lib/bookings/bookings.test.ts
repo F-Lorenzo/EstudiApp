@@ -65,9 +65,11 @@ describe("pago simulado", () => {
     expect(paymentSimulationEnabled()).toBe(true);
   });
 
-  it("funciona en una vista previa de Vercel", () => {
+  it("NO funciona en una vista previa de Vercel (comparte la base real con producción)", () => {
     entorno({ ALLOW_SIMULATED_PAYMENTS: "true", NODE_ENV: "production", VERCEL_ENV: "preview" });
-    expect(paymentSimulationEnabled()).toBe(true);
+    expect(paymentSimulationEnabled()).toBe(false);
+    entorno({ ALLOW_SIMULATED_PAYMENTS: "true", NODE_ENV: "development", VERCEL_ENV: "preview" });
+    expect(paymentSimulationEnabled()).toBe(false);
   });
 
   it("nunca funciona en producción de Vercel, aunque esté habilitado", () => {

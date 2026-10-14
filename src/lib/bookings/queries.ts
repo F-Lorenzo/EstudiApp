@@ -103,17 +103,33 @@ export async function getCompletedClasses(
   };
 }
 
+/** Reembolso de una reserva cancelada, tal como lo ve el alumno. */
+export type BookingRefund = {
+  /** Porcentaje devuelto (o por devolver). */
+  percent: number;
+  amount: number;
+  /** `aprobado` ya se devolvió; `pendiente` y `fallido` siguen en proceso (se reintentan solos). */
+  status: "pendiente" | "aprobado" | "fallido";
+};
+
 /** Detalle de una reserva del alumno, con el estado de su pago. */
 export type BookingDetail = ClassItem & {
   cancellationReason: string | null;
   paid: boolean;
   /** Materias del docente separadas por coma, para el resumen (la reserva no guarda una materia). */
   subject: string | null;
+  /** Reembolso de la reserva, si lo hubo (la cancelación de una reserva paga lo genera). */
+  refund: BookingRefund | null;
+  /** Hubo un pago aprobado, aunque después se haya devuelto (`paid` solo vale mientras el pago sigue en pie). */
+  everPaid: boolean;
 };
+
+type RefundEmbed = { percent: number; amount: number | string; status: BookingRefund["status"] };
 
 type BookingDetailRow = StudentBookingRow & {
   cancellation_reason: string | null;
   payments: { status: string } | { status: string }[] | null;
+  refunds: RefundEmbed | RefundEmbed[] | null;
   tutor_profiles: {
     profiles: { full_name: string; avatar_url: string | null } | null;
     tutor_subjects: { subjects: { name: string } | null }[];
@@ -134,7 +150,7 @@ export async function getStudentBooking(
   const { data, error } = await supabase
     .from("bookings")
     .select(
-      "id, status, tutor_id, price, created_at, starts_at, ends_at, cancellation_reason, tutor_profiles(profiles(full_name, avatar_url), tutor_subjects(subjects(name))), payments(status)",
+      "id, status, tutor_id, price, created_at, starts_at, ends_at, cancellation_reason, tutor_profiles(profiles(full_name, avatar_url), tutor_subjects(subjects(name))), payments(status), refunds(percent, amount, status)",
     )
     .eq("id", bookingId)
     .eq("student_id", studentId)
@@ -144,6 +160,7 @@ export async function getStudentBooking(
   if (!data) return null;
 
   const payment = Array.isArray(data.payments) ? data.payments[0] : data.payments;
+  const refundRow = Array.isArray(data.refunds) ? data.refunds[0] : data.refunds;
   const subjects = (data.tutor_profiles?.tutor_subjects ?? [])
     .map((row) => row.subjects?.name)
     .filter((name): name is string => Boolean(name))
@@ -152,6 +169,10 @@ export async function getStudentBooking(
     ...toClassItem(data),
     cancellationReason: data.cancellation_reason,
     paid: payment?.status === "aprobado",
+    everPaid: payment?.status === "aprobado" || payment?.status === "reembolsado",
+    refund: refundRow
+      ? { percent: Number(refundRow.percent), amount: Number(refundRow.amount), status: refundRow.status }
+      : null,
     subject: subjects.join(", ") || null,
   } satisfies BookingDetail;
 }

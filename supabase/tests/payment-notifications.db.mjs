@@ -2,7 +2,7 @@
 // y la cola de reembolsos (enqueue_refund). Es la regla del dinero: confirma lo aceptable, reembolsa
 // lo que no se puede aceptar y nunca hace nada dos veces.
 import { makeDb, as, ids, expectFail, expectOk, report } from "./harness.mjs";
-import { seed } from "./seed.mjs";
+import { seed, linkPayoutAccount } from "./seed.mjs";
 
 const r = [];
 const db = await makeDb();
@@ -11,10 +11,10 @@ const q = (sql) => db.query(sql);
 const S = (n) => `53000000-0000-0000-0000-0000000000${String(n).padStart(2, "0")}`;
 const NOEXISTE = "99999999-9999-9999-9999-999999999999";
 
+// Las cuentas de cobro de la suite: «111» es la del docente (el seed le puso una de relleno) y «222» la del docente2.
+await linkPayoutAccount(db, ids.docente, "111");
+await linkPayoutAccount(db, ids.docente2, "222");
 await db.exec(`
-  insert into public.mp_credentials (tutor_id, mp_user_id, access_token, refresh_token, expires_at) values
-    ('${ids.docente}', '111', 'cifrado', 'cifrado', now() + interval '100 days'),
-    ('${ids.docente2}', '222', 'cifrado', 'cifrado', now() + interval '100 days');
   insert into public.availability_slots (id, tutor_id, starts_at, ends_at)
   select ('53000000-0000-0000-0000-0000000000' || lpad(n::text, 2, '0'))::uuid, '${ids.docente}',
          now() + (n + 4) * interval '1 day', now() + (n + 4) * interval '1 day' + interval '1 hour'
