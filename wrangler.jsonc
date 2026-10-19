@@ -1,0 +1,35 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "estudiapp",
+  "main": ".open-next/worker.js",
+  "upload_source_maps": true,
+  "workers_dev": true,
+  "preview_urls": true,
+  "compatibility_date": "2026-10-06",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "redact_query_string": false,
+    "logs": { "enabled": true, "head_sampling_rate": 1, "persist": true, "invocation_logs": true },
+    "traces": { "enabled": false, "persist": true, "head_sampling_rate": 1 },
+    "issues": { "enabled": true }
+  },
+  "images": { "binding": "IMAGES" },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "estudiapp",
+      "environment": "production"
+    }
+  ],
+  // Preserve dashboard variables until their current values can be read.
+  "keep_vars": true,
+  "vars": {
+    "NEXT_PUBLIC_SITE_URL": "https://estudiapp.app"
+  }
+}
