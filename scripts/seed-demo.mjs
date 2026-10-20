@@ -254,10 +254,10 @@ async function seed() {
   const { data: slots, error: slotsError } = await supabase
     .from("availability_slots")
     .insert([
-      { tutor_id: mariaId, starts_at: addHours(now, 24), ends_at: addHours(now, 25) },
-      { tutor_id: mariaId, starts_at: addHours(now, 48), ends_at: addHours(now, 49) },
-      { tutor_id: juanId, starts_at: addHours(now, 30), ends_at: addHours(now, 31) },
-      { tutor_id: luciaId, starts_at: addHours(now, 72), ends_at: addHours(now, 73) },
+{ tutor_id: mariaId, starts_at: addHours(now, 24), ends_at: addHours(now, 25), is_booked: false },
+{ tutor_id: mariaId, starts_at: addHours(now, 48), ends_at: addHours(now, 49), is_booked: false },
+{ tutor_id: juanId, starts_at: addHours(now, 30), ends_at: addHours(now, 31), is_booked: false },
+{ tutor_id: luciaId, starts_at: addHours(now, 72), ends_at: addHours(now, 73), is_booked: false },
       // Slot ya pasado, para la reserva "completada" del historial.
       {
         tutor_id: mariaId,
