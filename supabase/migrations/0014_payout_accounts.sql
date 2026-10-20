@@ -20,6 +20,22 @@
 --
 -- Requiere 0001 a 0013.
 
+-- Compatibilidad con instalaciones creadas antes de que los reembolsos guardaran la cuenta receptora.
+-- La columna permite mantener bloqueada una cuenta aunque la reserva asociada ya no esté disponible.
+alter table public.refunds
+  add column if not exists mp_user_id text;
+
+update public.refunds r
+set mp_user_id = c.mp_user_id
+from public.bookings b
+join public.mp_credentials c on c.tutor_id = b.tutor_id
+where r.booking_id = b.id
+  and r.mp_user_id is null;
+
+create index if not exists refunds_mp_user_open_idx
+  on public.refunds (mp_user_id)
+  where status <> 'aprobado';
+
 -- 1. Lo que impide cambiar o soltar la cuenta ---------------------------------------------------------------
 --
 -- Mientras haya plata en camino con la cuenta actual, no se la puede soltar ni cambiar por otra:
