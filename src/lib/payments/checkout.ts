@@ -137,6 +137,10 @@ export async function createBookingCheckout(deps: CheckoutDeps, input: CheckoutI
   // 5. La preferencia de pago.
   const base = deps.siteUrl.replace(/\/+$/, "");
   const back = (outcome: "ok" | "pendiente" | "fallido") => `${base}/alumno/reservas/${booking.id}?pago=${outcome}`;
+  // En las cuentas demo el correo de EstudiApp no es el correo del comprador de Mercado Pago.
+  // Omitirlo permite que Checkout Pro use el comprador de prueba autenticado, sin forzar un
+  // correo ficticio que Mercado Pago puede rechazar por no coincidir con esa cuenta.
+  const payerEmail = input.studentEmail?.toLowerCase().endsWith("@estudiapp.test") ? undefined : input.studentEmail;
   try {
     const checkout = await deps.provider.createCheckout(
       { accessToken: seller.accessToken },
@@ -149,7 +153,7 @@ export async function createBookingCheckout(deps: CheckoutDeps, input: CheckoutI
         backUrls: { success: back("ok"), pending: back("pendiente"), failure: back("fallido") },
         // El link deja de cobrar cuando el horario deja de estar retenido.
         expiresAt,
-        ...(input.studentEmail ? { payerEmail: input.studentEmail } : {}),
+        ...(payerEmail ? { payerEmail } : {}),
       },
     );
     // Una cuenta autorizada en sandbox devuelve `live_mode=false` y dos links: usar el sandbox evita
