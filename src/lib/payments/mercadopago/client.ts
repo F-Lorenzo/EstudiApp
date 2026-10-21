@@ -68,6 +68,8 @@ type RequestOptions = {
   url: string;
   accessToken?: string;
   body?: unknown;
+  /** El endpoint OAuth sigue el formato estándar de formularios; los demás usan JSON. */
+  bodyFormat?: "json" | "form";
   idempotencyKey?: string;
   /**
    * `always`: repetir el pedido es seguro (una consulta, o una operación con clave de idempotencia).
@@ -228,6 +230,7 @@ export class MercadoPagoClient implements PaymentProvider {
       method: "POST",
       url: `${this.baseUrl}/oauth/token`,
       retry: "never",
+      bodyFormat: "form",
       body: {
         client_id: this.requireCredential("clientId"),
         client_secret: this.requireCredential("clientSecret"),
@@ -286,15 +289,22 @@ export class MercadoPagoClient implements PaymentProvider {
   private async attempt<T>(schema: z.ZodType<T>, options: RequestOptions): Promise<T> {
     const headers: Record<string, string> = { Accept: "application/json" };
     if (options.accessToken) headers.Authorization = `Bearer ${options.accessToken}`;
-    if (options.body !== undefined) headers["Content-Type"] = "application/json";
+    if (options.body !== undefined) headers["Content-Type"] = options.bodyFormat === "form" ? "application/x-www-form-urlencoded" : "application/json";
     if (options.idempotencyKey) headers["X-Idempotency-Key"] = options.idempotencyKey;
+
+    const requestBody =
+      options.body === undefined
+        ? undefined
+        : options.bodyFormat === "form"
+          ? new URLSearchParams(options.body as Record<string, string>).toString()
+          : JSON.stringify(options.body);
 
     let response: Response;
     try {
       response = await this.fetchImpl(options.url, {
         method: options.method,
         headers,
-        body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+        body: requestBody,
         signal: AbortSignal.timeout(this.timeoutMs),
         cache: "no-store",
       });

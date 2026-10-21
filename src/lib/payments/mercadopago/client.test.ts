@@ -255,7 +255,8 @@ describe("vincular la cuenta del docente (OAuth)", () => {
 
     expect(calls[0].url).toBe("https://api.mercadopago.com/oauth/token");
     expect(calls[0].init.headers.Authorization).toBeUndefined();
-    expect(JSON.parse(String(calls[0].init.body))).toEqual({
+    expect(calls[0].init.headers["Content-Type"]).toBe("application/x-www-form-urlencoded");
+    expect(Object.fromEntries(new URLSearchParams(String(calls[0].init.body)))).toEqual({
       client_id: "client-1",
       client_secret: "secret-1",
       grant_type: "authorization_code",
@@ -275,7 +276,10 @@ describe("vincular la cuenta del docente (OAuth)", () => {
   it("renueva con el refresh_token", async () => {
     const { client, calls } = setup([json(tokens)]);
     await client.refreshAccessToken("TG-viejo");
-    expect(JSON.parse(String(calls[0].init.body))).toMatchObject({ grant_type: "refresh_token", refresh_token: "TG-viejo" });
+    expect(Object.fromEntries(new URLSearchParams(String(calls[0].init.body)))).toMatchObject({
+      grant_type: "refresh_token",
+      refresh_token: "TG-viejo",
+    });
   });
 
   it("NUNCA reintenta solo: el código se usa una vez y el refresh_token se renueva en cada canje", async () => {
