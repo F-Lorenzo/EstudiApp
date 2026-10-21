@@ -27,6 +27,8 @@ export type CheckoutDeps = {
   loadSellerTokenByTutor: (tutorId: string) => Promise<SellerToken>;
   /** Dirección pública de la app, sin barra final (`siteUrl()`). */
   siteUrl: string;
+  /** Fuerza el link de pruebas de Mercado Pago. Nunca hace fallback a producción. */
+  useSandboxCheckout?: boolean;
   now?: () => Date;
   log?: (message: string, data?: Record<string, unknown>) => void;
 };
@@ -156,14 +158,18 @@ export async function createBookingCheckout(deps: CheckoutDeps, input: CheckoutI
         ...(payerEmail ? { payerEmail } : {}),
       },
     );
-    // Una cuenta autorizada en sandbox devuelve `live_mode=false` y dos links: usar el sandbox evita
-    // mandar una prueba al checkout de producción. Las cuentas antiguas sin ese dato conservan el
-    // comportamiento de producción mediante `init_point`.
-    const checkoutLink = seller.liveMode === false ? checkout.sandboxCheckoutUrl : checkout.checkoutUrl;
+    // Una cuenta autorizada en sandbox devuelve `live_mode=false` y dos links. El interruptor de
+    // runtime también permite forzar pruebas cuando Mercado Pago marca erróneamente el token OAuth
+    // como live. En ese caso NO se admite fallback a `init_point`: una prueba nunca debe abrir
+    // checkout de producción.
+    const useSandboxCheckout = deps.useSandboxCheckout === true || seller.liveMode === false;
+    const checkoutLink = useSandboxCheckout ? checkout.sandboxCheckoutUrl : checkout.checkoutUrl;
     const url = checkoutLink ? safeCheckoutUrl(checkoutLink) : null;
     if (!url) {
-      log("Mercado Pago devolvió un link de pago inválido", { bookingId: booking.id });
-      return fail("unavailable", UNAVAILABLE);
+      log("Mercado Pago no devolvió un link de pago utilizable", { bookingId: booking.id, sandbox: useSandboxCheckout });
+      return useSandboxCheckout
+        ? fail("provider_rejected", "Mercado Pago no devolvió un checkout de prueba. Revisá las credenciales de prueba e intentá de nuevo.")
+        : fail("unavailable", UNAVAILABLE);
     }
     return { ok: true, url };
   } catch (cause) {

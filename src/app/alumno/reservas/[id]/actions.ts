@@ -10,7 +10,7 @@ import { paymentSimulationEnabled } from "@/lib/bookings/simulation";
 import { scheduleEmailDelivery } from "@/lib/email/schedule";
 import { settleCancelledBooking, type CancelRefundReport } from "@/lib/payments/cancellation";
 import { createBookingCheckout } from "@/lib/payments/checkout";
-import { paymentsConfigured } from "@/lib/payments/config";
+import { paymentsConfigured, sandboxCheckoutEnabled } from "@/lib/payments/config";
 import { createReconcileThrottle, reconcileBookingPayments } from "@/lib/payments/reconcile";
 import { SIMULATED_PAYMENT_PREFIX } from "@/lib/payments/refunds";
 import { createPaymentServices } from "@/lib/payments/runtime";
@@ -157,7 +157,13 @@ export async function startCheckout(bookingId: string): Promise<CheckoutActionRe
   } = await supabase.auth.getUser();
 
   const result = await createBookingCheckout(
-    { db: services.admin, provider: services.provider, loadSellerTokenByTutor: services.loadSellerTokenByTutor, siteUrl: site },
+    {
+      db: services.admin,
+      provider: services.provider,
+      loadSellerTokenByTutor: services.loadSellerTokenByTutor,
+      siteUrl: site,
+      useSandboxCheckout: sandboxCheckoutEnabled(),
+    },
     { bookingId: booking.id, studentId: viewer.id, studentEmail: user?.email ?? null, tutorName: booking.tutorName },
   );
   if (!result.ok) {

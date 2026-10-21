@@ -26,3 +26,16 @@ export function paymentsConfigured(env: Record<string, string | undefined> = run
   }
   return true;
 }
+
+/**
+ * Fuerza el enlace de Checkout Pro de pruebas durante una validación controlada.
+ *
+ * No se infiere de las credenciales OAuth porque Mercado Pago puede devolver un
+ * token marcado como live aun cuando la persona está usando sus cuentas de
+ * prueba. Se activa únicamente con la variable de runtime
+ * `MERCADOPAGO_SANDBOX=true`; así no puede habilitarse por accidente en
+ * producción.
+ */
+export function sandboxCheckoutEnabled(env: Record<string, string | undefined> = runtimeEnv()): boolean {
+  return env.MERCADOPAGO_SANDBOX?.trim().toLowerCase() === "true";
+}
