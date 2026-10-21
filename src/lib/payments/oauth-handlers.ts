@@ -152,9 +152,18 @@ export async function handleOAuthCallback(request: Request, deps: OAuthDeps): Pr
         redirectUri: `${deps.siteUrl}${OAUTH_CALLBACK_PATH}`,
       });
     } catch (error) {
+      const mercadoPagoError = error instanceof MercadoPagoError ? error : null;
       return fail(
         "canje_fallido",
-        error instanceof MercadoPagoError ? { kind: error.kind, status: error.status } : undefined,
+        mercadoPagoError
+          ? {
+              kind: mercadoPagoError.kind,
+              status: mercadoPagoError.status,
+              // Código cerrado que devuelve Mercado Pago (p. ej. `invalid_client`), útil para
+              // diagnosticar la configuración sin registrar la respuesta ni credenciales.
+              ...(mercadoPagoError.code ? { code: mercadoPagoError.code } : {}),
+            }
+          : undefined,
       );
     }
 
