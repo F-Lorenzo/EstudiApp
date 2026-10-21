@@ -159,9 +159,11 @@ export async function handleOAuthCallback(request: Request, deps: OAuthDeps): Pr
           ? {
               kind: mercadoPagoError.kind,
               status: mercadoPagoError.status,
-              // Código cerrado que devuelve Mercado Pago (p. ej. `invalid_client`), útil para
-              // diagnosticar la configuración sin registrar la respuesta ni credenciales.
-              ...(mercadoPagoError.code ? { code: mercadoPagoError.code } : {}),
+              // Resultado cerrado que devuelve Mercado Pago (p. ej. `invalid_client`), útil para
+              // diagnosticar la configuración sin registrar la respuesta ni credenciales. No se
+              // llama `code` porque Cloudflare lo censura por prevención al confundirlo con el
+              // authorization code de OAuth.
+              ...(mercadoPagoError.code ? { provider_result: mercadoPagoError.code } : {}),
             }
           : undefined,
       );
