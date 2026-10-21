@@ -18,13 +18,18 @@ const row = (overrides: Record<string, unknown> = {}) => ({
   tutor_id: TUTOR,
   access_token: encryptToken("APP_USR-token-real", key, tokenAad(TUTOR, "access")),
   expires_at: "2027-01-01T00:00:00.000Z",
+  live_mode: false,
   ...overrides,
 });
 
 describe("token de cobro del docente", () => {
   it("busca por la cuenta de Mercado Pago y devuelve el token descifrado", async () => {
     const { db, query } = dbWith({ data: row() });
-    await expect(loadSellerToken(db, "111", { key, now: NOW })).resolves.toEqual({ tutorId: TUTOR, accessToken: "APP_USR-token-real" });
+    await expect(loadSellerToken(db, "111", { key, now: NOW })).resolves.toEqual({
+      tutorId: TUTOR,
+      accessToken: "APP_USR-token-real",
+      liveMode: false,
+    });
     expect(query.calls).toContainEqual(["eq", ["mp_user_id", "111"]]);
   });
 

@@ -152,10 +152,11 @@ export async function createBookingCheckout(deps: CheckoutDeps, input: CheckoutI
         ...(input.studentEmail ? { payerEmail: input.studentEmail } : {}),
       },
     );
-    // A VERIFICAR EN SANDBOX: si con credenciales de prueba hay que usar `sandboxCheckoutUrl` (`sandbox_init_point`)
-    // en lugar de `checkoutUrl` (`init_point`). Hoy se usa `init_point`, que es el link de producción.
-    // También a verificar: que Mercado Pago acepte direcciones de retorno `http://localhost` en desarrollo.
-    const url = safeCheckoutUrl(checkout.checkoutUrl);
+    // Una cuenta autorizada en sandbox devuelve `live_mode=false` y dos links: usar el sandbox evita
+    // mandar una prueba al checkout de producción. Las cuentas antiguas sin ese dato conservan el
+    // comportamiento de producción mediante `init_point`.
+    const checkoutLink = seller.liveMode === false ? checkout.sandboxCheckoutUrl : checkout.checkoutUrl;
+    const url = checkoutLink ? safeCheckoutUrl(checkoutLink) : null;
     if (!url) {
       log("Mercado Pago devolvió un link de pago inválido", { bookingId: booking.id });
       return fail("unavailable", UNAVAILABLE);

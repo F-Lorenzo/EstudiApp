@@ -18,9 +18,9 @@ export class SellerTokenError extends Error {
   }
 }
 
-export type SellerToken = { tutorId: string; accessToken: string };
+export type SellerToken = { tutorId: string; accessToken: string; liveMode?: boolean | null };
 
-type CredentialsRow = { tutor_id: string; access_token: string; expires_at: string };
+type CredentialsRow = { tutor_id: string; access_token: string; expires_at: string; live_mode?: boolean | null };
 type Lookup = { key: Buffer; now?: Date };
 
 /**
@@ -34,7 +34,7 @@ export async function loadSellerToken(
 ): Promise<SellerToken> {
   const { data, error } = await db
     .from("mp_credentials")
-    .select("tutor_id, access_token, expires_at")
+    .select("tutor_id, access_token, expires_at, live_mode")
     .eq("mp_user_id", mpUserId)
     .maybeSingle<CredentialsRow>();
   return readCredentials(data, error, { key, now });
@@ -52,7 +52,7 @@ export async function loadSellerTokenByTutor(
 ): Promise<SellerToken> {
   const { data, error } = await db
     .from("mp_credentials")
-    .select("tutor_id, access_token, expires_at")
+    .select("tutor_id, access_token, expires_at, live_mode")
     .eq("tutor_id", tutorId)
     .maybeSingle<CredentialsRow>();
   return readCredentials(data, error, { key, now });
@@ -68,7 +68,8 @@ function readCredentials(
   if (new Date(data.expires_at).getTime() <= now.getTime()) throw new SellerTokenError("expired");
 
   try {
-    return { tutorId: data.tutor_id, accessToken: decryptToken(data.access_token, key, tokenAad(data.tutor_id, "access")) };
+    const token = { tutorId: data.tutor_id, accessToken: decryptToken(data.access_token, key, tokenAad(data.tutor_id, "access")) };
+    return data.live_mode === undefined ? token : { ...token, liveMode: data.live_mode };
   } catch (cause) {
     if (cause instanceof TokenCryptoError) throw new SellerTokenError("unreadable");
     throw cause;
