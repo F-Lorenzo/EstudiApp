@@ -1,4 +1,5 @@
 import { siteUrlOrNull } from "@/lib/payments/site-url";
+import { runtimeEnv } from "@/lib/runtime-env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { warnOnce } from "./log";
 import { processEmailOutbox, type EmailRpc, type OutboxReport } from "./outbox";
@@ -20,18 +21,19 @@ import type { EmailSender } from "./sender";
 export type EmailDeps = { db: EmailRpc; sender: EmailSender; baseUrl: string | null };
 
 export function createEmailDeps(): EmailDeps {
-  const baseUrl = siteUrlOrNull();
+  const env = runtimeEnv();
+  const baseUrl = siteUrlOrNull(env);
   if (!baseUrl) {
     warnOnce("site_url_missing", "NEXT_PUBLIC_SITE_URL no está bien configurada: los emails salen sin enlaces.");
   }
-  return { db: createAdminClient(), sender: createResendSender(), baseUrl };
+  return { db: createAdminClient(), sender: createResendSender(env), baseUrl };
 }
 
 /**
  * ¿Hay con qué enviar emails? Se consulta antes de armar nada pesado, para que un servidor sin Resend o
  * sin service role no haga trabajo ni registre errores en cada reserva.
  */
-export function isEmailDeliveryConfigured(env: Record<string, string | undefined> = process.env): boolean {
+export function isEmailDeliveryConfigured(env: Record<string, string | undefined> = runtimeEnv()): boolean {
   return Boolean(
     env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
       env.SUPABASE_SERVICE_ROLE_KEY?.trim() &&

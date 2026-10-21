@@ -156,8 +156,9 @@ function describeErrorBody(text: string): { code: string | null; message: string
 
 /** Sender de producción, con las variables de entorno del servidor. */
 export function createResendSender(
-  env: Record<string, string | undefined> = process.env,
+  env: Record<string, string | undefined> = runtimeEnv(),
   overrides: Omit<ResendSenderOptions, "apiKey" | "from"> = {},
 ) {
   return new ResendEmailSender({ apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM, ...overrides });
 }
+import { runtimeEnv } from "@/lib/runtime-env";

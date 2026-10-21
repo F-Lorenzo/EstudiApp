@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { runtimeEnv } from "@/lib/runtime-env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createMercadoPagoClient, type MercadoPagoClientOptions } from "./mercadopago/client";
 import type { PaymentProvider } from "./provider";
@@ -23,10 +24,15 @@ export type PaymentServices = {
 
 export function createPaymentServices(clientOptions: MercadoPagoClientOptions = {}): PaymentServices {
   const admin = createAdminClient();
-  const key = () => parseEncryptionKey(process.env.MERCADOPAGO_TOKEN_ENCRYPTION_KEY);
+  const env = runtimeEnv();
+  const key = () => parseEncryptionKey(env.MERCADOPAGO_TOKEN_ENCRYPTION_KEY);
   return {
     admin,
-    provider: createMercadoPagoClient(clientOptions),
+    provider: createMercadoPagoClient({
+      clientId: env.MERCADOPAGO_CLIENT_ID,
+      clientSecret: env.MERCADOPAGO_CLIENT_SECRET,
+      ...clientOptions,
+    }),
     loadSellerToken: async (mpUserId) => loadSellerToken(admin, mpUserId, { key: key() }),
     loadSellerTokenByTutor: async (tutorId) => loadSellerTokenByTutor(admin, tutorId, { key: key() }),
   };

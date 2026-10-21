@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { runtimeEnv } from "@/lib/runtime-env";
 import { createMercadoPagoClient } from "./mercadopago/client";
 import {
   notConfiguredResponse,
@@ -30,7 +31,7 @@ export class OAuthConfigError extends Error {
 type Env = Record<string, string | undefined>;
 
 /** `Secure` en la cookie de estado salvo en `next dev` (http://localhost no es https). */
-export const isSecureCookieEnvironment = (env: Env = process.env) => env.NODE_ENV !== "development";
+export const isSecureCookieEnvironment = (env: Env = runtimeEnv()) => env.NODE_ENV !== "development";
 
 /** `needSite`: la dirección pública solo hace falta para vincular (la de retorno), no para renovar tokens. */
 function requireConfig(env: Env, { needSite }: { needSite: boolean }) {
@@ -79,7 +80,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   return { id: user.id, role: profile?.role ?? null };
 }
 
-export function createOAuthDeps(env: Env = process.env): OAuthDeps {
+export function createOAuthDeps(env: Env = runtimeEnv()): OAuthDeps {
   const { site, clientId, clientSecret, encryptionKey } = requireConfig(env, { needSite: true });
   return {
     siteUrl: site,
@@ -92,7 +93,7 @@ export function createOAuthDeps(env: Env = process.env): OAuthDeps {
 }
 
 /** Dependencias del barrido de renovación de tokens (`refreshExpiringTokens`), para la ruta de mantenimiento. */
-export function createTokenRefreshDeps(env: Env = process.env): Pick<TokenRefreshDeps, "db" | "client" | "key"> {
+export function createTokenRefreshDeps(env: Env = runtimeEnv()): Pick<TokenRefreshDeps, "db" | "client" | "key"> {
   const { clientId, clientSecret, encryptionKey } = requireConfig(env, { needSite: false });
   return {
     db: createAdminClient(),

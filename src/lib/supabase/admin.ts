@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { runtimeEnv } from "@/lib/runtime-env";
 
 /**
  * Cliente con la service role key: se salta la RLS. Solo para código de
@@ -7,8 +8,9 @@ import { createClient } from "@supabase/supabase-js";
  * lleva el prefijo NEXT_PUBLIC_, así que tampoco llega al navegador.
  */
 export function createAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const env = runtimeEnv();
+  const url = env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
     throw new Error("Falta SUPABASE_SERVICE_ROLE_KEY para esta operación.");
   }

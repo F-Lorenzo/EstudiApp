@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { runtimeEnv } from "@/lib/runtime-env";
 import type {
   AccessContext,
   CreateCheckoutInput,
@@ -378,9 +379,10 @@ function toProviderPayment(payment: z.infer<typeof paymentResponseSchema>): Prov
 
 /** Cliente con las credenciales de la aplicación de Mercado Pago (variables de entorno del servidor). */
 export function createMercadoPagoClient(options: MercadoPagoClientOptions = {}) {
+  const env = runtimeEnv();
   return new MercadoPagoClient({
-    clientId: process.env.MERCADOPAGO_CLIENT_ID || undefined,
-    clientSecret: process.env.MERCADOPAGO_CLIENT_SECRET || undefined,
+    clientId: env.MERCADOPAGO_CLIENT_ID,
+    clientSecret: env.MERCADOPAGO_CLIENT_SECRET,
     ...options,
   });
 }

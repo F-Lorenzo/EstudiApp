@@ -20,6 +20,13 @@ en el entorno de build o en `.env.local` (ignorado por Git). Next.js incorpora
 las variables `NEXT_PUBLIC_*` al bundle: las variables del dashboard no se
 descargan automáticamente al compilar. Verificar que coincidan con producción.
 
+Además, cargar en **Workers & Pages → estudiapp → Settings → Runtime variables
+and secrets → Production** las variables solo de servidor: `SUPABASE_SERVICE_ROLE_KEY`,
+`MERCADOPAGO_CLIENT_ID`, `MERCADOPAGO_CLIENT_SECRET`,
+`MERCADOPAGO_WEBHOOK_SECRET`, `MERCADOPAGO_TOKEN_ENCRYPTION_KEY`, `RESEND_API_KEY`,
+`EMAIL_FROM` y `CRON_SECRET`. El código de servidor lee los bindings runtime de
+OpenNext; no alcanza con definir estos secretos exclusivamente durante el build.
+
 Wrangler usa `keep_vars: true` para conservar las variables existentes del
 dashboard que todavía no se hayan trasladado al código. No reemplazarlas con
 placeholders. No guardar tokens de Cloudflare, claves privadas de Supabase ni
