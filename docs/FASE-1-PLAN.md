@@ -7,15 +7,16 @@ Decisiones tomadas (8 de octubre de 2026):
 | Reembolsos | **100 %** si se cancela con **24 h o más** de anticipación · **50 %** entre **24 h y 2 h** · **0 %** con menos de 2 h. Si cancela el **docente** (o la administración), el alumno recibe **siempre el 100 %**. |
 | Comisión | **12 %** de cada clase hoy. Más adelante baja según las referencias del docente (ver «Comisión por reputación»). |
 | Emails | **Resend**. Hace falta un dominio propio verificado. |
-| Mercado Pago | Marketplace con **Checkout Pro** (Split 1:1). El alumno paga en la página de Mercado Pago. Guía de cuenta: [MERCADO-PAGO-CUENTA.md](MERCADO-PAGO-CUENTA.md). |
+| Mercado Pago | Marketplace con **Checkout API** (Split 1:1, formulario de tarjeta de Mercado Pago dentro de EstudiApp). Hasta el 22 de octubre de 2026 era Checkout Pro; se cambió porque el checkout de Mercado Pago fallaba en todas las pruebas. Guía de cuenta: [MERCADO-PAGO-CUENTA.md](MERCADO-PAGO-CUENTA.md). |
 
 ## Cómo funciona Mercado Pago en este modelo (documentación oficial)
 
 - Cada docente **vincula su cuenta por OAuth**; la plataforma guarda su `access_token` (dura **180 días**) y
   su `refresh_token` (dura **6 meses**). Hay que **renovarlos** antes de que venzan.
-- La preferencia de pago se crea **con el token del docente** (`POST /checkout/preferences`) y lleva
-  `marketplace_fee` con la comisión en pesos. La plata del docente va a su cuenta; la comisión, a la
-  de la plataforma.
+- La tarjeta se tokeniza en el navegador con la **clave pública del docente** (Card Payment Brick) y el pago se
+  crea **con el token del docente** (`POST /v1/payments`, con `X-Idempotency-Key` y `binary_mode`). Lleva
+  `application_fee` con la comisión en pesos. La plata del docente va a su cuenta; la comisión, a la de la
+  plataforma.
 - Mercado Pago descuenta **primero su propia tarifa** de lo que recibe el docente; después, la comisión
   del marketplace del saldo restante. **La tarifa de Mercado Pago la absorbe el docente.**
 - Los avisos (webhooks) llegan por `POST` con `type=payment` y `data.id`, firmados con HMAC SHA-256
@@ -60,11 +61,13 @@ se prueba en el paso 1.5 antes de dar nada por cerrado.
 
 ## Flujos
 
-**Pagar.** `create_booking` (retiene 15 min) → «Pagar con Mercado Pago» (acción del servidor) → se crea la
-preferencia con el token del docente (`external_reference` = id de la reserva, `marketplace_fee`,
-`expires` con el vencimiento de la retención, `notification_url`, `back_urls`) → el alumno paga en
-Mercado Pago → vuelve a `/alumno/reservas/{id}` (pantalla «Estamos confirmando tu pago» que consulta el
-estado, sin confiar en los parámetros de la URL) → llega el aviso → `confirm_booking_payment`.
+**Pagar.** `create_booking` (retiene 15 min) → «Pagar con tarjeta» → `preparePayment` (acción del servidor:
+comprueba la reserva y devuelve la clave pública del docente y el monto de la base) → el formulario de
+Mercado Pago tokeniza la tarjeta en el navegador → `payWithCard` (vuelve a comprobar la reserva y crea el
+pago con el token del docente: `external_reference` = id de la reserva, `application_fee`, `binary_mode`,
+`notification_url`) → el pago se le pasa a la base en el momento (`applyProviderPayment`, el mismo camino
+que el aviso) → la pantalla muestra el estado real; si sigue pendiente, «Estamos confirmando tu pago»
+consulta hasta que llegue el aviso. El código está en `src/lib/payments/checkout.ts`.
 
 **Aviso (webhook, `POST /api/mercadopago/webhook`).** Verificar firma (si falta la clave o la firma no
 cierra, no se hace nada) → `begin_payment_event` (descarta duplicados ya procesados) → buscar el token
@@ -129,7 +132,7 @@ Idea: **cuanto mejores referencias tiene el docente, menos comisión paga.**
 | 1.2 ✅ | Cliente de Mercado Pago tipado (preferencias, pagos, reembolsos, OAuth) con clave de idempotencia y reintentos; verificación de firma del aviso; cifrado de tokens (AES-GCM); interfaz de proveedor con una versión simulada para pruebas. En `src/lib/payments` | Nada |
 | 1.3 ✅ | Ruta del webhook y su procesamiento + migración `0012`, probados con el proveedor simulado y un Postgres real (pago aprobado, rechazado, duplicado, tardío, fuera de orden, firma inválida, reintentos, cuenta distinta, reembolso con falla pasajera) | Nada |
 | 1.4 ✅ código | Vinculación del docente por OAuth (`/api/mercadopago/oauth/start` y `callback`, estado firmado en cookie, tokens cifrados), renovación de tokens, tarjeta «Cuenta de cobro» en el panel docente, `0014`. Probado con Mercado Pago simulado | Para probarlo de verdad: claves cargadas en Vercel |
-| 1.5 ◐ código | «Pagar con Mercado Pago» (`startCheckout`), pantalla de retorno, reconciliación por referencia externa; **falta**: aplicar 0012-0015, cargar claves, configurar el webhook y la **prueba de punta a punta en sandbox** (comprador y vendedor de prueba) con los puntos abiertos de abajo | Claves de prueba cargadas, webhook configurado, dominio conectado |
+| 1.5 ◐ código | «Pagar con tarjeta» por Checkout API (`preparePayment` y `payWithCard`), pantalla de confirmación, reconciliación por referencia externa; **falta**: aplicar 0012-0015, cargar claves, configurar el webhook y la **prueba de punta a punta en sandbox** (comprador y vendedor de prueba) con los puntos abiertos de abajo | Claves de prueba cargadas, webhook configurado, dominio conectado |
 | 1.6 ✅ código | Cancelación con reembolso (`0013`) para el alumno y para el docente, ejecutor, barrido, política en pantalla y en `/cancelacion`. Probado con Mercado Pago simulado | Sandbox para verificar |
 | 1.7 ✅ código | Emails con Resend desde la bandeja de la base (se envían después de responder y en el mantenimiento diario). Reserva confirmada (incluye el recibo), nueva reserva al docente, cancelación y reembolso | Dominio verificado y API key de Resend |
 | 1.8 ◐ | Pago simulado retirado de previews y producción (solo `next dev`). Mantenimiento diario (`/api/cron/payments-maintenance`, ver `vercel.json`). **Falta la revisión adversarial** de todo lo nuevo y pruebas unitarias propias de `checkout.ts`, `reconcile.ts`, `refund-sweep.ts`, `cancellation.ts` y la acción del docente (hoy se prueban solo de forma indirecta) | Todo lo anterior |
@@ -152,8 +155,8 @@ dentro del plazo devuelve el dinero; probado además con pagos duplicados, tard�
 
 **No probado contra Mercado Pago real** (se verifica en el paso 1.5 con la cuenta de prueba):
 
-- Que los pedidos y respuestas reales coincidan con lo que dice la documentación (campos, `collector_id`, formato de fechas de
-  la preferencia, el aviso trayendo `user_id`).
+- Que los pedidos y respuestas reales coincidan con lo que dice la documentación (campos, `collector_id`, `application_fee`
+  con el token de un vendedor vinculado por OAuth, el aviso trayendo `user_id`).
 - Que la firma real coincida con el formato documentado, y si los reintentos de un mismo aviso conservan la marca de tiempo.
 - Con qué token se hace el reembolso (el código usa el del docente), qué pasa con la tarifa de Mercado Pago al reembolsar, y
   si «tarjeta» funciona en el modelo marketplace.

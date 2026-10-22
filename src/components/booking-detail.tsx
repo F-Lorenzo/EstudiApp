@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   cancelBooking,
+  payWithCard,
+  preparePayment,
   reconcileBooking,
   simulatePayment,
-  startCheckout,
 } from "@/app/alumno/reservas/[id]/actions";
 import { BookingSummary, ProgressSteps } from "@/components/booking-summary";
+import { CardPaymentForm } from "@/components/card-payment-form";
 import { Badge, ButtonLink, Icon, PageHeading } from "@/components/ui";
 import {
   PAYMENT_POLL_INTERVAL_MS,
@@ -160,7 +162,7 @@ export function BookingDetailView({
   );
   const [error, setError] = useState("");
   const [working, startWorking] = useTransition();
-  const [redirecting, setRedirecting] = useState(false);
+  const [cardForm, setCardForm] = useState<{ publicKey: string; amount: number; payerEmail: string | null } | null>(null);
   const [gaveUp, setGaveUp] = useState(false);
   const pending = booking.status === "pendiente_pago";
   const confirming = isConfirmingPayment(paymentReturn, booking.status);
@@ -242,25 +244,41 @@ export function BookingDetailView({
     });
   }
 
-  function pay() {
+  // Paso 1: el servidor comprueba la reserva y devuelve con qué mostrar el formulario de tarjeta.
+  function openCardForm() {
     setError("");
     startWorking(async () => {
       try {
-        const result = await startCheckout(booking.id);
-        if (result.ok) {
-          // El botón queda deshabilitado hasta que el navegador cambie de página.
-          setRedirecting(true);
-          window.location.assign(result.url);
-        } else {
-          setError(result.error);
-        }
+        const result = await preparePayment(booking.id);
+        if (result.ok) setCardForm({ publicKey: result.publicKey, amount: result.amount, payerEmail: result.payerEmail });
+        else setError(result.error);
       } catch {
         setError("No pudimos iniciar el pago. Intentá de nuevo en unos minutos.");
       }
     });
   }
 
-  const busy = working || redirecting;
+  // Paso 2: el formulario de Mercado Pago ya tokenizó la tarjeta; el servidor cobra y la base decide.
+  async function submitCard(formData: unknown) {
+    setError("");
+    try {
+      const result = await payWithCard(booking.id, formData);
+      if (!result.ok) {
+        setError(result.error);
+        return false;
+      }
+      // Confirmada, todavía procesándose o devuelta por llegar tarde: la pantalla de la reserva (con `?pago=ok`)
+      // muestra el estado real que sale de la base y, si sigue pendiente, consulta hasta que se confirme.
+      setCardForm(null);
+      router.replace(`/alumno/reservas/${booking.id}?pago=ok`);
+      return true;
+    } catch {
+      setError("No pudimos procesar el pago. Revisá en unos minutos si se confirmó antes de volver a intentar.");
+      return false;
+    }
+  }
+
+  const busy = working;
 
   // Qué reembolso corresponde si cancela AHORA (solo para reservas pagas).
   const refundPreview = (): RefundPreview => {
@@ -412,39 +430,57 @@ export function BookingDetailView({
               <div className="stu-payment-method">
                 <span className="stu-radio-mark" />
                 <div>
-                  <strong>Mercado Pago</strong>
-                  <span>Tarjeta de crédito, débito o dinero en cuenta</span>
+                  <strong>Tarjeta de crédito o débito</strong>
+                  <span>Procesado por Mercado Pago</span>
                 </div>
                 <span className="stu-mp-wordmark">mp</span>
               </div>
               {paymentsEnabled ? (
-                <>
-                  <button
-                    type="button"
-                    className="stu-button stu-wide-button"
-                    disabled={busy}
-                    aria-busy={busy}
-                    onClick={pay}
-                  >
-                    {busy ? "Te llevamos a Mercado Pago…" : "Pagar con Mercado Pago"}{" "}
-                    <Icon name="arrow-right" size={18} />
-                  </button>
-                  <p className="stu-payment-caption">
-                    Pagás en la página segura de Mercado Pago y después volvés acá. Si cancelás con tiempo, te
-                    devolvemos la plata:{" "}
-                    <Link href="/cancelacion" className="stu-text-link">
-                      mirá cómo funciona
-                    </Link>
-                    .
-                  </p>
-                </>
+                cardForm ? (
+                  <>
+                    <CardPaymentForm
+                      publicKey={cardForm.publicKey}
+                      amount={cardForm.amount}
+                      payerEmail={cardForm.payerEmail}
+                      onSubmit={submitCard}
+                    />
+                    <p className="stu-payment-caption">
+                      Los datos de tu tarjeta los procesa Mercado Pago: EstudiApp no los ve ni los guarda. Si
+                      cancelás con tiempo, te devolvemos la plata:{" "}
+                      <Link href="/cancelacion" className="stu-text-link">
+                        mirá cómo funciona
+                      </Link>
+                      .
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="stu-button stu-wide-button"
+                      disabled={busy}
+                      aria-busy={busy}
+                      onClick={openCardForm}
+                    >
+                      {busy ? "Preparando el pago…" : "Pagar con tarjeta"} <Icon name="arrow-right" size={18} />
+                    </button>
+                    <p className="stu-payment-caption">
+                      Pagás acá mismo, con el formulario seguro de Mercado Pago. Si cancelás con tiempo, te
+                      devolvemos la plata:{" "}
+                      <Link href="/cancelacion" className="stu-text-link">
+                        mirá cómo funciona
+                      </Link>
+                      .
+                    </p>
+                  </>
+                )
               ) : (
                 <>
                   <button type="button" className="stu-button stu-wide-button" disabled>
-                    Pagar con Mercado Pago <Icon name="arrow-right" size={18} />
+                    Pagar con tarjeta <Icon name="arrow-right" size={18} />
                   </button>
                   <p className="stu-payment-caption">
-                    El pago con Mercado Pago todavía no está disponible.
+                    El pago con tarjeta todavía no está disponible.
                   </p>
                 </>
               )}

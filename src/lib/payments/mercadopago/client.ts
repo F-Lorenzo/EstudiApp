@@ -2,9 +2,8 @@ import { z } from "zod";
 import { runtimeEnv } from "@/lib/runtime-env";
 import type {
   AccessContext,
-  CreateCheckoutInput,
+  CreatePaymentInput,
   PaymentProvider,
-  ProviderCheckout,
   ProviderPayment,
   ProviderRefund,
   RefundInput,
@@ -14,7 +13,6 @@ import {
   errorBodySchema,
   oauthTokenResponseSchema,
   paymentResponseSchema,
-  preferenceResponseSchema,
   refundResponseSchema,
 } from "./schemas";
 
@@ -144,45 +142,39 @@ export class MercadoPagoClient implements PaymentProvider {
   }
 
   /**
-   * Crea la preferencia de pago con el token del docente: la plata entra a su cuenta y la comisión
-   * (`marketplace_fee`) a la de la plataforma. Repetirla es inocuo (la referencia es la misma reserva).
+   * Cobra con tarjeta (Checkout API) con el token del docente: la plata entra a su cuenta y la comisión
+   * (`application_fee`) a la de la plataforma. El token de la tarjeta lo generó el navegador con la clave
+   * pública del mismo docente. `binary_mode` hace que el pago se apruebe o se rechace en el momento (nada de
+   * «en revisión»): la reserva solo está retenida 15 minutos.
    *
-   * A VERIFICAR EN SANDBOX: si con credenciales de prueba el link correcto es `init_point` o
-   * `sandbox_init_point` (devolvemos los dos; hoy el checkout usa `init_point`).
+   * La clave de idempotencia evita cobrar dos veces si se repite el pedido (reintento o doble clic).
    */
-  async createCheckout({ accessToken }: AccessContext, input: CreateCheckoutInput): Promise<ProviderCheckout> {
-    const preference = await this.request(preferenceResponseSchema, {
+  async createPayment({ accessToken }: AccessContext, input: CreatePaymentInput): Promise<ProviderPayment> {
+    const payment = await this.request(paymentResponseSchema, {
       method: "POST",
-      url: `${this.baseUrl}/checkout/preferences`,
+      url: `${this.baseUrl}/v1/payments`,
       accessToken,
+      idempotencyKey: input.idempotencyKey,
       retry: "always",
       body: {
-        items: [
-          {
-            id: input.bookingId,
-            title: input.title,
-            quantity: 1,
-            currency_id: "ARS",
-            unit_price: roundMoney(input.amount),
-          },
-        ],
-        marketplace_fee: roundMoney(input.marketplaceFee),
+        transaction_amount: roundMoney(input.amount),
+        token: input.cardToken,
+        description: input.description,
+        installments: input.installments,
+        payment_method_id: input.paymentMethodId,
+        ...(input.issuerId ? { issuer_id: input.issuerId } : {}),
+        payer: {
+          email: input.payer.email,
+          ...(input.payer.identification ? { identification: input.payer.identification } : {}),
+        },
+        application_fee: roundMoney(input.applicationFee),
         external_reference: input.bookingId,
         notification_url: input.notificationUrl,
-        back_urls: input.backUrls,
-        auto_return: "approved",
-        expires: true,
-        expiration_date_from: this.now().toISOString(),
-        expiration_date_to: input.expiresAt.toISOString(),
         statement_descriptor: "ESTUDIAPP",
-        ...(input.payerEmail ? { payer: { email: input.payerEmail } } : {}),
+        binary_mode: true,
       },
     });
-    return {
-      id: preference.id,
-      checkoutUrl: preference.init_point,
-      sandboxCheckoutUrl: preference.sandbox_init_point ?? null,
-    };
+    return toProviderPayment(payment);
   }
 
   /** Sin `amount` devuelve el pago completo; con `amount`, esa parte. La clave evita devolver dos veces. */

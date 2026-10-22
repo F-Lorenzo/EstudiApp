@@ -19,12 +19,6 @@ export const paymentResponseSchema = z.object({
   transaction_amount_refunded: z.number().nullish(),
 });
 
-export const preferenceResponseSchema = z.object({
-  id: z.string(),
-  init_point: z.string(),
-  sandbox_init_point: z.string().nullish(),
-});
-
 export const refundResponseSchema = z.object({
   id,
   status: z.string().nullish(),

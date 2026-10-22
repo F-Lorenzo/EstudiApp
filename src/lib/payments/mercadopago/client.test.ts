@@ -144,51 +144,64 @@ describe("consultar un pago", () => {
   });
 });
 
-describe("crear la preferencia de pago", () => {
+describe("cobrar con tarjeta (Checkout API)", () => {
   const input = {
     bookingId: "b0000000-0000-0000-0000-000000000001",
-    title: "Clase de Matemática con Ana",
+    description: "Clase de Matemática con Ana",
     amount: 10000,
-    marketplaceFee: 1200,
+    applicationFee: 1200,
     notificationUrl: "https://estudiapp.example/api/mercadopago/webhook",
-    backUrls: {
-      success: "https://estudiapp.example/alumno/reservas/b1",
-      failure: "https://estudiapp.example/alumno/reservas/b1",
-      pending: "https://estudiapp.example/alumno/reservas/b1",
-    },
-    expiresAt: new Date("2026-10-08T12:15:00.000Z"),
+    cardToken: "card-token-1",
+    paymentMethodId: "visa",
+    issuerId: "310",
+    installments: 1,
+    payer: { email: "alu@example.com", identification: { type: "DNI", number: "12345678" } },
+    idempotencyKey: "pago-b1-abc",
   };
 
-  it("manda la comisión del marketplace, la referencia y el vencimiento de la retención", async () => {
-    const { client, calls } = setup([json({ id: "pref-1", init_point: "https://mp.example/pay", sandbox_init_point: "https://sandbox.mp.example/pay" })]);
-    const result = await client.createCheckout({ accessToken: TOKEN }, input);
+  it("manda la comisión, la referencia, el modo binario y la clave de idempotencia", async () => {
+    const { client, calls } = setup([json(payment, 201)]);
+    const result = await client.createPayment({ accessToken: TOKEN }, input);
 
-    expect(calls[0].url).toBe("https://api.mercadopago.com/checkout/preferences");
+    expect(calls[0].url).toBe("https://api.mercadopago.com/v1/payments");
     expect(calls[0].init.method).toBe("POST");
-    expect(calls[0].init.headers["Content-Type"]).toBe("application/json");
+    expect(calls[0].init.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(calls[0].init.headers["X-Idempotency-Key"]).toBe("pago-b1-abc");
     expect(JSON.parse(String(calls[0].init.body))).toEqual({
-      items: [{ id: input.bookingId, title: input.title, quantity: 1, currency_id: "ARS", unit_price: 10000 }],
-      marketplace_fee: 1200,
+      transaction_amount: 10000,
+      token: "card-token-1",
+      description: input.description,
+      installments: 1,
+      payment_method_id: "visa",
+      issuer_id: "310",
+      payer: { email: "alu@example.com", identification: { type: "DNI", number: "12345678" } },
+      application_fee: 1200,
       external_reference: input.bookingId,
       notification_url: input.notificationUrl,
-      back_urls: input.backUrls,
-      auto_return: "approved",
-      expires: true,
-      expiration_date_from: "2026-10-08T12:00:00.000Z",
-      expiration_date_to: "2026-10-08T12:15:00.000Z",
       statement_descriptor: "ESTUDIAPP",
+      binary_mode: true,
     });
-    expect(result).toEqual({ id: "pref-1", checkoutUrl: "https://mp.example/pay", sandboxCheckoutUrl: "https://sandbox.mp.example/pay" });
+    expect(result).toMatchObject({ id: "1234567890", status: "approved", amount: 10000, collectorId: "111222333" });
   });
 
-  it("redondea a centavos y agrega el email del alumno si se informa", async () => {
-    const { client, calls } = setup([json({ id: "p", init_point: "https://mp.example/pay" })]);
-    const result = await client.createCheckout({ accessToken: TOKEN }, { ...input, amount: 8333.333, marketplaceFee: 999.996, payerEmail: "alu@example.com" });
+  it("redondea a centavos y omite el emisor y el documento si no vienen", async () => {
+    const { client, calls } = setup([json(payment, 201)]);
+    await client.createPayment(
+      { accessToken: TOKEN },
+      { ...input, amount: 8333.333, applicationFee: 999.996, issuerId: null, payer: { email: "alu@example.com", identification: null } },
+    );
     const body = JSON.parse(String(calls[0].init.body));
-    expect(body.items[0].unit_price).toBe(8333.33);
-    expect(body.marketplace_fee).toBe(1000);
+    expect(body.transaction_amount).toBe(8333.33);
+    expect(body.application_fee).toBe(1000);
+    expect(body).not.toHaveProperty("issuer_id");
     expect(body.payer).toEqual({ email: "alu@example.com" });
-    expect(result.sandboxCheckoutUrl).toBeNull();
+  });
+
+  it("reintenta una falla pasajera con la MISMA clave de idempotencia", async () => {
+    const { client, calls } = setup([json({ message: "busy" }, 503), json(payment, 201)]);
+    await client.createPayment({ accessToken: TOKEN }, input);
+    expect(calls).toHaveLength(2);
+    expect(calls[1].init.headers["X-Idempotency-Key"]).toBe("pago-b1-abc");
   });
 });
 

@@ -29,7 +29,7 @@ export type ProviderPayment = {
   statusDetail: string | null;
   amount: number;
   currency: string | null;
-  /** Lo que mandamos al crear la preferencia: el id de la reserva. */
+  /** Lo que mandamos al crear el pago: el id de la reserva. */
   externalReference: string | null;
   /** Cuenta que cobró (la del docente). */
   collectorId: string | null;
@@ -37,26 +37,26 @@ export type ProviderPayment = {
   refundedAmount: number;
 };
 
-export type CreateCheckoutInput = {
+/**
+ * Un pago con tarjeta por Checkout API. La tarjeta la tokeniza el formulario de Mercado Pago en el navegador
+ * (con la clave pública del DOCENTE): al servidor solo llega el token, nunca el número.
+ */
+export type CreatePaymentInput = {
   bookingId: string;
-  title: string;
+  description: string;
   /** Precio de la clase en pesos. */
   amount: number;
-  /** Comisión de la plataforma en pesos (va a la cuenta de EstudiApp). */
-  marketplaceFee: number;
+  /** Comisión de la plataforma en pesos (va a la cuenta de EstudiApp como `application_fee`). */
+  applicationFee: number;
   notificationUrl: string;
-  backUrls: { success: string; failure: string; pending: string };
-  /** Fin de la retención del horario: pasado ese momento el link ya no cobra. */
-  expiresAt: Date;
-  payerEmail?: string;
-};
-
-export type ProviderCheckout = {
-  id: string;
-  /** Link donde paga el alumno. */
-  checkoutUrl: string;
-  /** Link equivalente en el entorno de prueba. */
-  sandboxCheckoutUrl: string | null;
+  /** Token de la tarjeta (se usa una sola vez). */
+  cardToken: string;
+  paymentMethodId: string;
+  issuerId: string | null;
+  installments: number;
+  payer: { email: string; identification: { type: string; number: string } | null };
+  /** Misma clave = mismo pago: reintentar nunca cobra dos veces. */
+  idempotencyKey: string;
 };
 
 export type RefundInput = {
@@ -81,6 +81,7 @@ export interface PaymentProvider {
    * reserva. Devuelve una lista vacía si no hay ninguno.
    */
   searchPaymentsByReference(ctx: AccessContext, externalReference: string): Promise<ProviderPayment[]>;
-  createCheckout(ctx: AccessContext, input: CreateCheckoutInput): Promise<ProviderCheckout>;
+  /** Crea y procesa el pago en el momento: devuelve el pago ya aprobado o rechazado. */
+  createPayment(ctx: AccessContext, input: CreatePaymentInput): Promise<ProviderPayment>;
   refundPayment(ctx: AccessContext, input: RefundInput): Promise<ProviderRefund>;
 }

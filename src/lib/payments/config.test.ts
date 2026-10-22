@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { sandboxCheckoutEnabled } from "./config";
+import { paymentsConfigured } from "./config";
 
-describe("MERCADOPAGO_SANDBOX", () => {
-  it("solo se habilita con el valor explícito true", () => {
-    expect(sandboxCheckoutEnabled({ MERCADOPAGO_SANDBOX: "true" })).toBe(true);
-    expect(sandboxCheckoutEnabled({ MERCADOPAGO_SANDBOX: " TRUE " })).toBe(true);
-    expect(sandboxCheckoutEnabled({ MERCADOPAGO_SANDBOX: "false" })).toBe(false);
-    expect(sandboxCheckoutEnabled({})).toBe(false);
+const complete = {
+  SUPABASE_SERVICE_ROLE_KEY: "service-role",
+  MERCADOPAGO_WEBHOOK_SECRET: "webhook-secret",
+  NEXT_PUBLIC_SITE_URL: "https://estudiapp.example",
+  MERCADOPAGO_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString("base64"),
+};
+
+describe("paymentsConfigured", () => {
+  it("ofrece cobrar solo si están todas las piezas", () => {
+    expect(paymentsConfigured(complete)).toBe(true);
+    expect(paymentsConfigured({ ...complete, MERCADOPAGO_WEBHOOK_SECRET: " " })).toBe(false);
+    expect(paymentsConfigured({ ...complete, SUPABASE_SERVICE_ROLE_KEY: undefined })).toBe(false);
+    expect(paymentsConfigured({ ...complete, MERCADOPAGO_TOKEN_ENCRYPTION_KEY: "corta" })).toBe(false);
   });
 });

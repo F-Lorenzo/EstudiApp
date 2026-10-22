@@ -127,7 +127,7 @@ describe("fallas al consultar el pago", () => {
     const provider: PaymentProvider = {
       getPayment: async () => ({ id: "999", status: "approved", statusDetail: null, amount: 1, currency: "ARS", externalReference: BOOKING_ID, collectorId: SELLER_MP_ID, refundedAmount: 0 }),
       searchPaymentsByReference: vi.fn(),
-      createCheckout: vi.fn(),
+      createPayment: vi.fn(),
       refundPayment: vi.fn(),
     };
     const result = await processPaymentNotification(

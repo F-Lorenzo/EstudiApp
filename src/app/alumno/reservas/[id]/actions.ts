@@ -9,18 +9,23 @@ import { refundExplanation, refundPercent } from "@/lib/bookings/refund-policy";
 import { paymentSimulationEnabled } from "@/lib/bookings/simulation";
 import { scheduleEmailDelivery } from "@/lib/email/schedule";
 import { settleCancelledBooking, type CancelRefundReport } from "@/lib/payments/cancellation";
-import { createBookingCheckout } from "@/lib/payments/checkout";
-import { paymentsConfigured, sandboxCheckoutEnabled } from "@/lib/payments/config";
+import { payBookingWithCard, prepareBookingPayment, type CheckoutDeps, type PayResult } from "@/lib/payments/checkout";
+import { paymentsConfigured } from "@/lib/payments/config";
 import { createReconcileThrottle, reconcileBookingPayments } from "@/lib/payments/reconcile";
 import { SIMULATED_PAYMENT_PREFIX } from "@/lib/payments/refunds";
 import { createPaymentServices } from "@/lib/payments/runtime";
 import { siteUrl } from "@/lib/payments/site-url";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { cardPaymentSchema } from "@/lib/validation/payment";
 
 export type BookingActionResult = { ok: true } | { ok: false; error: string };
 
-export type CheckoutActionResult = { ok: true; url: string } | { ok: false; error: string };
+export type PreparePaymentResult =
+  | { ok: true; publicKey: string; amount: number; payerEmail: string | null }
+  | { ok: false; error: string };
+
+export type PayWithCardResult = { ok: true; status: Extract<PayResult, { ok: true }>["status"] } | { ok: false; error: string };
 
 export type ReconcileActionResult =
   | {
@@ -119,11 +124,12 @@ export async function cancelBooking(bookingId: string, expectedRefundPercent?: n
   return { ok: true, refund };
 }
 
-/**
- * Crea el pago en Mercado Pago y devuelve el link adonde mandar al alumno. Solo para el alumno dueño de una
- * reserva pendiente, dentro de los 15 minutos de retención. El precio y la comisión salen de la base.
- */
-export async function startCheckout(bookingId: string): Promise<CheckoutActionResult> {
+type CheckoutContext =
+  | { ok: true; deps: CheckoutDeps; input: { bookingId: string; studentId: string; studentEmail: string | null; tutorName: string } }
+  | { ok: false; error: string };
+
+/** Lo común a los dos pasos del pago: solo el alumno dueño de una reserva pendiente, con el cobro configurado. */
+async function checkoutContext(bookingId: string): Promise<CheckoutContext> {
   const parsed = z.uuid().safeParse(bookingId);
   if (!parsed.success) return { ok: false, error: bookingErrorMessage({ hint: "not_found" }) };
 
@@ -145,7 +151,7 @@ export async function startCheckout(bookingId: string): Promise<CheckoutActionRe
   let services;
   let site;
   try {
-    services = createPaymentServices({ timeoutMs: 6_000, maxAttempts: 2 });
+    services = createPaymentServices({ timeoutMs: 8_000, maxAttempts: 2 });
     site = siteUrl();
   } catch {
     log("el cobro no está bien configurado", { bookingId: booking.id });
@@ -156,21 +162,54 @@ export async function startCheckout(bookingId: string): Promise<CheckoutActionRe
     data: { user },
   } = await supabase.auth.getUser();
 
-  const result = await createBookingCheckout(
-    {
+  return {
+    ok: true,
+    deps: {
       db: services.admin,
       provider: services.provider,
       loadSellerTokenByTutor: services.loadSellerTokenByTutor,
       siteUrl: site,
-      useSandboxCheckout: sandboxCheckoutEnabled(),
     },
-    { bookingId: booking.id, studentId: viewer.id, studentEmail: user?.email ?? null, tutorName: booking.tutorName },
-  );
+    input: { bookingId: booking.id, studentId: viewer.id, studentEmail: user?.email ?? null, tutorName: booking.tutorName },
+  };
+}
+
+/**
+ * Paso 1 del pago: devuelve la clave pública del docente y el monto para que el navegador muestre el formulario de
+ * tarjeta de Mercado Pago. No cobra nada. El monto sale de la base.
+ */
+export async function preparePayment(bookingId: string): Promise<PreparePaymentResult> {
+  const context = await checkoutContext(bookingId);
+  if (!context.ok) return context;
+
+  const result = await prepareBookingPayment(context.deps, context.input);
   if (!result.ok) {
-    if (result.stale) refresh(booking.id);
+    if (result.stale) refresh(context.input.bookingId);
     return { ok: false, error: result.error };
   }
-  return { ok: true, url: result.url };
+  return { ok: true, publicKey: result.publicKey, amount: result.amount, payerEmail: result.payerEmail };
+}
+
+/**
+ * Paso 2 del pago: cobra con el token de la tarjeta (lo generó el formulario de Mercado Pago en el navegador) y
+ * confirma la reserva en el momento si el pago se aprueba. El precio y la comisión salen de la base: del navegador
+ * solo se acepta el token de la tarjeta, el medio de pago, las cuotas y los datos del pagador.
+ */
+export async function payWithCard(bookingId: string, formData: unknown): Promise<PayWithCardResult> {
+  const card = cardPaymentSchema.safeParse(formData);
+  if (!card.success) return { ok: false, error: "Revisá los datos de la tarjeta e intentá de nuevo." };
+
+  const context = await checkoutContext(bookingId);
+  if (!context.ok) return context;
+
+  const result = await payBookingWithCard(context.deps, { ...context.input, card: card.data });
+  if (!result.ok) {
+    if (result.stale) refresh(context.input.bookingId);
+    return { ok: false, error: result.error };
+  }
+  refresh(context.input.bookingId);
+  if (result.status !== "processing") scheduleEmailDelivery();
+  return { ok: true, status: result.status };
 }
 
 /**

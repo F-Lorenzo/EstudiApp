@@ -18,9 +18,21 @@ export class SellerTokenError extends Error {
   }
 }
 
-export type SellerToken = { tutorId: string; accessToken: string; liveMode?: boolean | null };
+export type SellerToken = {
+  tutorId: string;
+  accessToken: string;
+  liveMode?: boolean | null;
+  /** Clave pública del docente: con ella el navegador tokeniza la tarjeta (no es secreta). */
+  publicKey?: string | null;
+};
 
-type CredentialsRow = { tutor_id: string; access_token: string; expires_at: string; live_mode?: boolean | null };
+type CredentialsRow = {
+  tutor_id: string;
+  access_token: string;
+  expires_at: string;
+  live_mode?: boolean | null;
+  public_key?: string | null;
+};
 type Lookup = { key: Buffer; now?: Date };
 
 /**
@@ -52,7 +64,7 @@ export async function loadSellerTokenByTutor(
 ): Promise<SellerToken> {
   const { data, error } = await db
     .from("mp_credentials")
-    .select("tutor_id, access_token, expires_at, live_mode")
+    .select("tutor_id, access_token, expires_at, live_mode, public_key")
     .eq("tutor_id", tutorId)
     .maybeSingle<CredentialsRow>();
   return readCredentials(data, error, { key, now });
@@ -69,7 +81,11 @@ function readCredentials(
 
   try {
     const token = { tutorId: data.tutor_id, accessToken: decryptToken(data.access_token, key, tokenAad(data.tutor_id, "access")) };
-    return data.live_mode === undefined ? token : { ...token, liveMode: data.live_mode };
+    return {
+      ...token,
+      ...(data.live_mode === undefined ? {} : { liveMode: data.live_mode }),
+      ...(data.public_key === undefined ? {} : { publicKey: data.public_key }),
+    };
   } catch (cause) {
     if (cause instanceof TokenCryptoError) throw new SellerTokenError("unreadable");
     throw cause;

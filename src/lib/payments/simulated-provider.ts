@@ -1,9 +1,8 @@
 import { MercadoPagoError } from "./mercadopago/errors";
 import type {
   AccessContext,
-  CreateCheckoutInput,
+  CreatePaymentInput,
   PaymentProvider,
-  ProviderCheckout,
   ProviderPayment,
   ProviderRefund,
   RefundInput,
@@ -11,8 +10,9 @@ import type {
 
 // Los identificadores de reembolso son únicos en todo Mercado Pago, no por cuenta ni por instancia.
 let refundSequence = 0;
+let paymentSequence = 9_000_000_000;
 
-type Operation = "getPayment" | "searchPaymentsByReference" | "createCheckout" | "refundPayment";
+type Operation = "getPayment" | "searchPaymentsByReference" | "createPayment" | "refundPayment";
 
 /**
  * Proveedor de cobro simulado, en memoria. Se comporta como Mercado Pago en lo que importa para
@@ -22,6 +22,8 @@ type Operation = "getPayment" | "searchPaymentsByReference" | "createCheckout" |
  *    referencia devuelve solo los pagos de esa cuenta;
  *  - reembolsar con la misma clave de idempotencia devuelve lo mismo y NO devuelve dos veces;
  *  - no se puede devolver más de lo que se cobró;
+ *  - cobrar con la misma clave de idempotencia devuelve el mismo pago (no cobra dos veces);
+ *  - una tarjeta cuyo token empieza con `rechazada` se rechaza;
  *  - se pueden programar fallas (`failNext`) para probar reintentos.
  *
  * No prueba nada del comportamiento REAL de Mercado Pago: eso se verifica en la cuenta de prueba.
@@ -33,6 +35,7 @@ export class SimulatedPaymentProvider implements PaymentProvider {
   readonly refunds: (ProviderRefund & { paymentId: string; idempotencyKey: string })[] = [];
 
   private readonly sellers = new Map<string, string>();
+  private readonly paymentKeys = new Map<string, string>();
   private readonly failures: { operation: Operation; error: Error }[] = [];
 
   /** Declara que ese token pertenece a la cuenta de cobro `collectorId`. */
@@ -95,14 +98,22 @@ export class SimulatedPaymentProvider implements PaymentProvider {
       .map((payment) => ({ ...payment }));
   }
 
-  async createCheckout(ctx: AccessContext, input: CreateCheckoutInput): Promise<ProviderCheckout> {
-    this.record("createCheckout", ctx, input);
-    const id = `sim-pref-${input.bookingId}`;
-    return {
-      id,
-      checkoutUrl: `https://simulado.example/checkout/${id}`,
-      sandboxCheckoutUrl: `https://simulado.example/sandbox/${id}`,
-    };
+  async createPayment(ctx: AccessContext, input: CreatePaymentInput): Promise<ProviderPayment> {
+    this.record("createPayment", ctx, input);
+    const previous = this.paymentKeys.get(input.idempotencyKey);
+    if (previous) return { ...this.payments.get(previous)! };
+
+    const rejected = input.cardToken.startsWith("rechazada");
+    const payment = this.addPayment({
+      id: String(++paymentSequence),
+      status: rejected ? "rejected" : "approved",
+      statusDetail: rejected ? "cc_rejected_other_reason" : "accredited",
+      amount: input.amount,
+      externalReference: input.bookingId,
+      collectorId: this.sellers.get(ctx.accessToken) ?? null,
+    });
+    this.paymentKeys.set(input.idempotencyKey, payment.id);
+    return { ...payment };
   }
 
   async refundPayment(ctx: AccessContext, input: RefundInput): Promise<ProviderRefund> {

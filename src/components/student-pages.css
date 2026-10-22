@@ -789,6 +789,10 @@
   color: var(--forest);
   text-underline-offset: 3px;
 }
+.stu-card-payment {
+  margin-top: 16px;
+  min-height: 120px;
+}
 .stu-payment-caption {
   font-size: 11px;
   line-height: 1.6;
