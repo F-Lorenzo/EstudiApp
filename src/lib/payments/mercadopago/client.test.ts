@@ -197,6 +197,15 @@ describe("cobrar con tarjeta (Checkout API)", () => {
     expect(body.payer).toEqual({ email: "alu@example.com" });
   });
 
+  it("un 400 conserva el motivo detallado de Mercado Pago (cause)", async () => {
+    const { client } = setup([
+      json({ message: "Invalid users involved", error: "bad_request", status: 400, cause: [{ code: 2034, description: "Invalid users involved" }] }, 400),
+    ]);
+    const error = (await client.createPayment({ accessToken: TOKEN }, input).catch((e: unknown) => e)) as MercadoPagoError;
+    expect(error).toMatchObject({ status: 400, code: "bad_request", causeCode: "2034", retryable: false });
+    expect(error.message).toContain("Invalid users involved");
+  });
+
   it("reintenta una falla pasajera con la MISMA clave de idempotencia", async () => {
     const { client, calls } = setup([json({ message: "busy" }, 503), json(payment, 201)]);
     await client.createPayment({ accessToken: TOKEN }, input);

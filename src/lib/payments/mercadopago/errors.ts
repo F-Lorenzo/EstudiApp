@@ -21,6 +21,8 @@ export class MercadoPagoError extends Error {
   readonly status: number | null;
   readonly retryable: boolean;
   readonly code: string | null;
+  /** Código del primer motivo que detalla Mercado Pago (`cause[0].code`, p. ej. `2034`), si lo mandó. */
+  readonly causeCode: string | null;
   /** Espera que pidió Mercado Pago (cabecera Retry-After) antes de reintentar, si la pidió. */
   readonly retryAfterMs: number | null;
 
@@ -31,6 +33,7 @@ export class MercadoPagoError extends Error {
       status?: number | null;
       retryable: boolean;
       code?: string | null;
+      causeCode?: string | null;
       retryAfterMs?: number | null;
     },
   ) {
@@ -40,6 +43,7 @@ export class MercadoPagoError extends Error {
     this.status = info.status ?? null;
     this.retryable = info.retryable;
     this.code = info.code ?? null;
+    this.causeCode = info.causeCode ?? null;
     this.retryAfterMs = info.retryAfterMs ?? null;
   }
 }

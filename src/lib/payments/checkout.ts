@@ -226,7 +226,17 @@ export async function payBookingWithCard(
       log("error inesperado al crear el pago", { bookingId: booking.id });
       return fail("unavailable", UNAVAILABLE);
     }
-    log("Mercado Pago no creó el pago", { bookingId: booking.id, kind: cause.kind, status: cause.status, code: cause.code, retryable: cause.retryable });
+    // `cause` y `detail` dicen POR QUÉ lo rechazó (p. ej. `2034`, «Invalid users involved»). El mensaje de Mercado
+    // Pago no lleva tokens ni datos de la tarjeta.
+    log("Mercado Pago no creó el pago", {
+      bookingId: booking.id,
+      kind: cause.kind,
+      status: cause.status,
+      code: cause.code,
+      cause: cause.causeCode,
+      detail: cause.message,
+      retryable: cause.retryable,
+    });
     if (cause.retryable) {
       return fail("provider_unavailable", "Mercado Pago no está respondiendo en este momento. Probá de nuevo en unos minutos.");
     }

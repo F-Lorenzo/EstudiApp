@@ -319,7 +319,7 @@ export class MercadoPagoClient implements PaymentProvider {
 
     if (!response.ok) {
       const retryAfter = Number(response.headers.get("retry-after"));
-      const { message, code } = describeErrorBody(text);
+      const { message, code, causeCode } = describeErrorBody(text);
       throw new MercadoPagoError(
         `Mercado Pago respondió ${response.status}${code ? ` (${code})` : ""}${message ? `: ${message}` : ""}`.slice(0, 300),
         {
@@ -327,6 +327,7 @@ export class MercadoPagoClient implements PaymentProvider {
           status: response.status,
           retryable: isRetryableStatus(response.status),
           code,
+          causeCode,
           retryAfterMs: Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter * 1000, MAX_RETRY_AFTER_MS) : null,
         },
       );
@@ -355,17 +356,19 @@ export class MercadoPagoClient implements PaymentProvider {
 }
 
 /** Mercado Pago responde errores como `{ message, error, status, cause: [{ code, description }] }`. */
-function describeErrorBody(text: string): { message: string | null; code: string | null } {
+function describeErrorBody(text: string): { message: string | null; code: string | null; causeCode: string | null } {
   try {
     const parsed = errorBodySchema.safeParse(JSON.parse(text));
-    if (!parsed.success) return { message: null, code: null };
+    if (!parsed.success) return { message: null, code: null, causeCode: null };
     const cause = parsed.data.cause?.[0];
+    const causeCode = cause?.code != null ? String(cause.code) : null;
     return {
       message: parsed.data.message ?? cause?.description ?? null,
-      code: parsed.data.error ?? (cause?.code != null ? String(cause.code) : null),
+      code: parsed.data.error ?? causeCode,
+      causeCode,
     };
   } catch {
-    return { message: null, code: null };
+    return { message: null, code: null, causeCode: null };
   }
 }
 
