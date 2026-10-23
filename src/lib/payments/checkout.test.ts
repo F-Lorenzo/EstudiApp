@@ -150,6 +150,19 @@ describe("pagar con tarjeta", () => {
     await expect(payBookingWithCard(deps, { ...input, card })).resolves.toMatchObject({ ok: false, code: "provider_unavailable" });
   });
 
+  it("si Mercado Pago no acepta el email del pagador, se lo dice a la persona", async () => {
+    const { deps, provider } = dependencies();
+    provider.failNext(
+      "createPayment",
+      new MercadoPagoError("400", { kind: "http", status: 400, retryable: false, code: "bad_request", causeCode: "4050" }),
+    );
+    await expect(payBookingWithCard(deps, { ...input, card })).resolves.toMatchObject({
+      ok: false,
+      code: "provider_rejected",
+      error: expect.stringMatching(/email/),
+    });
+  });
+
   it("un token de docente rechazado no es culpa del alumno", async () => {
     const { deps, provider } = dependencies();
     provider.failNext("createPayment", new MercadoPagoError("401", { kind: "http", status: 401, retryable: false }));

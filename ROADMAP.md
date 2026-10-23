@@ -67,7 +67,13 @@ tickets del proyecto de diseño (el roadmap vigente es este archivo).
 
 ---
 
-## Fase 1 — Cobrar de verdad (núcleo del negocio)  ← en curso
+## Fase 1 — Cobrar de verdad (núcleo del negocio)  ✅ cerrada sin Mercado Pago real el 23 de octubre de 2026
+
+**Decisión del 23 de octubre de 2026:** la configuración y la prueba con Mercado Pago real se dejan para el
+final del proyecto (Fase 4). Todo el cobro está construido y probado contra un proveedor simulado y una base
+real; lo que falta es solo la verificación contra Mercado Pago, que quedó trabada por las cuentas de prueba
+(ver «Pruebas con Mercado Pago» en [docs/FASE-1-PLAN.md](docs/FASE-1-PLAN.md)). Se pasa a la Fase 2 con
+esa verificación pendiente y anotada en la Fase 4.
 
 Diseño y plan de trabajo detallados en [docs/FASE-1-PLAN.md](docs/FASE-1-PLAN.md). Decisiones tomadas el
 8 de octubre de 2026: reembolso total con 24 h o más de anticipación, 50 % con 2 h o más, nada después
@@ -104,6 +110,13 @@ segura y se puede devolver.
 **Criterio de salida:** con credenciales de prueba de Mercado Pago, una reserva se paga, la
 confirma el webhook, el docente queda acreditado con la comisión descontada y una cancelación
 dentro del plazo devuelve el dinero. Probado además con pagos duplicados, tardíos y rechazados.
+
+**Cómo se cerró:** todo eso está probado contra el proveedor simulado (pruebas unitarias, de punta a punta
+con un Postgres real y de base de datos), con las migraciones `0011` a `0015` aplicadas en el proyecto real
+y con pruebas propias de la reconciliación, el barrido de reembolsos, la cancelación y la acción del docente
+(paso 1.8). **Lo que queda para la Fase 4:** la misma prueba contra Mercado Pago (con dinero real de bajo
+monto si las cuentas de prueba siguen bloqueadas), el dominio y la clave de Resend para los emails, y
+apagar `MERCADOPAGO_OAUTH_TEST_TOKEN` y desvincular al docente de prueba.
 
 **Decisiones previas:** política de cancelación y reembolso; comisión de la plataforma; cuenta de
 Mercado Pago de la plataforma (credenciales de prueba y producción); proveedor de email.
@@ -157,12 +170,19 @@ Objetivo: salir a producción con confianza.
 1. **Revisión responsive y de accesibilidad** de todas las pantallas con sesión; movimiento
    reducido.
 2. **Búsqueda sin tildes en SQL** (`unaccent`) y paginación del catálogo.
-3. **Rate limiting y anti-bots** en login, registro, recuperación y reservas.
+3. **Rate limiting y anti-bots** en login, registro, recuperación, reservas y **pago con tarjeta**
+   (`payWithCard`: hoy una persona con una reserva pendiente puede probar tarjetas sin límite durante
+   los 15 minutos de la retención; Mercado Pago tiene su propio antifraude, pero conviene un tope de
+   intentos por reserva en la base).
 4. **Pruebas de punta a punta** del recorrido completo (registro → aprobación → búsqueda →
    reserva → pago → clase → calificación).
 5. **Textos legales finales** (términos, privacidad, cancelación, condiciones de ingreso) y marca.
 6. Quitar `noindex`, quitar los avisos de «vista de muestra», verificar la firma del webhook en
    todos los entornos y **desplegar a producción**.
+7. **Mercado Pago real** (pendiente de la Fase 1): prueba de punta a punta del cobro, la comisión, el
+   aviso y el reembolso; dominio y clave de Resend; apagar `MERCADOPAGO_OAUTH_TEST_TOKEN` y desvincular al
+   docente de prueba (`scripts/link-test-payout.mjs`). Qué se probó y qué bloqueó las cuentas de prueba:
+   [docs/FASE-1-PLAN.md](docs/FASE-1-PLAN.md).
 
 **Criterio de salida:** producción desplegada, checklist de lanzamiento completo y un recorrido
 real de punta a punta con dinero real de bajo monto.

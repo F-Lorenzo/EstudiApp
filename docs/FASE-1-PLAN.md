@@ -135,7 +135,7 @@ Idea: **cuanto mejores referencias tiene el docente, menos comisión paga.**
 | 1.5 ◐ código | «Pagar con tarjeta» por Checkout API (`preparePayment` y `payWithCard`), pantalla de confirmación, reconciliación por referencia externa; **falta**: aplicar 0012-0015, cargar claves, configurar el webhook y la **prueba de punta a punta en sandbox** (comprador y vendedor de prueba) con los puntos abiertos de abajo | Claves de prueba cargadas, webhook configurado, dominio conectado |
 | 1.6 ✅ código | Cancelación con reembolso (`0013`) para el alumno y para el docente, ejecutor, barrido, política en pantalla y en `/cancelacion`. Probado con Mercado Pago simulado | Sandbox para verificar |
 | 1.7 ✅ código | Emails con Resend desde la bandeja de la base (se envían después de responder y en el mantenimiento diario). Reserva confirmada (incluye el recibo), nueva reserva al docente, cancelación y reembolso | Dominio verificado y API key de Resend |
-| 1.8 ◐ | Pago simulado retirado de previews y producción (solo `next dev`). Mantenimiento diario (`/api/cron/payments-maintenance`, ver `vercel.json`). **Falta la revisión adversarial** de todo lo nuevo y pruebas unitarias propias de `checkout.ts`, `reconcile.ts`, `refund-sweep.ts`, `cancellation.ts` y la acción del docente (hoy se prueban solo de forma indirecta) | Todo lo anterior |
+| 1.8 ✅ | Pago simulado retirado de previews y producción (solo `next dev`). Mantenimiento diario (`/api/cron/payments-maintenance`). Pruebas propias de `checkout.ts`, `reconcile.ts`, `refund-sweep.ts`, `cancellation.ts` y de la acción del docente (`src/app/docente/clases`). Revisión adversarial: el único hueco encontrado es que `payWithCard` no limita los intentos de tarjeta por reserva (queda en la Fase 4, rate limiting) | Nada |
 
 **Criterio de salida de la fase** (de [ROADMAP.md](../ROADMAP.md)): con cuentas de prueba, una reserva se
 paga, la confirma el webhook, el docente queda acreditado con la comisión descontada y una cancelación
@@ -182,3 +182,23 @@ dentro del plazo devuelve el dinero; probado además con pagos duplicados, tard�
    (lo único con demora propia: la verificación de identidad).
 2. **Un dominio propio** para Resend (los emails desde `@tu-dominio` no caen en spam).
 3. Más adelante: los escalones de comisión por reputación y el texto legal definitivo de cancelación.
+
+## Pruebas con Mercado Pago (22 y 23 de octubre de 2026): lo que se aprendió
+
+La prueba de punta a punta quedó para la Fase 4 (decisión del 23 de octubre). Esto es lo que se probó, para no
+repetirlo:
+
+| Configuración | Resultado |
+|---|---|
+| Checkout Pro, app de la cuenta real, vendedor y comprador de prueba (token OAuth `APP_USR`, `live_mode=true`) | El checkout falla al pagar: «Una de las partes con la que intentás hacer el pago es de prueba» |
+| App creada desde una cuenta de prueba | OAuth rechazado antes del consentimiento: «La aplicación no está preparada para conectarse», código PSO06 |
+| Checkout API, vendedor de prueba vinculado por OAuth con `test_token=true` (credenciales `TEST-`) | `/v1/payments` exige que el pagador sea un usuario de prueba: `.test` da 4050, un email de cuenta real da 2034, un email cualquiera da **2198 «Invalid test user email»** |
+| Obtener el email de un usuario de prueba | El panel y `GET /users/{id}` no lo muestran; `POST /users/test_user` da **403 PolicyAgent** para la cuenta |
+| «Credenciales de prueba» del panel (prefijo `APP_USR-`, de un usuario de prueba asociado a la app) | **401 cause 7 «Unauthorized use of live credentials»**, incluso con un pago simple sin comisión hecho a mano contra la API |
+
+Lo que sí funcionó: la vinculación OAuth, la tokenización de la tarjeta con la clave pública del vendedor, el
+webhook (firma y respuesta 200) y el registro del motivo de cada rechazo en el log (`cause` y `detail`).
+
+Próximo intento (Fase 4): volver a probar con soporte de Mercado Pago, o hacer la prueba con dinero real de
+bajo monto (docente con cuenta real distinta de la dueña de la app, alumno con su tarjeta, cancelación con más de
+24 h para el reembolso total).

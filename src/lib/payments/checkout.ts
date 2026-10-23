@@ -244,6 +244,10 @@ export async function payBookingWithCard(
     if (cause.status === 401 || cause.status === 403) {
       return fail("tutor_not_payable", bookingErrorMessage({ hint: "tutor_not_payable" }));
     }
+    // El email del pagador lo escribe la persona en el formulario: si Mercado Pago no lo acepta, se le dice eso.
+    if (cause.causeCode === "4050" || cause.causeCode === "2034") {
+      return fail("provider_rejected", "Mercado Pago no aceptó el email del pagador. Revisalo, o probá con otro, e intentá de nuevo.");
+    }
     return fail("provider_rejected", "No pudimos procesar la tarjeta. Revisá los datos e intentá de nuevo.");
   }
 
