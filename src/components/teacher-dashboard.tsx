@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Tabs } from "@/components/management-ui";
 import {
+  Avatar,
   Badge,
   ButtonLink,
   EmptyState,
@@ -133,8 +134,13 @@ export function TeacherDashboard({
                     </span>
                     <span className="mgmt-next-label">Clase individual</span>
                   </div>
-                  <h3>Clase con un estudiante</h3>
-                  <p>Online, uno a uno.</p>
+                  <div className="mgmt-next-student">
+                    <Avatar name={next.studentName} src={next.studentPhoto ?? undefined} size={44} />
+                    <div>
+                      <h3>Clase con {next.studentName}</h3>
+                      <p>Online, uno a uno.</p>
+                    </div>
+                  </div>
                   <TeacherClassCancel bookingId={next.id} startsAt={next.startsAt} endsAt={next.endsAt} />
                 </article>
                 {later.length > 0 && (
@@ -155,7 +161,7 @@ export function TeacherDashboard({
                             <strong>{day.padStart(2, "0")}</strong>
                           </div>
                           <div className="mgmt-agenda-info">
-                            <strong>Clase individual</strong>
+                            <strong>Clase con {item.studentName}</strong>
                             <span>{timeRange(item.startsAt, item.endsAt)}</span>
                             <TeacherClassCancel bookingId={item.id} startsAt={item.startsAt} endsAt={item.endsAt} />
                           </div>
@@ -224,6 +230,7 @@ export function TeacherDashboard({
                 <thead>
                   <tr>
                     <th>Fecha</th>
+                    <th>Estudiante</th>
                     <th>Horario</th>
                     <th>Valoración</th>
                   </tr>
@@ -238,6 +245,7 @@ export function TeacherDashboard({
                             {day} {month}
                           </strong>
                         </td>
+                        <td>{row.studentName}</td>
                         <td>{timeRange(row.startsAt, row.endsAt)}</td>
                         <td>
                           {row.score != null ? (

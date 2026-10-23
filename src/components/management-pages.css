@@ -300,6 +300,20 @@
   font-size: 0.85rem;
   margin: 9px 0 28px;
 }
+.mgmt-next-student {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.mgmt-next-student h3 {
+  overflow-wrap: anywhere;
+}
+.mgmt-next-student p {
+  color: #c4d3c5;
+  font-size: 0.85rem;
+  margin: 9px 0 28px;
+}
 .mgmt-next-bottom {
   display: flex;
   justify-content: space-between;
