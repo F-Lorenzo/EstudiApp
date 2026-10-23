@@ -1,18 +1,18 @@
-// Vincula a UN docente con las credenciales de PRUEBA de la cuenta real dueña de la aplicación, para probar
-// el pago con tarjeta de punta a punta.
+// Vincula a UN docente con las «Credenciales de prueba» de la aplicación (panel de Mercado Pago → Pruebas →
+// Credenciales de prueba), para probar el pago con tarjeta de punta a punta.
 //
 // Por qué existe: la documentación de Mercado Pago (Checkout Bricks → «Make test purchase») dice que las
 // tarjetas se prueban con las credenciales de prueba de la cuenta REAL y cualquier email de pagador (distinto
 // del de esa cuenta). Con un vendedor de prueba vinculado por OAuth, en cambio, `/v1/payments` exige que el
 // pagador sea un usuario de prueba (cause 2198), y crearlos por API está bloqueado para la cuenta.
 //
-// El docente queda «vinculado» a la cuenta dueña de la app: cobra, recibe avisos y reembolsa con el token de
-// prueba de esa cuenta, sin cambiar nada del código. Es SOLO para probar: para volver a la normalidad, el
+// El docente queda vinculado a la cuenta de esas credenciales: cobra, recibe avisos y reembolsa con ese token,
+// sin cambiar nada del código. Es SOLO para probar: para volver a la normalidad, el
 // docente desvincula desde /docente/cuenta-de-cobro y vincula su cuenta real por OAuth.
 //
 // Uso (en tu máquina, nunca en el repo ni en Cloudflare):
 //   NEXT_PUBLIC_SUPABASE_URL=...  SUPABASE_SERVICE_ROLE_KEY=...  MERCADOPAGO_TOKEN_ENCRYPTION_KEY=...
-//   MP_TEST_ACCESS_TOKEN=TEST-...  MP_TEST_PUBLIC_KEY=TEST-...  TUTOR_EMAIL=docente@...
+//   MP_TEST_ACCESS_TOKEN=...  MP_TEST_PUBLIC_KEY=...  TUTOR_EMAIL=<email del docente en EstudiApp>
 //   LINK_TEST_CONFIRM=<host del proyecto de Supabase>
 //   node scripts/link-test-payout.mjs
 //
@@ -38,8 +38,12 @@ if (missing.length > 0) {
 
 const accessToken = env.MP_TEST_ACCESS_TOKEN.trim();
 const publicKey = env.MP_TEST_PUBLIC_KEY.trim();
-if (!accessToken.startsWith("TEST-") || !publicKey.startsWith("TEST-")) {
-  console.error("MP_TEST_ACCESS_TOKEN y MP_TEST_PUBLIC_KEY tienen que ser credenciales de PRUEBA (empiezan con TEST-).");
+// El panel nuevo de Mercado Pago muestra las «Credenciales de prueba» con prefijo APP_USR-: son las de un usuario
+// de prueba que la aplicación tiene asociado. Se aceptan los dos prefijos, pero más abajo se exige que la cuenta
+// del token sea de PRUEBA: nunca se vincula por este camino una cuenta real.
+const credentialPrefix = /^(TEST|APP_USR)-/;
+if (!credentialPrefix.test(accessToken) || !credentialPrefix.test(publicKey)) {
+  console.error("MP_TEST_ACCESS_TOKEN y MP_TEST_PUBLIC_KEY tienen que empezar con TEST- o APP_USR-.");
   process.exit(1);
 }
 
@@ -88,7 +92,16 @@ if (!me.ok) {
   console.error(`Mercado Pago rechazó el token de prueba (GET /users/me respondió ${me.status}).`);
   process.exit(1);
 }
-const mpUserId = String((await me.json()).id);
+const account = await me.json();
+const mpUserId = String(account.id);
+const isTestAccount =
+  accessToken.startsWith("TEST-") ||
+  (Array.isArray(account.tags) && account.tags.includes("test_user")) ||
+  String(account.nickname ?? "").toUpperCase().startsWith("TESTUSER");
+if (!isTestAccount) {
+  console.error(`La cuenta ${mpUserId} no es de prueba: este script solo vincula credenciales de prueba.`);
+  process.exit(1);
+}
 
 // 2. El docente.
 const tutorId = await findUserIdByEmail(env.TUTOR_EMAIL.trim());
@@ -113,4 +126,4 @@ if (error) {
   process.exit(1);
 }
 
-console.log(`Listo: ${env.TUTOR_EMAIL} cobra con las credenciales de prueba de la cuenta ${mpUserId}.`);
+console.log(`Listo: ${env.TUTOR_EMAIL} cobra con las credenciales de prueba de la cuenta ${mpUserId} (${account.nickname}).`);
