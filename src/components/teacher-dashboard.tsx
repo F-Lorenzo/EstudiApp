@@ -8,6 +8,7 @@ import {
   Badge,
   ButtonLink,
   EmptyState,
+  Icon,
   PageHeading,
 } from "@/components/ui";
 import { TeacherClassCancel } from "@/components/teacher-class-cancel";
@@ -141,7 +142,12 @@ export function TeacherDashboard({
                       <p>Online, uno a uno.</p>
                     </div>
                   </div>
-                  <TeacherClassCancel bookingId={next.id} startsAt={next.startsAt} endsAt={next.endsAt} />
+                  <div className="mgmt-next-bottom">
+                    <ButtonLink href={`/docente/sala/${next.id}`}>
+                      Entrar a la sala <Icon name="video" size={16} />
+                    </ButtonLink>
+                    <TeacherClassCancel bookingId={next.id} startsAt={next.startsAt} endsAt={next.endsAt} />
+                  </div>
                 </article>
                 {later.length > 0 && (
                   <>

@@ -210,7 +210,7 @@ export function AppShell({
   }, [pathname]);
 
   // La sala de clase ocupa toda la pantalla, sin barra lateral.
-  if (pathname.startsWith("/alumno/sala"))
+  if (pathname.startsWith("/alumno/sala") || pathname.startsWith("/docente/sala"))
     return (
       <>
         <a className="skip-link" href="#main">

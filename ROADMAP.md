@@ -123,7 +123,17 @@ Mercado Pago de la plataforma (credenciales de prueba y producción); proveedor 
 
 ---
 
-## Fase 2 — La clase: videollamada y reputación
+## Fase 2 — La clase: videollamada y reputación  ← en curso
+
+**Decisiones del 23 de octubre de 2026:** Daily.co (la API key va como secreto `DAILY_API_KEY` en Cloudflare);
+las clases **no se graban**; el docente ve solo el **nombre y la foto** de sus alumnos.
+
+**Avance:** ✅ 6 (el docente ve el nombre y la foto de sus alumnos en su panel). ✅ código de 1, 2 y 3: sala
+privada de Daily.co por reserva (`src/lib/video`), creada al entrar la primera persona; token personal
+generado en el servidor solo para el alumno y el docente de una reserva confirmada, desde 10 minutos antes
+hasta el final de la clase (la sala y el token vencen 10 minutos después y expulsan); controles de Daily
+Prebuilt (cámara, micrófono, pantalla, chat); páginas `/alumno/sala/[id]` y `/docente/sala/[id]`. Probado
+con Daily simulado; **falta probarlo con la API key real**. Siguen 4 (asistencia) y 5 (calificación).
 
 Objetivo: alumno y docente se encuentran en una sala real y la clase deja una calificación.
 

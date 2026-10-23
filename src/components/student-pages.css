@@ -1307,6 +1307,22 @@
   color: var(--cream);
   flex-shrink: 0;
 }
+.stu-room-frame {
+  display: block;
+  width: 100%;
+  height: calc(100vh - 170px);
+  min-height: 420px;
+  border: 0;
+  border-radius: 14px;
+  background: #0b2318;
+}
+.stu-room-leave {
+  flex-shrink: 0;
+  color: var(--cream);
+}
+.stu-room-ended .avatar {
+  margin-bottom: 18px;
+}
 .stu-room-ended {
   min-height: calc(100vh - 265px);
   display: flex;
@@ -1906,6 +1922,18 @@
     font-size: 9px;
     max-width: 110px;
     gap: 5px;
+  }
+  .stu-room-frame {
+    height: calc(100vh - 150px);
+    min-height: 360px;
+    border-radius: 10px;
+  }
+  .stu-room-ended h2 {
+    font-size: 34px;
+  }
+  .stu-room-ended > div {
+    flex-direction: column;
+    width: 100%;
   }
   .stu-room-demo > span {
     font-size: 8px;
