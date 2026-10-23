@@ -49,6 +49,12 @@ export type MercadoPagoClientOptions = {
   now?: () => Date;
   timeoutMs?: number;
   maxAttempts?: number;
+  /**
+   * Pide credenciales de PRUEBA al vincular (`test_token=true` en el canje del código). Sirve para vincular un
+   * vendedor de prueba a la aplicación real: Mercado Pago devuelve un token y una clave pública `TEST-`, y los
+   * pagos se hacen con tarjetas de prueba. Solo para probar: con docentes reales tiene que estar apagado.
+   */
+  oauthTestToken?: boolean;
 };
 
 export type OAuthTokens = {
@@ -209,6 +215,7 @@ export class MercadoPagoClient implements PaymentProvider {
       grant_type: "authorization_code",
       code,
       redirect_uri: redirectUri,
+      ...(this.options.oauthTestToken ? { test_token: "true" } : {}),
     });
   }
 
@@ -385,6 +392,12 @@ export function createMercadoPagoClient(options: MercadoPagoClientOptions = {}) 
   return new MercadoPagoClient({
     clientId: env.MERCADOPAGO_CLIENT_ID,
     clientSecret: env.MERCADOPAGO_CLIENT_SECRET,
+    oauthTestToken: oauthTestTokenEnabled(env),
     ...options,
   });
+}
+
+/** `MERCADOPAGO_OAUTH_TEST_TOKEN=true`: vincular docentes con credenciales de prueba (ver `oauthTestToken`). */
+export function oauthTestTokenEnabled(env: Record<string, string | undefined>): boolean {
+  return env.MERCADOPAGO_OAUTH_TEST_TOKEN?.trim().toLowerCase() === "true";
 }

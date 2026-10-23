@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { MercadoPagoClient } from "./client";
+import { MercadoPagoClient, oauthTestTokenEnabled } from "./client";
 import { MercadoPagoError } from "./errors";
 
 const TOKEN = "APP_USR-token-del-docente-123";
@@ -284,6 +284,20 @@ describe("vincular la cuenta del docente (OAuth)", () => {
       liveMode: true,
       expiresAt: new Date("2027-04-06T12:00:00.000Z"), // 180 días después del 8 de octubre de 2026
     });
+  });
+
+  it("con oauthTestToken pide credenciales de prueba al canjear el código (y no al renovar)", async () => {
+    const { client, calls } = setup([json(tokens), json(tokens)], { oauthTestToken: true });
+    await client.exchangeAuthorizationCode({ code: "TG-código", redirectUri: "https://estudiapp.example/cb" });
+    await client.refreshAccessToken("TG-viejo");
+    expect(new URLSearchParams(String(calls[0].init.body)).get("test_token")).toBe("true");
+    expect(new URLSearchParams(String(calls[1].init.body)).has("test_token")).toBe(false);
+  });
+
+  it("MERCADOPAGO_OAUTH_TEST_TOKEN solo se prende con true", () => {
+    expect(oauthTestTokenEnabled({ MERCADOPAGO_OAUTH_TEST_TOKEN: " TRUE " })).toBe(true);
+    expect(oauthTestTokenEnabled({ MERCADOPAGO_OAUTH_TEST_TOKEN: "1" })).toBe(false);
+    expect(oauthTestTokenEnabled({})).toBe(false);
   });
 
   it("renueva con el refresh_token", async () => {
