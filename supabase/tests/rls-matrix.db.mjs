@@ -275,6 +275,9 @@ const FUNCIONES = [
   // 0017: la asistencia la registra el servidor (con los minutos que informa Daily).
   ["public.record_class_attendance(uuid, integer, integer)", ["service_role"]],
   ["public.classes_awaiting_attendance(integer)", ["service_role"]],
+  // 0018: los recordatorios los anota el mantenimiento; el email de la decisión sobre el perfil, un trigger.
+  ["public.enqueue_class_reminders()", ["service_role"]],
+  ["public.enqueue_tutor_decision_email()", ["service_role"]],
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {

@@ -27,6 +27,13 @@ function render(kind: string, payload: unknown, extra: { toName?: string | null;
   return { ...result.email, html: plain(result.email.html), text: plain(result.email.text), subject: plain(result.email.subject) };
 }
 
+/** Los recordatorios necesitan además la reserva y a quién va; los de perfil no llevan horario. */
+const reminderExtra = { booking_id: BOOKING, recipient_role: "alumno" };
+const PROFILE_KINDS = ["perfil_aprobado", "perfil_rechazado"];
+const BOOKING_KINDS = EMAIL_KINDS.filter((kind) => !PROFILE_KINDS.includes(kind));
+const sample = (kind: string, payload: Record<string, unknown> = base) =>
+  kind.startsWith("recordatorio") ? { ...reminderExtra, ...payload } : payload;
+
 const hrefs = (html: string) => [...html.matchAll(/href="([^"]*)"/g)].map((match) => match[1]);
 
 describe("reserva_confirmada (alumno)", () => {
@@ -310,7 +317,7 @@ describe("asuntos de una sola línea", () => {
       cancelled_by: "docente",
       reason: injection,
     };
-    const { subject } = render(kind, payload);
+    const { subject } = render(kind, sample(kind, payload));
     expect(hasLineBreak(subject)).toBe(false);
     expect(subject.length).toBeLessThanOrEqual(150);
   });
@@ -323,6 +330,98 @@ describe("asuntos de una sola línea", () => {
   it("un nombre larguísimo no revienta el asunto", () => {
     const { subject } = render("reserva_confirmada", { ...base, tutor_name: "X".repeat(5000) });
     expect(subject.length).toBeLessThanOrEqual(150);
+  });
+});
+
+describe("recordatorio_24h", () => {
+  const alumno = render("recordatorio_24h", { ...base, ...reminderExtra });
+  const docente = render("recordatorio_24h", { ...base, booking_id: BOOKING, recipient_role: "docente" }, { toName: "Martín Gómez" });
+
+  it("al alumno le recuerda la clase con su docente, el día y el horario", () => {
+    expect(alumno.subject).toBe("Mañana tenés clase con Martín Gómez");
+    for (const body of [alumno.html, alumno.text]) {
+      expect(body).toContain("Hola Lucía,");
+      expect(body).toContain("Martes 20 de octubre");
+      expect(body).toContain("18:00 – 19:00 h");
+      expect(body).toContain("Matemática");
+    }
+    expect(alumno.text).toContain("La sala se abre 10 minutos antes");
+  });
+
+  it("al alumno le explica qué pasa si cancela ahora (menos de 24 horas: 50 %)", () => {
+    expect(alumno.text).toContain("50 %");
+    expect(alumno.text).toContain("menos de 2 horas no hay reembolso");
+    expect(hrefs(alumno.html)).toEqual([`${BASE_URL}/alumno/reservas/${BOOKING}`, `${BASE_URL}/cancelacion`, BASE_URL]);
+  });
+
+  it("al docente le nombra al alumno y lo lleva a su panel", () => {
+    expect(docente.subject).toBe("Mañana tenés clase con Lucía Pérez");
+    expect(docente.text).toContain("Hola Martín,");
+    expect(docente.text).toContain("Alumno: Lucía Pérez");
+    expect(docente.text).toContain("se le devuelve el 100 %");
+    expect(hrefs(docente.html)).toEqual([`${BASE_URL}/docente`, BASE_URL]);
+  });
+
+  it("no muestra datos de dinero", () => {
+    expect(alumno.text).not.toContain("$");
+    expect(docente.text).not.toContain("$");
+  });
+});
+
+describe("recordatorio_1h", () => {
+  const alumno = render("recordatorio_1h", { ...base, ...reminderExtra });
+  const docente = render("recordatorio_1h", { ...base, booking_id: BOOKING, recipient_role: "docente" });
+
+  it("dice a qué hora empieza y lleva a la sala de cada uno", () => {
+    expect(alumno.subject).toBe("Tu clase con Martín Gómez empieza a las 18:00");
+    expect(docente.subject).toBe("Tu clase con Lucía Pérez empieza a las 18:00");
+    expect(hrefs(alumno.html)[0]).toBe(`${BASE_URL}/alumno/sala/${BOOKING}`);
+    expect(hrefs(docente.html)[0]).toBe(`${BASE_URL}/docente/sala/${BOOKING}`);
+    expect(alumno.text).toContain(`Ir a la sala: ${BASE_URL}/alumno/sala/${BOOKING}`);
+  });
+
+  it("al docente le recuerda que tiene que estar al menos 10 minutos (si no, se reembolsa)", () => {
+    expect(docente.text).toContain("al menos 10 minutos");
+    expect(docente.text).toContain("100 %");
+    expect(alumno.text).not.toContain("al menos 10 minutos");
+  });
+
+  it("sin nombres no inventa", () => {
+    const email = render("recordatorio_1h", { starts_at: STARTS, ends_at: ENDS, ...reminderExtra });
+    expect(email.subject).toBe("Tu clase con tu docente empieza a las 18:00");
+  });
+});
+
+describe("perfil_aprobado", () => {
+  it("si ya vinculó Mercado Pago, lo manda a cargar horarios", () => {
+    const email = render("perfil_aprobado", { tutor_name: "Martín Gómez", can_receive_payments: true }, { toName: "Martín Gómez" });
+    expect(email.subject).toBe("Tu perfil docente fue aprobado");
+    expect(email.text).toContain("Hola Martín,");
+    expect(hrefs(email.html)[0]).toBe(`${BASE_URL}/docente/disponibilidad`);
+    expect(email.text).not.toContain("Mercado Pago");
+  });
+
+  it("si todavía no, le pide vincularlo primero (sin eso no lo pueden reservar)", () => {
+    for (const payload of [{ can_receive_payments: false }, {}]) {
+      const email = render("perfil_aprobado", payload);
+      expect(email.text).toContain("vinculá tu cuenta de Mercado Pago");
+      expect(hrefs(email.html)[0]).toBe(`${BASE_URL}/docente/cuenta-de-cobro`);
+    }
+  });
+});
+
+describe("perfil_rechazado", () => {
+  it("muestra el motivo escapado y lleva a corregir el perfil", () => {
+    const email = render("perfil_rechazado", { reason: "El respaldo <b>no</b> se abre" });
+    expect(email.subject).toBe("Revisamos tu perfil docente");
+    expect(email.text).toContain("Motivo: El respaldo <b>no</b> se abre");
+    expect(email.html).toContain("Motivo: El respaldo &lt;b&gt;no&lt;/b&gt; se abre");
+    expect(email.html).not.toContain("<b>no</b>");
+    expect(hrefs(email.html)[0]).toBe(`${BASE_URL}/docente/perfil`);
+  });
+
+  it("sin motivo, sale igual sin la línea del motivo", () => {
+    expect(render("perfil_rechazado", {}).text).not.toContain("Motivo");
   });
 });
 
@@ -395,7 +494,7 @@ describe("kind y payload inválidos", () => {
     ["horario inválido", { starts_at: "mañana", ends_at: ENDS }],
     ["fin inválido", { starts_at: STARTS, ends_at: 12 }],
   ])("%s: faltan datos imprescindibles", (_label, payload) => {
-    for (const kind of EMAIL_KINDS) {
+    for (const kind of BOOKING_KINDS) {
       expect(renderEmail({ kind, payload })).toEqual({ ok: false, reason: "invalid_payload" });
     }
   });
@@ -406,7 +505,23 @@ describe("kind y payload inválidos", () => {
   });
 
   it("cada tipo conocido tiene plantilla", () => {
-    for (const kind of EMAIL_KINDS) expect(renderEmail({ kind, payload: base }).ok).toBe(true);
+    for (const kind of EMAIL_KINDS) expect(renderEmail({ kind, payload: sample(kind) }).ok).toBe(true);
+  });
+
+  it("los de perfil no necesitan horario, pero sí un objeto", () => {
+    for (const kind of PROFILE_KINDS) {
+      expect(renderEmail({ kind, payload: {} }).ok).toBe(true);
+      for (const payload of [null, "hola", []]) expect(renderEmail({ kind, payload })).toEqual({ ok: false, reason: "invalid_payload" });
+    }
+  });
+
+  it("un recordatorio sin reserva o sin destinatario no se arma (no hay a qué sala mandar)", () => {
+    for (const kind of ["recordatorio_24h", "recordatorio_1h"]) {
+      expect(renderEmail({ kind, payload: base }).ok).toBe(false);
+      expect(renderEmail({ kind, payload: { ...base, booking_id: BOOKING } }).ok).toBe(false);
+      expect(renderEmail({ kind, payload: { ...base, booking_id: "no-uuid", recipient_role: "alumno" } }).ok).toBe(false);
+      expect(renderEmail({ kind, payload: { ...base, booking_id: BOOKING, recipient_role: "admin" } }).ok).toBe(false);
+    }
   });
 });
 

@@ -34,7 +34,9 @@ with estado(n, nombre, aplicada) as (
     (16, '0016 calificación después de la clase y opiniones con autor (tutor_reviews)',
         to_regprocedure('public.tutor_reviews(uuid, integer)') is not null),
     (17, '0017 asistencia a la sala (class_attendance)',
-        to_regclass('public.class_attendance') is not null)
+        to_regclass('public.class_attendance') is not null),
+    (18, '0018 recordatorios de clase y decisión sobre el perfil (enqueue_class_reminders)',
+        to_regprocedure('public.enqueue_class_reminders()') is not null)
 ),
 -- Primera migración que falta, y si desde ahí faltan TODAS las siguientes (un tramo limpio).
 resumen as (

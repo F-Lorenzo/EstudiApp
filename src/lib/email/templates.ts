@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { longDate, timeRange } from "@/lib/format";
+import { longDate, timeAR, timeRange } from "@/lib/format";
+import { ROOM_OPENS_BEFORE_MINUTES } from "@/lib/video/room-access";
 import { renderHtml, renderText, type Block, type EmailContent } from "./layout";
 
 /**
@@ -12,6 +13,10 @@ import { renderHtml, renderText, type Block, type EmailContent } from "./layout"
  *   reserva_cancelada       alumno   base + cancelled_by, reason, amount_paid, refund_percent, refund_amount
  *                           docente  base + cancelled_by, reason
  *   reembolso_realizado     alumno   base + refund_amount, refund_percent, reason ('cancelacion'|'pago_no_aceptable')
+ *   recordatorio_24h        los dos  base + booking_id, recipient_role ('alumno'|'docente')       (migración 0018)
+ *   recordatorio_1h         los dos  lo mismo
+ *   perfil_aprobado         docente  tutor_name?, can_receive_payments?                            (sin reserva)
+ *   perfil_rechazado        docente  tutor_name?, reason?
  *
  * `reserva_cancelada` va a las dos partes con el mismo `kind`; el payload no dice cuál es el destinatario,
  * así que se distingue por el contenido: solo la copia del alumno trae datos de dinero (`amount_paid`,
@@ -22,7 +27,16 @@ import { renderHtml, renderText, type Block, type EmailContent } from "./layout"
  * sin botones.
  */
 
-export const EMAIL_KINDS = ["reserva_confirmada", "nueva_reserva_docente", "reserva_cancelada", "reembolso_realizado"] as const;
+export const EMAIL_KINDS = [
+  "reserva_confirmada",
+  "nueva_reserva_docente",
+  "reserva_cancelada",
+  "reembolso_realizado",
+  "recordatorio_24h",
+  "recordatorio_1h",
+  "perfil_aprobado",
+  "perfil_rechazado",
+] as const;
 export type EmailKind = (typeof EMAIL_KINDS)[number];
 
 export type RenderContext = {
@@ -85,6 +99,20 @@ const refundedSchema = z.object({
   refund_amount: optional(amount),
   refund_percent: optional(amount),
   reason: z.enum(["cancelacion", "pago_no_aceptable"]).catch("cancelacion"),
+});
+
+const reminderSchema = z.object({
+  ...baseShape,
+  booking_id: z.uuid(),
+  recipient_role: z.enum(["alumno", "docente"]),
+});
+const approvedSchema = z.object({
+  tutor_name: optional(cleanText(120)),
+  can_receive_payments: optional(z.boolean()),
+});
+const rejectedSchema = z.object({
+  tutor_name: optional(cleanText(120)),
+  reason: optional(cleanText(500)),
 });
 
 type Base = z.infer<z.ZodObject<typeof baseShape>>;
@@ -424,6 +452,115 @@ function refunded(p: z.infer<typeof refundedSchema>, ctx: Ctx): Built {
   };
 }
 
+// --- recordatorio_24h y recordatorio_1h (alumno y docente) ---------------------------------------------------
+
+function reminder(p: z.infer<typeof reminderSchema>, soon: boolean, ctx: Ctx): Built {
+  const when = scheduleOf(p);
+  const student = p.recipient_role === "alumno";
+  const other = student ? (p.tutor_name ?? "tu docente") : (p.student_name ?? "tu alumno");
+  const facts: Block = {
+    kind: "facts",
+    rows: [
+      ...(student ? row("Docente", p.tutor_name) : row("Alumno", p.student_name)),
+      ...row("Materia", p.subject),
+      { label: "Día", value: when.dayCapitalized },
+      { label: "Horario", value: `${when.time} (hora de Argentina)` },
+    ],
+  };
+  const room = `/${student ? "alumno" : "docente"}/sala/${p.booking_id}`;
+  const opens = `La sala se abre ${ROOM_OPENS_BEFORE_MINUTES} minutos antes y entrás desde EstudiApp, sin instalar nada.`;
+
+  if (soon) {
+    return {
+      subject: `Tu clase con ${other} empieza a las ${timeAR(p.starts_at)}`,
+      content: {
+        preheader: `${when.dayCapitalized}, ${when.time}. ${opens}`,
+        title: "Tu clase empieza pronto",
+        blocks: [
+          { kind: "paragraph", text: `En un rato tenés tu clase con ${other}.` },
+          facts,
+          { kind: "paragraph", text: `${opens} Revisá que tu cámara y tu micrófono funcionen.` },
+          ...(student
+            ? []
+            : [
+                {
+                  kind: "callout",
+                  text: "Para que la clase cuente como dada tenés que estar en la sala al menos 10 minutos. Si no entrás, la clase se cancela y al alumno se le devuelve el 100 %.",
+                } satisfies Block,
+              ]),
+          ...withLink(ctx, room, "Ir a la sala"),
+        ],
+      },
+    };
+  }
+
+  return {
+    subject: `Mañana tenés clase con ${other}`,
+    content: {
+      preheader: `${when.dayCapitalized}, ${when.time}.`,
+      title: "Mañana tenés clase",
+      blocks: [
+        { kind: "paragraph", text: `Te recordamos tu clase con ${other}.` },
+        facts,
+        { kind: "paragraph", text: opens },
+        student
+          ? {
+              kind: "paragraph",
+              text: "Si no vas a poder asistir, cancelá la clase desde EstudiApp. Con menos de 24 horas de anticipación te devolvemos el 50 % de lo que pagaste, y con menos de 2 horas no hay reembolso.",
+            }
+          : {
+              kind: "paragraph",
+              text: "Si te surge un imprevisto, cancelá la clase cuanto antes desde EstudiApp: al alumno se le devuelve el 100 % de lo que pagó.",
+            },
+        ...withLink(ctx, student ? `/alumno/reservas/${p.booking_id}` : "/docente", student ? "Ver mi reserva" : "Ir a mi panel"),
+        ...(student ? policyLink(ctx) : []),
+      ],
+    },
+  };
+}
+
+// --- perfil_aprobado y perfil_rechazado (docente) ----------------------------------------------------------
+
+function approved(p: z.infer<typeof approvedSchema>, ctx: Ctx): Built {
+  const payable = p.can_receive_payments === true;
+  return {
+    subject: "Tu perfil docente fue aprobado",
+    content: {
+      preheader: payable ? "Ya aparecés en el catálogo de EstudiApp." : "Falta un paso para que te puedan reservar.",
+      title: "¡Tu perfil fue aprobado!",
+      blocks: [
+        { kind: "paragraph", text: "Revisamos tu perfil y tu respaldo, y ya formás parte de los docentes de EstudiApp." },
+        payable
+          ? { kind: "paragraph", text: "Cargá tus horarios disponibles para que los alumnos te puedan reservar." }
+          : {
+              kind: "callout",
+              text: "Falta un paso: vinculá tu cuenta de Mercado Pago, que es donde vas a recibir los pagos. Hasta que la vincules, los alumnos no pueden reservarte. Después cargá tus horarios disponibles.",
+            },
+        ...withLink(ctx, payable ? "/docente/disponibilidad" : "/docente/cuenta-de-cobro", payable ? "Cargar mis horarios" : "Vincular Mercado Pago"),
+      ],
+    },
+  };
+}
+
+function rejected(p: z.infer<typeof rejectedSchema>, ctx: Ctx): Built {
+  return {
+    subject: "Revisamos tu perfil docente",
+    content: {
+      preheader: "Necesitamos que corrijas algunos datos antes de aprobarlo.",
+      title: "Tu perfil necesita cambios",
+      blocks: [
+        { kind: "paragraph", text: "Revisamos tu perfil y por ahora no lo pudimos aprobar." },
+        ...(p.reason ? [{ kind: "callout", text: `Motivo: ${p.reason}` } satisfies Block] : []),
+        {
+          kind: "paragraph",
+          text: "Podés corregir tu perfil y volver a enviarlo a revisión cuando quieras. Te avisamos por email apenas lo revisemos.",
+        },
+        ...withLink(ctx, "/docente/perfil", "Corregir mi perfil"),
+      ],
+    },
+  };
+}
+
 // --- Punto de entrada --------------------------------------------------------------------------------------
 
 export function renderEmail({ kind, payload, toName, baseUrl }: RenderContext): RenderResult {
@@ -455,6 +592,25 @@ export function renderEmail({ kind, payload, toName, baseUrl }: RenderContext): 
       const parsed = refundedSchema.safeParse(payload);
       if (!parsed.success) return { ok: false, reason: "invalid_payload" };
       built = refunded(parsed.data, ctx);
+      break;
+    }
+    case "recordatorio_24h":
+    case "recordatorio_1h": {
+      const parsed = reminderSchema.safeParse(payload);
+      if (!parsed.success) return { ok: false, reason: "invalid_payload" };
+      built = reminder(parsed.data, kind === "recordatorio_1h", ctx);
+      break;
+    }
+    case "perfil_aprobado": {
+      const parsed = approvedSchema.safeParse(payload);
+      if (!parsed.success) return { ok: false, reason: "invalid_payload" };
+      built = approved(parsed.data, ctx);
+      break;
+    }
+    case "perfil_rechazado": {
+      const parsed = rejectedSchema.safeParse(payload);
+      if (!parsed.success) return { ok: false, reason: "invalid_payload" };
+      built = rejected(parsed.data, ctx);
       break;
     }
     default:

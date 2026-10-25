@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getViewer } from "@/lib/auth/viewer";
+import { scheduleEmailDelivery } from "@/lib/email/schedule";
 import { createClient } from "@/lib/supabase/server";
 import { rejectTutorSchema } from "@/lib/validation/moderation";
 import { echoValues, type ActionState } from "@/lib/validation/form-state";
@@ -15,9 +16,8 @@ async function requireAdmin() {
   return viewer?.role === "administrador";
 }
 
-// NOTA: al aprobar/rechazar habría que notificar por email al docente
-// (sección 12), pero todavía no hay un proveedor de email configurado.
-// Este es el punto donde se dispararía ese envío.
+// Al aprobar o rechazar, la base anota el email al docente (trigger de la
+// migración 0018); acá solo se pide enviarlo después de responder.
 
 export async function approveTutor(tutorId: string) {
   if (!(await requireAdmin())) {
@@ -33,6 +33,7 @@ export async function approveTutor(tutorId: string) {
   if (error) {
     throw new Error("No se pudo aprobar el perfil");
   }
+  scheduleEmailDelivery();
 
   revalidatePath("/admin/docentes/pendientes");
   revalidatePath("/admin/docentes/activos");
@@ -74,6 +75,7 @@ export async function rejectTutor(
       values: echoValues(formData, ["reason"]),
     };
   }
+  scheduleEmailDelivery();
 
   revalidatePath("/admin/docentes/pendientes");
   redirect("/admin/docentes/pendientes");

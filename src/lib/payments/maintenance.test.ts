@@ -15,6 +15,7 @@ function tasks(overrides: Partial<MaintenanceTasks> = {}): MaintenanceTasks & { 
     refreshTokens: make("refreshTokens", { renewed: 1 }),
     settleAttendance: make("settleAttendance", { completada: 1 }),
     retryRefunds: make("retryRefunds", { approved: 2 }),
+    enqueueReminders: make("enqueueReminders", { queued: 4 }),
     sendEmails: make("sendEmails", { sent: 3 }),
     ...overrides,
   };
@@ -50,7 +51,7 @@ describe("mantenimiento", () => {
     }
   });
 
-  it("corre los cuatro barridos y devuelve los informes", async () => {
+  it("corre los cinco barridos y devuelve los informes", async () => {
     const t = tasks();
     const result = await runMaintenance({ authorization: auth, secret: SECRET }, t);
     expect(result).toEqual({
@@ -60,11 +61,13 @@ describe("mantenimiento", () => {
         refreshTokens: { renewed: 1 },
         settleAttendance: { completada: 1 },
         retryRefunds: { approved: 2 },
+        enqueueReminders: { queued: 4 },
         sendEmails: { sent: 3 },
       },
     });
-    // La asistencia va antes que los reembolsos y los emails: lo que encola se procesa en la misma pasada.
-    expect(t.calls).toEqual(["refreshTokens", "settleAttendance", "retryRefunds", "sendEmails"]);
+    // La asistencia va antes que los reembolsos y los emails, y los recordatorios antes del envío: lo que se
+    // encola se procesa en la misma pasada.
+    expect(t.calls).toEqual(["refreshTokens", "settleAttendance", "retryRefunds", "enqueueReminders", "sendEmails"]);
   });
 
   it("si un barrido falla, los demás igual corren y no se filtra el detalle", async () => {
@@ -78,7 +81,7 @@ describe("mantenimiento", () => {
     expect(result.status).toBe(500);
     expect(result.body).toMatchObject({ status: "partial", retryRefunds: { error: "falló" }, sendEmails: { sent: 3 } });
     expect(JSON.stringify(result.body)).not.toContain("APP_USR");
-    expect(t.calls).toEqual(["refreshTokens", "settleAttendance", "sendEmails"]);
+    expect(t.calls).toEqual(["refreshTokens", "settleAttendance", "enqueueReminders", "sendEmails"]);
     expect(log).toHaveBeenCalledOnce();
   });
 });

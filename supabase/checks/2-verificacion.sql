@@ -102,7 +102,7 @@ begin
   ), 'FALLA';
 
   -- 12 a 15. Cimientos del cobro (migración 0011). La 16 es de la 0012, la 17 de la 0013, la 18 de la 0014
-  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016 y la 24 de la 0017.
+  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017 y la 25 de la 0018.
   insert into _verificacion
   select 12, 'cobro: los tokens de Mercado Pago (mp_credentials) no se leen ni se escriben desde la API',
     case when to_regclass('public.mp_credentials') is null then false
@@ -259,6 +259,23 @@ begin
           and not has_function_privilege('authenticated', 'public.classes_awaiting_attendance(integer)', 'execute')
           and exists (select 1 from pg_proc p
                       where p.oid = to_regprocedure('public.sync_bookings()') and p.prosrc like '%interval ''3 days''%') end,
+    'FALLA';
+
+  -- 25. Recordatorios y decisión sobre el perfil (migración 0018): solo del backend, con su trigger, y la bandeja
+  --     descarta los recordatorios que ya no corresponden antes de reclamar.
+  insert into _verificacion
+  select 25, 'emails: los recordatorios de clase son del backend y el docente recibe la decisión sobre su perfil',
+    case when to_regprocedure('public.enqueue_class_reminders()') is null
+           or to_regprocedure('public.enqueue_tutor_decision_email()') is null then false
+         else not has_function_privilege('anon', 'public.enqueue_class_reminders()', 'execute')
+          and not has_function_privilege('authenticated', 'public.enqueue_class_reminders()', 'execute')
+          and has_function_privilege('service_role', 'public.enqueue_class_reminders()', 'execute')
+          and not has_function_privilege('authenticated', 'public.enqueue_tutor_decision_email()', 'execute')
+          and exists (select 1 from pg_trigger
+                      where tgname = 'tutor_profiles_enqueue_decision_email' and not tgisinternal)
+          and exists (select 1 from pg_proc p
+                      where p.oid = to_regprocedure('public.claim_pending_emails(integer)')
+                        and p.prosrc like '%recordatorio_24h%') end,
     'FALLA';
 
   -- 20. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).

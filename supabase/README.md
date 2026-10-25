@@ -11,11 +11,11 @@ pendiente (tarjeta "Setup de Supabase").
    aprovisionarse).
 2. `cp .env.local.example .env.local` y completar `NEXT_PUBLIC_SUPABASE_URL`
    y `NEXT_PUBLIC_SUPABASE_ANON_KEY` desde Project Settings → API.
-3. Aplicar las migraciones (`supabase/migrations/0001` a `0017`) en el
+3. Aplicar las migraciones (`supabase/migrations/0001` a `0018`) en el
    SQL Editor del dashboard. (Alternativa con la CLI: ver más abajo.)
 
-   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 17` genera
-   `supabase/aplicar-0001-a-0017.sql` (con `--compacto`, la misma versión sin
+   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 18` genera
+   `supabase/aplicar-0001-a-0018.sql` (con `--compacto`, la misma versión sin
    comentarios).
 
    **Proyecto que ya tiene hasta la 0011** (el de EstudiApp hoy):
@@ -205,8 +205,16 @@ las dos entradas `seed:demo*` de `package.json`.
   queda en `class_attendance` (la ven las partes y la administración; nadie la
   escribe desde la API). `sync_bookings` ya no completa las clases al terminar:
   solo las que pasaron 3 días sin asistencia registrada.
+- `0018_reminder_and_tutor_decision_emails.sql`: **recordatorios de clase y
+  decisión sobre el perfil.** `enqueue_class_reminders` (solo service role, la
+  llama el mantenimiento de cada hora) anota un recordatorio 24 horas antes y
+  otro 1 hora antes para el alumno y el docente, salvo que la clase se haya
+  reservado con poca anticipación. Al aprobar o rechazar un perfil, un trigger
+  anota el email al docente. `claim_pending_emails` descarta antes de reclamar
+  los recordatorios de clases canceladas o que ya empezaron, y las decisiones
+  sobre perfiles que después cambiaron.
 
-Las migraciones 0006 a 0017 se probaron con unas 1.000 comprobaciones (la matriz de la RLS hace además 623 intentos por rol) y con 94 mutaciones (se rompe una regla a propósito y se comprueba que alguna prueba falle) en un Postgres real
+Las migraciones 0006 a 0018 se probaron con unas 1.000 comprobaciones (la matriz de la RLS hace además 623 intentos por rol) y con 106 mutaciones (se rompe una regla a propósito y se comprueba que alguna prueba falle) en un Postgres real
 (roles anónimo, alumno, docente, administrador y service role; ver
 [tests/README.md](tests/README.md) y `npm run test:db`), pero **no contra tu
 proyecto de Supabase**: revisalas y probalas en un proyecto de prueba antes de
@@ -242,8 +250,9 @@ propio en vez de a la app. El texto completo de las dos plantillas está en
 
 - `1-diagnostico.sql`: qué migraciones tiene el proyecto y qué hacer a continuación.
 - `2-verificacion.sql`: después de aplicar, comprueba la RLS, los permisos, las guardas y los datos
-  que hay que revisar a mano. Son 24 filas: las 1 a 19, la 23 y la 24 son comprobaciones de las migraciones (la 16
-  es de la 0012, la 17 de la 0013, la 18 de la 0014, la 19 de la 0015, la 23 de la 0016 y la 24 de la 0017) y
+  que hay que revisar a mano. Son 25 filas: las 1 a 19 y las 23 a 25 son comprobaciones de las migraciones (la 16
+  es de la 0012, la 17 de la 0013, la 18 de la 0014, la 19 de la 0015, la 23 de la 0016, la 24 de la 0017 y la 25
+  de la 0018) y
   tienen que decir OK; las 20 a 22
   son datos para revisar (reservas confirmadas sin pago, cuentas de administración y cuentas del seed de
   demo viejo) y pueden decir REVISAR (qué hacer con cada una: [docs/FASE-0-PASO-A-PASO.md](../docs/FASE-0-PASO-A-PASO.md), paso 4).

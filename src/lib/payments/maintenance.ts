@@ -1,13 +1,14 @@
 import { timingSafeEqual } from "node:crypto";
 
 /**
- * Mantenimiento del cobro (lo dispara cada hora el cron de Cloudflare, ver wrangler.jsonc). Hace cuatro barridos
+ * Mantenimiento del cobro (lo dispara cada hora el cron de Cloudflare, ver wrangler.jsonc). Hace cinco barridos
  * independientes; uno que falla no frena a los otros:
  *
  *  1. renueva los tokens de Mercado Pago de los docentes que vencen pronto,
  *  2. registra la asistencia de las clases terminadas que la esperan (puede encolar reembolsos y emails),
  *  3. reintenta los reembolsos pendientes o fallidos,
- *  4. envía los emails que quedaron pendientes en la bandeja.
+ *  4. anota los recordatorios de las clases que empiezan en 24 horas o en 1 hora,
+ *  5. envía los emails que quedaron pendientes en la bandeja.
  *
  * Los caminos principales (el aviso de pago, la cancelación) hacen su parte en el momento; esto es la red
  * de seguridad. Mueve dinero, así que la ruta exige un secreto propio (`CRON_SECRET`) y falla cerrada.
@@ -16,6 +17,7 @@ export type MaintenanceTasks = {
   refreshTokens: () => Promise<unknown>;
   settleAttendance: () => Promise<unknown>;
   retryRefunds: () => Promise<unknown>;
+  enqueueReminders: () => Promise<unknown>;
   sendEmails: () => Promise<unknown>;
 };
 
@@ -40,7 +42,7 @@ export async function runMaintenance(
 
   const results: Record<string, unknown> = {};
   let failed = false;
-  for (const name of ["refreshTokens", "settleAttendance", "retryRefunds", "sendEmails"] as const) {
+  for (const name of ["refreshTokens", "settleAttendance", "retryRefunds", "enqueueReminders", "sendEmails"] as const) {
     try {
       results[name] = await tasks[name]();
     } catch (error) {

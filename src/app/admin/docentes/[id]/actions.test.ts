@@ -5,6 +5,7 @@ import { approveTutor, rejectTutor } from "./actions";
 const revalidatePath = vi.hoisted(() => vi.fn());
 const createClient = vi.hoisted(() => vi.fn());
 const getViewer = vi.hoisted(() => vi.fn());
+const scheduleEmailDelivery = vi.hoisted(() => vi.fn());
 
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("next/navigation", async () => {
@@ -17,6 +18,7 @@ vi.mock("next/navigation", async () => {
 });
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
 vi.mock("@/lib/auth/viewer", () => ({ getViewer }));
+vi.mock("@/lib/email/schedule", () => ({ scheduleEmailDelivery }));
 
 const TUTOR = "d1";
 const ADMIN = { id: "ad", name: "Admin", role: "administrador" };
@@ -28,7 +30,7 @@ function motivo(texto: string) {
 }
 
 beforeEach(() => {
-  for (const mock of [revalidatePath, createClient, getViewer]) mock.mockReset();
+  for (const mock of [revalidatePath, createClient, getViewer, scheduleEmailDelivery]) mock.mockReset();
 });
 
 describe("approveTutor", () => {
@@ -56,6 +58,8 @@ describe("approveTutor", () => {
     expect(consulta.calls).toContainEqual(["update", [{ verification_status: "aprobado", verification_reason: null }]]);
     expect(consulta.calls).toContainEqual(["eq", ["id", TUTOR]]);
     expect(destino).toBe("/admin/docentes/pendientes");
+    // El email al docente lo anota la base; la acción pide enviarlo.
+    expect(scheduleEmailDelivery).toHaveBeenCalledOnce();
   });
 
   it("si la base rechaza el cambio, no muestra el detalle", async () => {
@@ -67,6 +71,7 @@ describe("approveTutor", () => {
     const error = await approveTutor(TUTOR).catch((e: Error) => e);
     expect(error).toBeInstanceOf(Error);
     expect((error as Error).message).toBe("No se pudo aprobar el perfil");
+    expect(scheduleEmailDelivery).not.toHaveBeenCalled();
   });
 });
 
@@ -104,6 +109,7 @@ describe("rejectTutor", () => {
       [{ verification_status: "rechazado", verification_reason: "El respaldo no se abre" }],
     ]);
     expect(destino).toBe("/admin/docentes/pendientes");
+    expect(scheduleEmailDelivery).toHaveBeenCalledOnce();
   });
 
   it("si la base falla, conserva el motivo escrito y no muestra el detalle", async () => {
@@ -117,5 +123,6 @@ describe("rejectTutor", () => {
     expect(result.error).toBe("No se pudo rechazar el perfil. Intentá de nuevo.");
     expect(result.values).toEqual({ reason: "Motivo largo y válido" });
     expect(JSON.stringify(result)).not.toContain("deadlock");
+    expect(scheduleEmailDelivery).not.toHaveBeenCalled();
   });
 });

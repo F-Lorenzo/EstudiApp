@@ -40,12 +40,16 @@ const F14 = "0014_payout_accounts.sql";
 const F15 = "0015_email_outbox.sql";
 const F16 = "0016_reviews.sql";
 const F17 = "0017_class_attendance.sql";
+const F18 = "0018_reminder_and_tutor_decision_emails.sql";
+// `claim_pending_emails` se creó en la 0015 y la 0018 la reemplaza: sus mutaciones van sobre la versión vigente.
+const CLAIM = F18;
 const F11 = "0011_payments_foundation.sql";
 const CANCEL = ["cancel-refund", "bookings", "payment-notifications", "email-outbox"];
 const PAYOUT = ["payout-accounts", "bookings", "hardening"];
 const EMAIL = ["email-outbox", "rls-matrix"];
 const REVIEWS = ["reviews", "rls-matrix", "rls-base"];
 const ATTENDANCE = ["attendance", "rls-matrix", "hardening"];
+const REMINDERS = ["reminders", "email-outbox", "rls-matrix"];
 
 const M = [
   // ---------------------------------------------------------------- 0013
@@ -101,21 +105,21 @@ const M = [
   [F15, "15-01 la confirmación sin «on conflict do nothing»", (s) => sub(s, "    on conflict (kind, booking_id, recipient_id) do nothing;\n  exception when others then\n    raise warning 'No se pudo anotar el email de la reserva confirmada", "  ;\n  exception when others then\n    raise warning 'No se pudo anotar el email de la reserva confirmada"), EMAIL],
   [F15, "15-02 el payload incluye el email del alumno", (s) => sub(s, "'price', p_booking.price))", "'price', p_booking.price, 'email', (select u.email from auth.users u where u.id = p_booking.student_id)))"), EMAIL],
   [F15, "15-03 mark_email_result deja volver atrás una fila enviada", (s) => sub(s, "if v_current in ('enviado', 'omitido') then\n    return;\n  end if;", ""), EMAIL],
-  [F15, "15-04 claim_pending_emails sin tope de 5 intentos", (s) => sub(s, "o.attempts < 5", "o.attempts < 99", { all: true }), EMAIL],
-  [F15, "15-05 claim_pending_emails sin espera entre intentos", (s) => sub(s, "interval '5 minutes'", "interval '0 minutes'", { all: true }), EMAIL],
-  [F15, "15-06 claim_pending_emails no omite a quien no tiene email", (s) => sub(s, "set status = 'omitido',\n      last_error = 'El destinatario no tiene email.'", "set status = status,\n      last_error = 'El destinatario no tiene email.'"), EMAIL],
-  [F15, "15-07 claim_pending_emails no suma el intento", (s) => sub(s, "set attempts = o.attempts + 1,", "set attempts = o.attempts,"), EMAIL],
+  [CLAIM, "15-04 claim_pending_emails sin tope de 5 intentos", (s) => sub(s, "o.attempts < 5", "o.attempts < 99", { all: true }), EMAIL],
+  [CLAIM, "15-05 claim_pending_emails sin espera entre intentos", (s) => sub(s, "interval '5 minutes'", "interval '0 minutes'", { all: true }), EMAIL],
+  [CLAIM, "15-06 claim_pending_emails no omite a quien no tiene email", (s) => sub(s, "set status = 'omitido',\n      last_error = 'El destinatario no tiene email.'", "set status = status,\n      last_error = 'El destinatario no tiene email.'"), EMAIL],
+  [CLAIM, "15-07 claim_pending_emails no suma el intento", (s) => sub(s, "set attempts = o.attempts + 1,", "set attempts = o.attempts,"), EMAIL],
   [F15, "15-08 la cancelación de una reserva SIN pago también anota emails", (s) => sub(s, "when (old.status = 'confirmada' and new.status = 'cancelada')", "when (old.status in ('confirmada', 'pendiente_pago') and new.status = 'cancelada')"), EMAIL],
   [F15, "15-09 el trigger de confirmación hace fallar la operación si el email falla", (s) => sub(s, "exception when others then\n    raise warning 'No se pudo anotar el email de la reserva confirmada", "exception when no_data_found then\n    raise warning 'No se pudo anotar el email de la reserva confirmada"), EMAIL],
   [F15, "15-10 el trigger de cancelación hace fallar la operación si el email falla", (s) => sub(s, "exception when others then\n    raise warning 'No se pudo anotar el email de la reserva cancelada", "exception when no_data_found then\n    raise warning 'No se pudo anotar el email de la reserva cancelada"), EMAIL],
   [F15, "15-11 el trigger del reembolso hace fallar la operación si el email falla", (s) => sub(s, "exception when others then\n    raise warning 'No se pudo anotar el email del reembolso", "exception when no_data_found then\n    raise warning 'No se pudo anotar el email del reembolso"), EMAIL],
-  [F15, "15-12 claim_pending_emails abierta a authenticated", (s) => s + "\ngrant execute on function public.claim_pending_emails(integer) to authenticated;\n", EMAIL],
+  [CLAIM, "15-12 claim_pending_emails abierta a authenticated", (s) => s + "\ngrant execute on function public.claim_pending_emails(integer) to authenticated;\n", EMAIL],
   [F15, "15-13 mark_email_result guarda los emails que vengan en el error", (s) => sub(s, /left\(regexp_replace\(p_error, [^\n]*?'g'\), 500\)/, "left(p_error, 500)"), EMAIL],
   [F15, "15-14 la bandeja legible por authenticated", (s) => s + "\ngrant select on public.email_outbox to authenticated;\n", EMAIL],
   [F15, "15-15 el email del reembolso confunde el motivo", (s) => sub(s, "then 'pago_no_aceptable' else 'cancelacion' end", "then 'cancelacion' else 'pago_no_aceptable' end"), EMAIL],
   [F15, "15-16 cancelled_by siempre «alumno»", (s) => sub(s, "      else 'administracion'\n    end;", "      else 'alumno'\n    end;"), EMAIL],
   [F15, "15-17 enviado no guarda la hora de envío", (s) => sub(s, "sent_at = case when p_status = 'enviado' then now() else sent_at end,", "sent_at = sent_at,"), EMAIL],
-  [F15, "15-18 claim_pending_emails sin «skip locked»", (s) => sub(s, "for update of o skip locked", "for update of o"), EMAIL],
+  [CLAIM, "15-18 claim_pending_emails sin «skip locked»", (s) => sub(s, "for update of o skip locked", "for update of o"), EMAIL],
   [F15, "15-19 «nueva_reserva_docente» va al alumno", (s) => sub(s, "('nueva_reserva_docente', new.id, new.tutor_id,", "('nueva_reserva_docente', new.id, new.student_id,"), EMAIL],
   [F15, "15-20 el email del reembolso va al docente", (s) => sub(s, "        v_booking.id,\n        v_booking.student_id,", "        v_booking.id,\n        v_booking.tutor_id,"), EMAIL],
   [F15, "15-21 la bandeja sin RLS", (s) => sub(s, "alter table public.email_outbox enable row level security;", ""), EMAIL],
@@ -124,7 +128,7 @@ const M = [
   [F15, "15-24 el email de cancelación al alumno no lleva el reembolso", (s) => sub(s, "'refund_percent', case when v_payment.id is not null then coalesce(v_refund.percent, 0) end,", "'refund_percent', null,"), EMAIL],
   [F15, "15-25 los emails de un pago tardío reembolsado se pierden (el trigger no mira starts_with)", (s) => sub(s, "starts_with(new.reason, 'pago_no_aceptable')", "false"), EMAIL],
   [F15, "15-26 el email de cancelación no mira el reembolso encolado", (s) => sub(s, "select * into v_refund from public.refunds where booking_id = new.id order by created_at limit 1;", "select * into v_refund from public.refunds where false;"), EMAIL],
-  [F15, "15-27 claim_pending_emails reclama sin respetar el orden de llegada", (s) => sub(s, "    order by o.created_at, o.id\n    limit greatest(coalesce(p_limit, 20), 0)", "    order by o.id desc\n    limit greatest(coalesce(p_limit, 20), 0)"), EMAIL],
+  [CLAIM, "15-27 claim_pending_emails reclama sin respetar el orden de llegada", (s) => sub(s, "    order by o.created_at, o.id\n    limit greatest(coalesce(p_limit, 20), 0)", "    order by o.id desc\n    limit greatest(coalesce(p_limit, 20), 0)"), EMAIL],
   // ---------------------------------------------------------------- 0016
   [F16, "16-01 la tabla de calificaciones sigue siendo pública", (s) => sub(s, "using (student_id = auth.uid() or tutor_id = auth.uid() or public.is_admin());", "using (true);"), REVIEWS],
   [F16, "16-02 se califica sin límite de días", (s) => sub(s, "\n        and b.ends_at > now() - interval '30 days'", ""), REVIEWS],
@@ -147,6 +151,19 @@ const M = [
   [F17, "17-09 sync_bookings sigue completando al terminar", (s) => sub(s, "and ends_at < now() - interval '3 days';", "and ends_at < now();"), ATTENDANCE],
   [F17, "17-10 la asistencia la lee cualquiera con sesión", (s) => sub(s, /using \(\n    public\.is_admin\(\)\n    or exists \([\s\S]*?\)\n  \);/, "using (true);"), ATTENDANCE],
   [F17, "17-11 sin pago se informa como pagado", (s) => sub(s, "'paid', v_payment.id is not null,", "'paid', true,"), ATTENDANCE],
+  // ---------------------------------------------------------------- 0018
+  [F18, "18-01 se recuerda una reserva no confirmada", (s) => sub(s, "where b.status = 'confirmada'\n      and b.starts_at > now() + interval '2 hours'", "where true\n      and b.starts_at > now() + interval '2 hours'"), REMINDERS],
+  [F18, "18-02 el de 24 horas sale desde 30 horas antes", (s) => sub(s, "b.starts_at <= now() + interval '24 hours 30 minutes'", "b.starts_at <= now() + interval '30 hours'"), REMINDERS],
+  [F18, "18-03 el de 24 horas llega pegado al de la reserva", (s) => sub(s, "and b.created_at <= b.starts_at - interval '25 hours'", ""), REMINDERS],
+  [F18, "18-04 el de 1 hora sale desde 3 horas antes", (s) => sub(s, "b.starts_at <= now() + interval '90 minutes'", "b.starts_at <= now() + interval '3 hours'"), REMINDERS],
+  [F18, "18-05 se recuerda una clase que ya empezó", (s) => sub(s, "      and b.starts_at > now()\n      and b.starts_at <= now() + interval '90 minutes'", "      and b.starts_at <= now() + interval '90 minutes'"), REMINDERS],
+  [F18, "18-06 solo se le recuerda al alumno", (s) => sub(s, "(values ((d.booking).student_id, 'alumno'), ((d.booking).tutor_id, 'docente'))", "(values ((d.booking).student_id, 'alumno'))"), REMINDERS],
+  [F18, "18-07 los recordatorios se duplican", (s) => sub(s, "    on conflict (kind, booking_id, recipient_id) do nothing\n    returning 1", "    returning 1"), REMINDERS],
+  [F18, "18-08 se reclama el recordatorio de una clase cancelada", (s) => sub(s, "where b.id = o.booking_id and b.status = 'confirmada' and b.starts_at > now());", "where b.id = o.booking_id);"), REMINDERS],
+  [F18, "18-09 se manda el rechazo de un perfil que se reenvió", (s) => sub(s, "      last_error = 'El estado del perfil cambió.'\n  where o.status in ('pendiente', 'fallido')", "      last_error = 'El estado del perfil cambió.'\n  where false"), REMINDERS],
+  [F18, "18-10 el rechazo sale sin motivo", (s) => sub(s, "then nullif(btrim(new.verification_reason), '') end", "then null end"), REMINDERS],
+  [F18, "18-11 un fallo del email tira abajo la decisión", (s) => sub(s, "  exception when others then\n    raise warning 'No se pudo anotar el email de la decisión", "  exception when division_by_zero then\n    raise warning 'No se pudo anotar el email de la decisión"), REMINDERS],
+  [F18, "18-12 enqueue_class_reminders abierta a authenticated", (s) => s + "\ngrant execute on function public.enqueue_class_reminders() to authenticated;\n", REMINDERS],
 ];
 
 const ALL_SUITES = fs.readdirSync(TESTS).filter((f) => f.endsWith(".db.mjs")).map((f) => f.replace(".db.mjs", "")).filter((n) => n !== "fresh-install");
