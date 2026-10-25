@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 
 /**
- * Mantenimiento diario del cobro (lo dispara el cron de Vercel, ver vercel.json). Hace cuatro barridos
+ * Mantenimiento del cobro (lo dispara cada hora el cron de Cloudflare, ver wrangler.jsonc). Hace cuatro barridos
  * independientes; uno que falla no frena a los otros:
  *
  *  1. renueva los tokens de Mercado Pago de los docentes que vencen pronto,

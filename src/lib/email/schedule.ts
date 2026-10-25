@@ -7,7 +7,7 @@ import { describeError } from "./sender";
 /**
  * Pide que, DESPUÉS de responder, se envíen los emails pendientes de la bandeja de salida
  * (`email_outbox`). Nunca lanza ni demora la respuesta; si el envío no está configurado, no hace nada
- * (los emails quedan pendientes y los toma el barrido diario).
+ * (los emails quedan pendientes y los toma el mantenimiento de cada hora).
  *
  * Contrato fijo, lo usan las acciones de reservas y el webhook:  `scheduleEmailDelivery(): void`.
  *

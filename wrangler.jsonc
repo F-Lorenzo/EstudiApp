@@ -1,7 +1,8 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "estudiapp",
-  "main": ".open-next/worker.js",
+  // El Worker de OpenNext más el handler del cron (ver cloudflare-worker.ts y docs/CLOUDFLARE.md).
+  "main": "cloudflare-worker.ts",
   "upload_source_maps": true,
   "workers_dev": true,
   "preview_urls": true,
@@ -11,6 +12,10 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // Mantenimiento (src/lib/payments/maintenance.ts): cada hora, a los 7 minutos. Renueva tokens de Mercado Pago,
+  // registra la asistencia de las clases terminadas, reintenta reembolsos y envía los emails pendientes.
+  // Necesita el secreto CRON_SECRET en el Worker.
+  "triggers": { "crons": ["7 * * * *"] },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,

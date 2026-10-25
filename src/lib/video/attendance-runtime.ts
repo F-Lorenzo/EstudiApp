@@ -61,7 +61,7 @@ export const syncViewerAttendance = cache(async (viewer: { id: string; role: str
   }
 });
 
-/** Para el mantenimiento diario: todas las clases que esperan su asistencia (hasta 25 por pasada). */
+/** Para el mantenimiento de cada hora (cron de Cloudflare): todas las clases que esperan su asistencia (hasta 25 por pasada). */
 export async function settleAllAwaitingAttendance(): Promise<AttendanceReport> {
   const deps = productionDeps(createDailyClient());
   return settleAttendanceFor(deps, await listAwaitingAttendance(deps.admin, 25));

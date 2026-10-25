@@ -48,6 +48,21 @@ curl -fSs -D /tmp/estudiapp-headers https://estudiapp.app/ -o /tmp/estudiapp.htm
 también comprobar login y catálogo. El build validado localmente no demuestra
 que producción haya sido actualizada.
 
+## Cron de mantenimiento
+
+`wrangler.jsonc` apunta `main` a `cloudflare-worker.ts`: es el Worker que genera OpenNext
+(`.open-next/worker.js`) más un handler `scheduled`. El cron (`triggers.crons`, cada hora a los 7 minutos)
+le pide por dentro, sin salir a la red, la ruta `/api/cron/payments-maintenance` con el secreto
+`CRON_SECRET` (la lógica está en `src/lib/cron/scheduled.ts`). La ruta renueva los tokens de Mercado
+Pago, registra la asistencia de las clases terminadas, reintenta reembolsos y envía los emails pendientes.
+
+- `CRON_SECRET` tiene que estar cargado como **secreto** del Worker. Sin él, la ruta no corre nada y cada
+  ejecución del cron figura como fallida.
+- Las ejecuciones se ven en **Workers & Pages → estudiapp → Settings → Trigger Events** (o en los logs, con
+  `source: "cron"`). Una ejecución en rojo es un barrido que falló: el informe va en el log.
+- Para probarlo sin esperar la hora: `npx wrangler dev --test-scheduled` y luego
+  `curl "http://localhost:8787/__scheduled?cron=7+*+*+*+*"` (después de `opennextjs-cloudflare build`).
+
 ## Manifiesto de preview
 
 Con Next.js 16.4.1 y OpenNext 1.20.12 el build genera
