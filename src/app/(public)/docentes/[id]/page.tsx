@@ -8,12 +8,13 @@ import { getViewer } from "@/lib/auth/viewer";
 import { earliestBookableIso } from "@/lib/bookings/hold";
 import { syncBookings } from "@/lib/bookings/sync";
 import { longDate, timeAR } from "@/lib/format";
+import { getTutorReviews } from "@/lib/ratings/reviews";
 import { createClient } from "@/lib/supabase/server";
 import { getPublicTeacher } from "@/lib/tutors/public";
 
 const dateFormat = new Intl.DateTimeFormat("es-AR", {
   timeZone: "America/Argentina/Buenos_Aires",
-  dateStyle: "medium",
+  dateStyle: "long",
 });
 
 export async function generateMetadata({
@@ -37,12 +38,9 @@ export default async function PerfilPublicoDocentePage({
   const supabase = await createClient();
   // Libera los horarios cuya reserva venció sin pagarse: si no, seguirían ocultos.
   await syncBookings(supabase);
-  const [{ data: ratings }, { data: slots }, viewer] = await Promise.all([
-    supabase
-      .from("ratings")
-      .select("score, comment, created_at")
-      .eq("tutor_id", id)
-      .order("created_at", { ascending: false }),
+  const [{ reviews: publicReviews, total }, { data: slots }, viewer] = await Promise.all([
+    // La tabla `ratings` no es pública: las opiniones salen de `tutor_reviews` (migración 0016).
+    getTutorReviews(supabase, id),
     supabase
       .from("availability_slots")
       .select("id, starts_at")
@@ -55,10 +53,13 @@ export default async function PerfilPublicoDocentePage({
     getViewer(),
   ]);
 
-  const reviews: ProfileReview[] = (ratings ?? []).map((rating) => ({
-    score: rating.score,
-    comment: rating.comment,
-    date: dateFormat.format(new Date(rating.created_at)),
+  const reviews: ProfileReview[] = publicReviews.map((review) => ({
+    score: review.score,
+    comment: review.comment,
+    author: review.author,
+    dateTime: review.createdAt,
+    date: dateFormat.format(new Date(review.createdAt)),
+    ago: review.ago,
   }));
   const profileSlots: ProfileSlot[] = (slots ?? []).map((slot) => ({
     id: slot.id,
@@ -67,7 +68,7 @@ export default async function PerfilPublicoDocentePage({
 
   return (
     <TeacherProfile
-      teacher={{ ...teacher, reviews: reviews.length }}
+      teacher={{ ...teacher, reviews: total }}
       slots={profileSlots}
       reviews={reviews}
       viewerRole={viewer?.role ?? null}

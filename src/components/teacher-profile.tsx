@@ -15,7 +15,14 @@ export type ProfileSlot = {
 export type ProfileReview = {
   score: number;
   comment: string | null;
+  /** Nombre y la inicial del apellido («Tomás R.»). */
+  author: string;
+  /** ISO, para `<time dateTime>`. */
+  dateTime: string;
+  /** Fecha completa («12 de octubre de 2026»), para el título del `<time>`. */
   date: string;
+  /** «hace 3 días». */
+  ago: string;
 };
 
 export function TeacherProfile({
@@ -38,6 +45,8 @@ export function TeacherProfile({
     chosen ? `?${new URLSearchParams({ slot: chosen.id })}` : ""
   }`;
   const visibleReviews = reviews.slice(0, expanded ? reviews.length : 2);
+  // Total de opiniones (la página trae como mucho las 50 más recientes).
+  const reviewCount = teacher.reviews ?? reviews.length;
 
   return (
     <div className="pub-profile pub-container">
@@ -67,8 +76,8 @@ export function TeacherProfile({
                     <Icon name="star" size={18} />
                     <strong>{teacher.rating.toFixed(1)}</strong>
                     <a href="#opiniones">
-                      {reviews.length}{" "}
-                      {reviews.length === 1 ? "opinión" : "opiniones"}
+                      {reviewCount}{" "}
+                      {reviewCount === 1 ? "opinión" : "opiniones"}
                     </a>
                   </>
                 ) : (
@@ -132,8 +141,8 @@ export function TeacherProfile({
                 <div className="pub-review-score">
                   <strong>{teacher.rating.toFixed(1)}</strong>
                   <span>
-                    <Icon name="star" size={17} /> {reviews.length}{" "}
-                    {reviews.length === 1 ? "opinión" : "opiniones"}
+                    <Icon name="star" size={17} /> {reviewCount}{" "}
+                    {reviewCount === 1 ? "opinión" : "opiniones"}
                   </span>
                 </div>
               )}
@@ -147,11 +156,14 @@ export function TeacherProfile({
             {visibleReviews.map((review, index) => (
               <article className="pub-review" key={index}>
                 <div className="pub-review-person">
-                  <Avatar name="Estudiante" size={40} />
+                  <Avatar name={review.author} size={40} />
                   <div>
-                    <strong>Estudiante de EstudiApp</strong>
+                    <strong>{review.author}</strong>
+                    <span>Estudiante de EstudiApp</span>
                   </div>
-                  <time>{review.date}</time>
+                  <time dateTime={review.dateTime} title={review.date}>
+                    {review.ago}
+                  </time>
                 </div>
                 <div
                   className="pub-review-stars"

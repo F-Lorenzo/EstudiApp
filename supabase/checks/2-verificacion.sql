@@ -102,7 +102,7 @@ begin
   ), 'FALLA';
 
   -- 12 a 15. Cimientos del cobro (migración 0011). La 16 es de la 0012, la 17 de la 0013, la 18 de la 0014
-  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano.
+  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016.
   insert into _verificacion
   select 12, 'cobro: los tokens de Mercado Pago (mp_credentials) no se leen ni se escriben desde la API',
     case when to_regclass('public.mp_credentials') is null then false
@@ -222,6 +222,23 @@ begin
           and (select count(*) = 3 from pg_trigger
                where tgname in ('bookings_enqueue_confirmed_emails', 'bookings_enqueue_cancelled_emails', 'refunds_enqueue_approved_email')
                  and not tgisinternal) end,
+    'FALLA';
+
+  -- 23. Calificaciones (migración 0016): la tabla ya no es pública (la leen las partes de la clase y la
+  --     administración), las opiniones públicas salen de tutor_reviews y el trigger que fija la fecha está.
+  --     Va al final para no cambiar el número de las filas anteriores.
+  insert into _verificacion
+  select 23, 'calificaciones: la tabla no es pública, las opiniones salen de tutor_reviews y la fecha la pone la base',
+    case when to_regprocedure('public.tutor_reviews(uuid, integer)') is null then false
+         else not exists (select 1 from pg_policies
+                          where schemaname = 'public' and tablename = 'ratings'
+                            and policyname = 'ratings_select_public_when_tutor_approved')
+          and exists (select 1 from pg_policies
+                      where schemaname = 'public' and tablename = 'ratings'
+                        and policyname = 'ratings_select_parties_or_admin')
+          and has_function_privilege('anon', 'public.tutor_reviews(uuid, integer)', 'execute')
+          and not has_function_privilege('authenticated', 'public.normalize_rating()', 'execute')
+          and exists (select 1 from pg_trigger where tgname = 'ratings_normalize' and not tgisinternal) end,
     'FALLA';
 
   -- 20. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).

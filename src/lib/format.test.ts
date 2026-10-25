@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dateKeyAR, dayParts, initials, longDate, money, timeAR, timeRange } from "./format";
+import { dateKeyAR, dayParts, initials, longDate, money, relativeDate, timeAR, timeRange } from "./format";
 
 // Argentina no cambia de horario: UTC-3 todo el año. Las pruebas no dependen de la zona de la máquina.
 describe("fechas en hora de Argentina", () => {
@@ -26,6 +26,28 @@ describe("fechas en hora de Argentina", () => {
   it("escribe la fecha larga", () => {
     // Según la versión de ICU, el día de la semana lleva o no una coma.
     expect(longDate("2026-10-08T18:00:00.000Z")).toMatch(/^jueves,? 8 de octubre$/);
+  });
+});
+
+describe("relativeDate (opiniones)", () => {
+  const now = new Date("2026-10-25T12:00:00.000Z"); // 25 de octubre, 9:00 en Argentina
+  it.each([
+    ["2026-10-25T11:00:00.000Z", "hoy"],
+    // 23:30 del 24 en Argentina: es ayer aunque en UTC ya sea 25.
+    ["2026-10-25T02:30:00.000Z", "ayer"],
+    ["2026-10-22T12:00:00.000Z", "hace 3 días"],
+    ["2026-10-18T12:00:00.000Z", "hace 1 semana"],
+    ["2026-10-04T12:00:00.000Z", "hace 3 semanas"],
+    ["2026-09-25T12:00:00.000Z", "hace 1 mes"],
+    ["2026-06-25T12:00:00.000Z", "hace 4 meses"],
+    ["2025-10-20T12:00:00.000Z", "hace 1 año"],
+    ["2023-10-20T12:00:00.000Z", "hace 3 años"],
+  ])("%s → %s", (iso, expected) => {
+    expect(relativeDate(iso, now)).toBe(expected);
+  });
+
+  it("una fecha futura (reloj desfasado) dice «hoy»", () => {
+    expect(relativeDate("2026-10-25T20:00:00.000Z", now)).toBe("hoy");
   });
 });
 

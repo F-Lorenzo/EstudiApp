@@ -1,4 +1,4 @@
-// Pruebas de MUTACIONES de las migraciones 0013 a 0015 (y de la 0011 en lo que usa la cancelación): se rompe UNA
+// Pruebas de MUTACIONES de las migraciones 0013 a 0016 (y de la 0011 en lo que usa la cancelación): se rompe UNA
 // regla a propósito y se comprueba que alguna prueba falle. Una regla que se puede romper sin que nada falle no
 // está probada.
 //
@@ -38,10 +38,12 @@ function sub(src, find, repl, { all = false } = {}) {
 const F13 = "0013_cancel_with_refund.sql";
 const F14 = "0014_payout_accounts.sql";
 const F15 = "0015_email_outbox.sql";
+const F16 = "0016_reviews.sql";
 const F11 = "0011_payments_foundation.sql";
 const CANCEL = ["cancel-refund", "bookings", "payment-notifications", "email-outbox"];
 const PAYOUT = ["payout-accounts", "bookings", "hardening"];
 const EMAIL = ["email-outbox", "rls-matrix"];
+const REVIEWS = ["reviews", "rls-matrix", "rls-base"];
 
 const M = [
   // ---------------------------------------------------------------- 0013
@@ -121,6 +123,16 @@ const M = [
   [F15, "15-25 los emails de un pago tardío reembolsado se pierden (el trigger no mira starts_with)", (s) => sub(s, "starts_with(new.reason, 'pago_no_aceptable')", "false"), EMAIL],
   [F15, "15-26 el email de cancelación no mira el reembolso encolado", (s) => sub(s, "select * into v_refund from public.refunds where booking_id = new.id order by created_at limit 1;", "select * into v_refund from public.refunds where false;"), EMAIL],
   [F15, "15-27 claim_pending_emails reclama sin respetar el orden de llegada", (s) => sub(s, "    order by o.created_at, o.id\n    limit greatest(coalesce(p_limit, 20), 0)", "    order by o.id desc\n    limit greatest(coalesce(p_limit, 20), 0)"), EMAIL],
+  // ---------------------------------------------------------------- 0016
+  [F16, "16-01 la tabla de calificaciones sigue siendo pública", (s) => sub(s, "using (student_id = auth.uid() or tutor_id = auth.uid() or public.is_admin());", "using (true);"), REVIEWS],
+  [F16, "16-02 se califica sin límite de días", (s) => sub(s, "\n        and b.ends_at > now() - interval '30 days'", ""), REVIEWS],
+  [F16, "16-03 se califica la clase de otro docente", (s) => sub(s, "\n        and b.tutor_id = ratings.tutor_id", ""), REVIEWS],
+  [F16, "16-04 quien califica elige la fecha", (s) => sub(s, "    new.created_at := now();\n", ""), REVIEWS],
+  [F16, "16-05 el comentario no se limpia", (s) => sub(s, "new.comment := nullif(btrim(new.comment), '');", "new.comment := new.comment;"), REVIEWS],
+  [F16, "16-06 tutor_reviews muestra el nombre completo", (s) => sub(s, "else n.first || ' ' || upper(left(n.second, 1)) || '.'", "else p.full_name"), REVIEWS],
+  [F16, "16-07 tutor_reviews muestra opiniones de docentes no aprobados", (s) => sub(s, " and tp.verification_status = 'aprobado'", ""), REVIEWS],
+  [F16, "16-08 tutor_reviews cuenta solo las filas devueltas", (s) => sub(s, "    count(*) over ()\n", "    1::bigint\n"), REVIEWS],
+  [F16, "16-09 el trigger que limpia la calificación queda abierto a la API", (s) => sub(s, "revoke all on function public.normalize_rating() from public, anon, authenticated;", ""), REVIEWS],
 ];
 
 const ALL_SUITES = fs.readdirSync(TESTS).filter((f) => f.endsWith(".db.mjs")).map((f) => f.replace(".db.mjs", "")).filter((n) => n !== "fresh-install");

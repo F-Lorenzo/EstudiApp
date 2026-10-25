@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { canRate } from "@/lib/ratings/window";
 import { DailyError, roomNameFor, type DailyClient } from "./daily";
 
 /**
@@ -34,8 +35,11 @@ export type RoomAccess =
   | { state: "not_found" }
   /** Todavía no abrió: se abre en `opensAt` (ISO). */
   | { state: "not_yet"; view: RoomView; opensAt: string }
-  /** La clase ya terminó (o la reserva ya figura como completada). */
-  | { state: "ended"; view: RoomView }
+  /**
+   * La clase ya terminó (o la reserva ya figura como completada). `rating` es solo para el alumno: la que ya dejó
+   * y si todavía puede calificar.
+   */
+  | { state: "ended"; view: RoomView; rating: { score: number | null; canRate: boolean } | null }
   /** Falta configurar Daily en el servidor. */
   | { state: "unavailable"; view: RoomView }
   /** Daily no respondió: se puede reintentar. */
@@ -54,6 +58,7 @@ const rowSchema = z.object({
   ends_at: z.string(),
   profiles: z.unknown().optional(),
   tutor_profiles: z.unknown().optional(),
+  ratings: z.unknown().optional(),
 });
 
 export function roomWindow(startsAt: string, endsAt: string) {
@@ -85,7 +90,7 @@ export async function getRoomAccess(
   const { data, error } = await supabase
     .from("bookings")
     .select(
-      "id, status, student_id, tutor_id, starts_at, ends_at, profiles(full_name, avatar_url), tutor_profiles(profiles(full_name, avatar_url))",
+      "id, status, student_id, tutor_id, starts_at, ends_at, profiles(full_name, avatar_url), tutor_profiles(profiles(full_name, avatar_url)), ratings(score)",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -114,7 +119,12 @@ export async function getRoomAccess(
   };
 
   const { opensAt, entryUntil, closesAt } = roomWindow(row.starts_at, row.ends_at);
-  if (row.status === "completada" || now.getTime() >= entryUntil.getTime()) return { state: "ended", view };
+  if (row.status === "completada" || now.getTime() >= entryUntil.getTime()) {
+    const score = one(row.ratings as { score: number } | { score: number }[] | null)?.score ?? null;
+    const rating =
+      role === "alumno" ? { score, canRate: canRate({ status: row.status, endsAt: row.ends_at, score }, now) } : null;
+    return { state: "ended", view, rating };
+  }
   if (now.getTime() < opensAt.getTime()) return { state: "not_yet", view, opensAt: opensAt.toISOString() };
   if (!daily) return { state: "unavailable", view };
 

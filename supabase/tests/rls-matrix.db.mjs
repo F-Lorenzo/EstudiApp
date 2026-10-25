@@ -175,7 +175,10 @@ P("video_rooms", "editar", "una sala", `update public.video_rooms set room_url='
 P("video_rooms", "borrar", "una sala", `delete from public.video_rooms where id='${V2}' returning id`, ["service"]);
 
 // ratings
-P("ratings", "leer", "calificación de un docente aprobado (público)", `select id from public.ratings where id='${R3}'`, ALL);
+// Desde la 0016 la tabla la leen solo las dos partes de la clase y la administración; lo público sale de
+// `tutor_reviews` (sin el id del alumno).
+P("ratings", "leer", "calificación de A1 a D1", `select id from public.ratings where id='${R3}'`, ["alumno", "docente", "admin", "service"]);
+P("ratings", "leer", "opiniones públicas de D1 (tutor_reviews)", `select * from public.tutor_reviews('${D1}')`, ALL);
 P("ratings", "crear", "calificar una clase completada propia (A1 → D1)", `insert into public.ratings (booking_id, student_id, tutor_id, score) values ('${B4}', '${A1}', '${D1}', 4) returning id`, ["alumno", "service"]);
 P("ratings", "crear", "calificar a otro docente con una clase ajena (A1 → D2)", `insert into public.ratings (booking_id, student_id, tutor_id, score) values ('${B4}', '${A1}', '${D2}', 1) returning id`, ["service"]);
 P("ratings", "crear", "calificar una clase que no está completada", `insert into public.ratings (booking_id, student_id, tutor_id, score) values ('${B2}', '${A1}', '${D1}', 1) returning id`, ["service"]);
@@ -258,6 +261,9 @@ const FUNCIONES = [
   ["public.enqueue_confirmed_booking_emails()", ["service_role"]],
   ["public.enqueue_cancelled_booking_emails()", ["service_role"]],
   ["public.enqueue_approved_refund_email()", ["service_role"]],
+  // 0016: las opiniones públicas (sin el id del alumno); el trigger que limpia la calificación es interno.
+  ["public.tutor_reviews(uuid, integer)", ["anon", "authenticated", "service_role"]],
+  ["public.normalize_rating()", ["service_role"]],
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {

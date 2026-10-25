@@ -1320,6 +1320,33 @@
   flex-shrink: 0;
   color: var(--cream);
 }
+.stu-room-over {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 12px 14px 12px 20px;
+  border-radius: 12px;
+  background: #0b2318;
+  border: 1px solid #ffffff1f;
+  color: var(--cream);
+  font-size: 14px;
+}
+.stu-room-over > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.stu-room-over > .stu-button {
+  min-height: 40px;
+  padding: 8px 18px;
+  flex-shrink: 0;
+}
+.stu-room-ended .stu-review-score {
+  color: var(--cream);
+  font-size: 15px;
+}
 .stu-room-ended .avatar {
   margin-bottom: 18px;
 }
@@ -1378,7 +1405,8 @@
 .stu-rating-modal > div:first-of-type {
   margin-inline: auto;
 }
-.stu-rating-modal > .stu-eyebrow {
+.stu-rating-modal > .stu-eyebrow,
+.stu-rating-modal form > .stu-eyebrow {
   display: block;
   font-size: 9px;
   margin-top: 22px;
@@ -1390,6 +1418,7 @@
   margin: 13px 0;
 }
 .stu-rating-modal > p,
+.stu-rating-modal form > p,
 .stu-rating-thanks > p {
   font-size: 13px;
   line-height: 1.6;
@@ -1428,11 +1457,17 @@
 .stu-rating-modal .stu-field > span {
   font-size: 12px;
 }
-.stu-rating-modal > .stu-button {
+.stu-rating-modal > .stu-button,
+.stu-rating-modal form > .stu-button {
   margin-top: 23px;
 }
 .stu-rating-skip {
   display: inline-block;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
   color: var(--muted);
   font-size: 11px;
   text-decoration: none;
@@ -1451,8 +1486,30 @@
 .stu-rating-thanks > .stu-result-mark {
   margin-bottom: 5px;
 }
-.stu-rating-thanks > a {
+.stu-rating-thanks > a,
+.stu-rating-thanks > .stu-button {
   margin-top: 20px;
+}
+.stu-rating-modal form > .stu-field-error {
+  color: var(--rust);
+  margin-top: 14px;
+}
+.stu-rating-modal .field-error {
+  display: block;
+  text-align: left;
+  margin-top: 6px;
+}
+.stu-rating-stars + .stu-rating-description + .field-error {
+  text-align: center;
+  margin: -16px 0 18px;
+}
+.stu-rate-link {
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.stu-rate-link svg {
+  color: var(--orange);
 }
 .stu-page :focus-visible,
 .stu-classroom :focus-visible {
@@ -1922,6 +1979,11 @@
     font-size: 9px;
     max-width: 110px;
     gap: 5px;
+  }
+  .stu-room-over {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px;
   }
   .stu-room-frame {
     height: calc(100vh - 150px);

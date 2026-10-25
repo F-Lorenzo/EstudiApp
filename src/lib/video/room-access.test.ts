@@ -31,6 +31,28 @@ function setup({ row = booking() as unknown, now = "2026-10-24T12:55:00.000Z", d
   return { run, client };
 }
 
+describe("calificación al terminar la clase", () => {
+  it("al alumno le ofrece calificar una clase completada sin calificar", async () => {
+    const { run } = setup({ row: booking({ status: "completada", ratings: [] }), now: "2026-10-24T14:05:00.000Z" });
+    expect(await run(STUDENT)).toMatchObject({ state: "ended", rating: { score: null, canRate: true } });
+  });
+
+  it("muestra la calificación que ya dejó", async () => {
+    const { run } = setup({ row: booking({ status: "completada", ratings: [{ score: 4 }] }), now: "2026-10-24T14:05:00.000Z" });
+    expect(await run(STUDENT)).toMatchObject({ state: "ended", rating: { score: 4, canRate: false } });
+  });
+
+  it("todavía no ofrece calificar si la reserva no figura como completada", async () => {
+    const { run } = setup({ now: END });
+    expect(await run(STUDENT)).toMatchObject({ state: "ended", rating: { score: null, canRate: false } });
+  });
+
+  it("al docente no le ofrece calificar", async () => {
+    const { run } = setup({ row: booking({ status: "completada" }), now: "2026-10-24T14:05:00.000Z" });
+    expect(await run(TUTOR)).toMatchObject({ state: "ended", rating: null });
+  });
+});
+
 describe("quién entra a la sala", () => {
   it("el alumno de la reserva entra, con el nombre de su perfil y sin ser dueño", async () => {
     const { run, client } = setup();

@@ -71,6 +71,24 @@ export function relativeFromNow(iso: string) {
   return "hace un momento";
 }
 
+/**
+ * Fecha relativa para las opiniones: «hoy», «ayer», «hace 3 días», «hace 2 semanas», «hace 4 meses»,
+ * «hace 1 año». Cuenta por días de calendario en hora de Argentina.
+ */
+export function relativeDate(iso: string, now: Date = new Date()) {
+  const days = Math.round(
+    (Date.parse(dateKeyAR(now)) - Date.parse(dateKeyAR(iso))) / 86_400_000,
+  );
+  // «ayer» para un día; para lo demás, siempre con número («hace 1 mes», no «el mes pasado»).
+  const rtf = new Intl.RelativeTimeFormat("es-AR", { numeric: "always" });
+  if (days <= 0) return "hoy";
+  if (days === 1) return "ayer";
+  if (days < 7) return rtf.format(-days, "day");
+  if (days < 30) return rtf.format(-Math.floor(days / 7), "week");
+  if (days < 365) return rtf.format(-Math.max(1, Math.floor(days / 30)), "month");
+  return rtf.format(-Math.floor(days / 365), "year");
+}
+
 /** Hoy como `YYYY-MM-DD`, en hora de Argentina. */
 export function todayAR() {
   return dateKeyAR(Date.now());

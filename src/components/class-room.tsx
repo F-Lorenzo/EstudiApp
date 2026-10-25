@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ClassRating } from "@/components/class-rating";
 import { Avatar, ButtonLink, Icon } from "@/components/ui";
 import { longDate, timeAR, timeRange } from "@/lib/format";
 import type { RoomAccess } from "@/lib/video/room-access";
@@ -32,12 +33,15 @@ export function ClassRoom({ access }: { access: Visible }) {
         </ButtonLink>
       </div>
       {access.state === "open" ? (
-        <iframe
-          className="stu-room-frame"
-          title={`Videollamada con ${view.otherName}`}
-          src={`${access.roomUrl}?t=${encodeURIComponent(access.token)}`}
-          allow="camera; microphone; fullscreen; display-capture; autoplay; speaker-selection"
-        />
+        <>
+          <ClassOverBar endsAt={view.endsAt} role={view.role} />
+          <iframe
+            className="stu-room-frame"
+            title={`Videollamada con ${view.otherName}`}
+            src={`${access.roomUrl}?t=${encodeURIComponent(access.token)}`}
+            allow="camera; microphone; fullscreen; display-capture; autoplay; speaker-selection"
+          />
+        </>
       ) : (
         <RoomNotice access={access} home={home} />
       )}
@@ -97,6 +101,16 @@ function RoomNotice({ access, home }: { access: Exclude<Visible, { state: "open"
         <p>La clase con {view.otherName} ya terminó. La sala está cerrada.</p>
         <div>
           <ButtonLink href={home}>Volver a mi espacio</ButtonLink>
+          {access.rating && (
+            <ClassRating
+              bookingId={view.bookingId}
+              tutorName={view.otherName}
+              tutorPhoto={view.otherPhoto}
+              score={access.rating.score}
+              canRate={access.rating.canRate}
+              variant="room"
+            />
+          )}
         </div>
       </div>
     );
@@ -120,6 +134,36 @@ function RoomNotice({ access, home }: { access: Exclude<Visible, { state: "open"
           Volver a mi espacio
         </ButtonLink>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Aviso que aparece sobre la videollamada cuando termina el horario de la clase. La sala sigue abierta unos
+ * minutos más; al tocar el botón se sale de la llamada y se pasa a la pantalla de cierre (con la calificación,
+ * para el alumno).
+ */
+function ClassOverBar({ endsAt, role }: { endsAt: string; role: "alumno" | "docente" }) {
+  const router = useRouter();
+  const [over, setOver] = useState(false);
+
+  useEffect(() => {
+    // Si ya terminó, el temporizador corre enseguida. setTimeout acepta hasta unos 24 días: la sala abre como
+    // mucho 10 minutos antes de la clase.
+    const left = Math.max(0, new Date(endsAt).getTime() - Date.now());
+    const timer = setTimeout(() => setOver(true), left);
+    return () => clearTimeout(timer);
+  }, [endsAt]);
+
+  if (!over) return null;
+  return (
+    <div className="stu-room-over" role="status">
+      <span>
+        <Icon name="clock" size={16} /> Terminó el horario de la clase. La sala se cierra en unos minutos.
+      </span>
+      <button type="button" className="stu-button" onClick={() => router.refresh()}>
+        {role === "alumno" ? "Terminar y calificar" : "Terminar la clase"}
+      </button>
     </div>
   );
 }

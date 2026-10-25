@@ -133,7 +133,9 @@ privada de Daily.co por reserva (`src/lib/video`), creada al entrar la primera p
 generado en el servidor solo para el alumno y el docente de una reserva confirmada, desde 10 minutos antes
 hasta el final de la clase (la sala y el token vencen 10 minutos después y expulsan); controles de Daily
 Prebuilt (cámara, micrófono, pantalla, chat); páginas `/alumno/sala/[id]` y `/docente/sala/[id]`. Probado
-con Daily simulado; **falta probarlo con la API key real**. Siguen 4 (asistencia) y 5 (calificación).
+con la API key real el 25 de octubre de 2026. ✅ código de 5: calificación al terminar la clase (en la sala y en
+el historial, hasta 30 días después, una sola vez) y opiniones públicas con autor («Tomás R.») y fecha relativa
+(migración `0016`, **falta aplicarla en el proyecto real**). Sigue 4 (asistencia).
 
 Objetivo: alumno y docente se encuentran en una sala real y la clase deja una calificación.
 

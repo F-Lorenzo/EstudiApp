@@ -7,8 +7,10 @@ import {
   Icon,
   PageHeading,
 } from "@/components/ui";
+import { ClassRating } from "@/components/class-rating";
 import type { ClassItem } from "@/lib/bookings/queries";
 import { dayParts, isToday, timeRange } from "@/lib/format";
+import { canRate } from "@/lib/ratings/window";
 
 function formatDay(iso: string) {
   const { weekday, day, monthLong } = dayParts(iso);
@@ -72,14 +74,14 @@ export function HistoryRow({ item }: { item: ClassItem }) {
         </div>
       </div>
       <Badge tone="muted">Completada</Badge>
-      {item.score != null ? (
-        <span className="stu-review-score">
-          <Icon name="star" size={16} />
-          {item.score.toFixed(1)}
-        </span>
-      ) : (
-        <span />
-      )}
+      <ClassRating
+        bookingId={item.id}
+        tutorName={item.tutorName}
+        tutorPhoto={item.tutorPhoto}
+        score={item.score}
+        canRate={canRate(item)}
+        variant="row"
+      />
       <Link href={`/docentes/${item.tutorId}`} className="stu-text-link">
         Reservar otra clase <Icon name="arrow-right" size={16} />
       </Link>

@@ -11,11 +11,11 @@ pendiente (tarjeta "Setup de Supabase").
    aprovisionarse).
 2. `cp .env.local.example .env.local` y completar `NEXT_PUBLIC_SUPABASE_URL`
    y `NEXT_PUBLIC_SUPABASE_ANON_KEY` desde Project Settings → API.
-3. Aplicar las migraciones (`supabase/migrations/0001` a `0015`) en el
+3. Aplicar las migraciones (`supabase/migrations/0001` a `0016`) en el
    SQL Editor del dashboard. (Alternativa con la CLI: ver más abajo.)
 
-   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 15` genera
-   `supabase/aplicar-0001-a-0015.sql` (con `--compacto`, la misma versión sin
+   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 16` genera
+   `supabase/aplicar-0001-a-0016.sql` (con `--compacto`, la misma versión sin
    comentarios).
 
    **Proyecto que ya tiene hasta la 0011** (el de EstudiApp hoy):
@@ -189,8 +189,16 @@ las dos entradas `seed:demo*` de `package.json`.
   enviada no vuelve atrás). El `payload` es una foto sin el email del
   destinatario, que se lee de `auth.users` recién al reclamar. Las reservas que
   vencen o se cancelan sin pago no generan emails.
+- `0016_reviews.sql`: **calificación después de la clase y opiniones con autor.**
+  `ratings` deja de ser pública: la leen solo el alumno y el docente de la
+  clase y la administración (antes cualquiera veía todas sus columnas, incluido
+  el id del alumno). Las opiniones públicas salen de `tutor_reviews`, que da
+  solo el puntaje, el comentario, la fecha y el autor como nombre e inicial del
+  apellido («Tomás R.»), de docentes aprobados. Se califica una clase
+  completada propia, una vez, hasta 30 días después de que termina; la fecha la
+  pone la base y el comentario se limpia (hasta 600 caracteres).
 
-Las migraciones 0006 a 0015 se probaron con unas 1.000 comprobaciones (la matriz de la RLS hace además 588 intentos por rol) y con 74 mutaciones (se rompe una regla a propósito y se comprueba que alguna prueba falle) en un Postgres real
+Las migraciones 0006 a 0016 se probaron con unas 1.000 comprobaciones (la matriz de la RLS hace además 595 intentos por rol) y con 83 mutaciones (se rompe una regla a propósito y se comprueba que alguna prueba falle) en un Postgres real
 (roles anónimo, alumno, docente, administrador y service role; ver
 [tests/README.md](tests/README.md) y `npm run test:db`), pero **no contra tu
 proyecto de Supabase**: revisalas y probalas en un proyecto de prueba antes de
@@ -226,8 +234,9 @@ propio en vez de a la app. El texto completo de las dos plantillas está en
 
 - `1-diagnostico.sql`: qué migraciones tiene el proyecto y qué hacer a continuación.
 - `2-verificacion.sql`: después de aplicar, comprueba la RLS, los permisos, las guardas y los datos
-  que hay que revisar a mano. Son 22 filas: las 1 a 19 son comprobaciones de las migraciones (la 16 es
-  de la 0012, la 17 de la 0013, la 18 de la 0014 y la 19 de la 0015) y tienen que decir OK; las 20 a 22
+  que hay que revisar a mano. Son 23 filas: las 1 a 19 y la 23 son comprobaciones de las migraciones (la 16
+  es de la 0012, la 17 de la 0013, la 18 de la 0014, la 19 de la 0015 y la 23 de la 0016) y tienen que decir
+  OK; las 20 a 22
   son datos para revisar (reservas confirmadas sin pago, cuentas de administración y cuentas del seed de
   demo viejo) y pueden decir REVISAR (qué hacer con cada una: [docs/FASE-0-PASO-A-PASO.md](../docs/FASE-0-PASO-A-PASO.md), paso 4).
 
