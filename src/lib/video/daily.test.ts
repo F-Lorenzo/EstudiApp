@@ -84,3 +84,43 @@ describe("el token de la reunión", () => {
     });
   });
 });
+
+describe("la asistencia de la sala", () => {
+  const since = new Date("2026-10-24T12:50:00.000Z");
+  const meetings = {
+    total_count: 1,
+    data: [
+      {
+        id: "m1",
+        room: room.name,
+        start_time: 1761310300,
+        duration: 3600,
+        ongoing: false,
+        participants: [{ user_id: "d1", participant_id: "p1", user_name: "María", join_time: 1761310300, duration: 3500 }],
+      },
+    ],
+  };
+
+  it("pide las sesiones de esa sala desde que abrió", async () => {
+    const { client, calls } = setup([json(meetings)]);
+    const result = await client.listMeetings({ roomName: room.name, since });
+    expect(result[0].participants?.[0]).toEqual({ user_id: "d1", join_time: 1761310300, duration: 3500 });
+    const url = new URL(calls[0].url);
+    expect(url.pathname).toBe("/v1/meetings");
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      room: room.name,
+      timeframe_start: String(Math.floor(since.getTime() / 1000)),
+      limit: "100",
+    });
+  });
+
+  it("una sala sin sesiones (nadie entró) devuelve una lista vacía", async () => {
+    expect(await setup([json({ total_count: 0, data: [] })]).client.listMeetings({ roomName: room.name, since })).toEqual([]);
+    expect(await setup([json({ error: "not-found" }, 404)]).client.listMeetings({ roomName: room.name, since })).toEqual([]);
+  });
+
+  it("un error de Daily se informa (no se toma como «nadie entró»)", async () => {
+    await expect(setup([json({}, 500)]).client.listMeetings({ roomName: room.name, since })).rejects.toBeInstanceOf(DailyError);
+    await expect(setup([json({ nada: true })]).client.listMeetings({ roomName: room.name, since })).rejects.toBeInstanceOf(DailyError);
+  });
+});

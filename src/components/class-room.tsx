@@ -98,7 +98,13 @@ function RoomNotice({ access, home }: { access: Exclude<Visible, { state: "open"
           <br />
           Un paso más.
         </h2>
-        <p>La clase con {view.otherName} ya terminó. La sala está cerrada.</p>
+        <p>
+          La clase con {view.otherName} ya terminó. La sala está cerrada.
+          {access.awaitingAttendance &&
+            (view.role === "alumno"
+              ? " Estamos confirmando la asistencia: si tu docente no se conectó, te devolvemos el 100 % y te avisamos por email."
+              : " Estamos confirmando la asistencia a la sala: la clase cuenta como dada si estuviste al menos 10 minutos.")}
+        </p>
         <div>
           <ButtonLink href={home}>Volver a mi espacio</ButtonLink>
           {access.rating && (

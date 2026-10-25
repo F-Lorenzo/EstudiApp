@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { fakeSupabase } from "@/test/fake-supabase";
 import { STUDENT_FALLBACK_NAME, getTutorClasses } from "./tutor-queries";
 
@@ -19,6 +19,15 @@ async function classesFrom(rows: unknown[]) {
   const result = await getTutorClasses(supabase.client as unknown as SupabaseClient, "d1", "confirmada");
   return { result, query: supabase.on("bookings")[0] };
 }
+
+// Las filas de prueba son clases del 24 de octubre en adelante: «hoy» es antes.
+beforeAll(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-20T12:00:00.000Z"));
+});
+afterAll(() => {
+  vi.useRealTimers();
+});
 
 describe("clases del docente", () => {
   it("pide el nombre y la foto del alumno, y nada más de su perfil", async () => {
@@ -47,5 +56,12 @@ describe("clases del docente", () => {
   it("ordena las próximas de la más cercana a la más lejana", async () => {
     const { result } = await classesFrom([row({ id: "tarde", starts_at: "2026-10-30T13:00:00.000Z" }), row({ id: "pronto" })]);
     expect(result.classes.map((c) => c.id)).toEqual(["pronto", "tarde"]);
+  });
+
+  it("una confirmada que ya terminó no es próxima (espera su asistencia)", async () => {
+    vi.setSystemTime(new Date("2026-10-24T14:00:00.000Z"));
+    const { result } = await classesFrom([row({ id: "termino" }), row({ id: "despues", starts_at: "2026-10-30T13:00:00.000Z", ends_at: "2026-10-30T14:00:00.000Z" })]);
+    expect(result.classes.map((c) => c.id)).toEqual(["despues"]);
+    vi.setSystemTime(new Date("2026-10-20T12:00:00.000Z"));
   });
 });

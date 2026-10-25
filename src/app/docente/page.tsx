@@ -7,6 +7,7 @@ import {
 } from "@/lib/bookings/tutor-queries";
 import { parseAccountNotice } from "@/lib/payments/account-notice";
 import { createClient } from "@/lib/supabase/server";
+import { syncViewerAttendance } from "@/lib/video/attendance-runtime";
 import { buildPayoutAccountView } from "./cuenta-de-cobro/state";
 
 export const metadata = { title: "Espacio docente" };
@@ -21,6 +22,8 @@ export default async function DocenteInicioPage({
   if (!viewer) redirect("/login");
 
   const { cuenta } = await searchParams;
+  // Antes de leer: las clases que terminaron se completan (o se reembolsan) según la asistencia a la sala.
+  await syncViewerAttendance(viewer);
   const supabase = await createClient();
   const [
     { data: tutor },

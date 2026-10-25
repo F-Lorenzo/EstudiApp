@@ -41,8 +41,13 @@ export async function getTutorClasses(
     .eq("tutor_id", tutorId)
     .eq("status", status)
     .returns<TutorBookingRow[]>();
+  const now = Date.now();
 
-  const classes = (data ?? []).map((row): TutorClass => {
+  const rows = (data ?? []).filter(
+    // Una confirmada que ya terminó espera su asistencia (migración 0017): no es una clase próxima.
+    (row) => status !== "confirmada" || new Date(row.ends_at).getTime() > now,
+  );
+  const classes = rows.map((row): TutorClass => {
     const rating = Array.isArray(row.ratings) ? row.ratings[0] : row.ratings;
     const student = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
     return {

@@ -5,8 +5,10 @@ import { retryPendingRefunds } from "@/lib/payments/refund-sweep";
 import { createPaymentServices } from "@/lib/payments/runtime";
 import { refreshExpiringTokens } from "@/lib/payments/token-refresh";
 import { runtimeEnv } from "@/lib/runtime-env";
+import { settleAllAwaitingAttendance } from "@/lib/video/attendance-runtime";
 
-// Mantenimiento diario del cobro: renueva tokens, reintenta reembolsos y envía emails pendientes.
+// Mantenimiento diario del cobro: renueva tokens, registra la asistencia de las clases terminadas, reintenta
+// reembolsos y envía emails pendientes.
 // Lo llama el cron de Vercel (ver vercel.json) con `Authorization: Bearer $CRON_SECRET`.
 // La lógica y la autorización están en `src/lib/payments/maintenance.ts`.
 export async function GET(request: Request) {
@@ -19,6 +21,7 @@ export async function GET(request: Request) {
     },
     {
       refreshTokens: () => refreshExpiringTokens(createTokenRefreshDeps()),
+      settleAttendance: () => settleAllAwaitingAttendance(),
       retryRefunds: () => {
         const services = createPaymentServices();
         return retryPendingRefunds({

@@ -32,7 +32,9 @@ with estado(n, nombre, aplicada) as (
     (15, '0015 bandeja de emails (email_outbox)',
         to_regclass('public.email_outbox') is not null),
     (16, '0016 calificación después de la clase y opiniones con autor (tutor_reviews)',
-        to_regprocedure('public.tutor_reviews(uuid, integer)') is not null)
+        to_regprocedure('public.tutor_reviews(uuid, integer)') is not null),
+    (17, '0017 asistencia a la sala (class_attendance)',
+        to_regclass('public.class_attendance') is not null)
 ),
 -- Primera migración que falta, y si desde ahí faltan TODAS las siguientes (un tramo limpio).
 resumen as (

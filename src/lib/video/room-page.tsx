@@ -3,6 +3,7 @@ import { ClassRoom } from "@/components/class-room";
 import { getViewer } from "@/lib/auth/viewer";
 import { syncBookings } from "@/lib/bookings/sync";
 import { createClient } from "@/lib/supabase/server";
+import { syncViewerAttendance } from "./attendance-runtime";
 import { getRoomAccess } from "./room-access";
 import { createDailyClient } from "./runtime";
 
@@ -15,8 +16,9 @@ export async function RoomPage({ bookingId, role }: { bookingId: string; role: "
   if (!viewer) redirect("/login");
   if (viewer.role !== role) notFound();
 
+  // Pone al día el estado antes de decidir: las reservas vencidas, y las clases terminadas según su asistencia.
+  await syncViewerAttendance(viewer);
   const supabase = await createClient();
-  // Pone al día el estado (una clase que terminó pasa a «completada») antes de decidir.
   await syncBookings(supabase);
   const access = await getRoomAccess({ supabase, daily: createDailyClient() }, { bookingId, viewer });
   if (access.state === "not_found") notFound();

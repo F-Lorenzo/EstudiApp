@@ -13,6 +13,7 @@ function tasks(overrides: Partial<MaintenanceTasks> = {}): MaintenanceTasks & { 
   return {
     calls,
     refreshTokens: make("refreshTokens", { renewed: 1 }),
+    settleAttendance: make("settleAttendance", { completada: 1 }),
     retryRefunds: make("retryRefunds", { approved: 2 }),
     sendEmails: make("sendEmails", { sent: 3 }),
     ...overrides,
@@ -49,14 +50,21 @@ describe("mantenimiento", () => {
     }
   });
 
-  it("corre los tres barridos y devuelve los informes", async () => {
+  it("corre los cuatro barridos y devuelve los informes", async () => {
     const t = tasks();
     const result = await runMaintenance({ authorization: auth, secret: SECRET }, t);
     expect(result).toEqual({
       status: 200,
-      body: { status: "ok", refreshTokens: { renewed: 1 }, retryRefunds: { approved: 2 }, sendEmails: { sent: 3 } },
+      body: {
+        status: "ok",
+        refreshTokens: { renewed: 1 },
+        settleAttendance: { completada: 1 },
+        retryRefunds: { approved: 2 },
+        sendEmails: { sent: 3 },
+      },
     });
-    expect(t.calls).toEqual(["refreshTokens", "retryRefunds", "sendEmails"]);
+    // La asistencia va antes que los reembolsos y los emails: lo que encola se procesa en la misma pasada.
+    expect(t.calls).toEqual(["refreshTokens", "settleAttendance", "retryRefunds", "sendEmails"]);
   });
 
   it("si un barrido falla, los demás igual corren y no se filtra el detalle", async () => {
@@ -70,7 +78,7 @@ describe("mantenimiento", () => {
     expect(result.status).toBe(500);
     expect(result.body).toMatchObject({ status: "partial", retryRefunds: { error: "falló" }, sendEmails: { sent: 3 } });
     expect(JSON.stringify(result.body)).not.toContain("APP_USR");
-    expect(t.calls).toEqual(["refreshTokens", "sendEmails"]);
+    expect(t.calls).toEqual(["refreshTokens", "settleAttendance", "sendEmails"]);
     expect(log).toHaveBeenCalledOnce();
   });
 });

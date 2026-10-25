@@ -42,9 +42,14 @@ describe("calificación al terminar la clase", () => {
     expect(await run(STUDENT)).toMatchObject({ state: "ended", rating: { score: 4, canRate: false } });
   });
 
-  it("todavía no ofrece calificar si la reserva no figura como completada", async () => {
+  it("todavía no ofrece calificar si la reserva no figura como completada (espera su asistencia)", async () => {
     const { run } = setup({ now: END });
-    expect(await run(STUDENT)).toMatchObject({ state: "ended", rating: { score: null, canRate: false } });
+    expect(await run(STUDENT)).toMatchObject({ state: "ended", rating: { score: null, canRate: false }, awaitingAttendance: true });
+  });
+
+  it("una completada ya no espera la asistencia", async () => {
+    const { run } = setup({ row: booking({ status: "completada" }), now: "2026-10-24T14:05:00.000Z" });
+    expect(await run(TUTOR)).toMatchObject({ state: "ended", awaitingAttendance: false });
   });
 
   it("al docente no le ofrece calificar", async () => {

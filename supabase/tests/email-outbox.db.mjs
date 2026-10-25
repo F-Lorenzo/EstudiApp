@@ -224,10 +224,11 @@ es("confirmar el mismo pago otra vez no anota más emails", await claves(A.booki
   r.push([(await q(`select status from public.bookings where id = '${d.booking}'`)).rows[0].status === "cancelada", "(una reserva sin pagar venció)"]);
   es("cancelar o vencer reservas SIN pago no anota ningún email", await total(), antes);
 
-  // Una clase confirmada que termina pasa a «completada»: no es un hecho para avisar.
+  // Una clase confirmada que termina pasa a «completada»: no es un hecho para avisar. (Sin asistencia registrada,
+  // sync_bookings la completa 3 días después de terminar, migración 0017.)
   const e = await reservaPaga();
   const despuesDeConfirmar = await total();
-  await db.exec(`update public.bookings set starts_at = now() - interval '3 hours', ends_at = now() - interval '2 hours' where id = '${e.booking}'`);
+  await db.exec(`update public.bookings set starts_at = now() - interval '4 days 1 hour', ends_at = now() - interval '4 days' where id = '${e.booking}'`);
   await as(db, "alumno", () => q(`select public.sync_bookings()`));
   r.push([(await q(`select status from public.bookings where id = '${e.booking}'`)).rows[0].status === "completada" && (await total()) === despuesDeConfirmar, "completarse una clase no anota emails"]);
 }

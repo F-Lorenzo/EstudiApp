@@ -56,6 +56,8 @@ await db.exec(`
     where tutor_id = '${D1}';
   insert into public.email_outbox (id, kind, booking_id, recipient_id, payload)
     values ('${EM}', 'reserva_confirmada', '${B2}', '${A1}', '{"x":1}');
+  insert into public.class_attendance (booking_id, tutor_seconds, student_seconds, outcome)
+    values ('${B3}', 3600, 3500, 'completada');
   update public.tutor_private set contacto_verificacion = 'c1', mercadopago_account_id = 'mp1' where id = '${D1}';
   update public.tutor_private set contacto_verificacion = 'c2' where id = '${D2}';
 `);
@@ -204,6 +206,12 @@ P("email_outbox", "crear", "un email falso", `insert into public.email_outbox (k
 P("email_outbox", "editar", "marcar un email como enviado", `update public.email_outbox set status='enviado' where id='${EM}' returning id`, ["service"]);
 P("email_outbox", "borrar", "un email", `delete from public.email_outbox where id='${EM}' returning id`, ["service"]);
 
+// class_attendance (0017): la asistencia la escribe solo el backend; la ven las dos partes y la administración
+P("class_attendance", "leer", "asistencia de la clase de A1 con D1", `select booking_id from public.class_attendance where booking_id='${B3}'`, ["alumno", "docente", "admin", "service"]);
+P("class_attendance", "crear", "asistencia de una clase", `insert into public.class_attendance (booking_id, tutor_seconds, student_seconds, outcome) values ('${B4}', 3600, 0, 'completada') returning booking_id`, ["service"]);
+P("class_attendance", "editar", "bajar los minutos del docente", `update public.class_attendance set tutor_seconds = 0 where booking_id='${B3}' returning booking_id`, ["service"]);
+P("class_attendance", "borrar", "una asistencia", `delete from public.class_attendance where booking_id='${B3}' returning booking_id`, ["service"]);
+
 // tutor_catalog (vista)
 P("tutor_catalog", "leer", "catálogo público de docentes", `select id from public.tutor_catalog where id='${D1}'`, ALL);
 P("tutor_catalog", "leer", "un docente pendiente NO aparece", `select id from public.tutor_catalog where id='${D2}'`, []);
@@ -264,6 +272,9 @@ const FUNCIONES = [
   // 0016: las opiniones públicas (sin el id del alumno); el trigger que limpia la calificación es interno.
   ["public.tutor_reviews(uuid, integer)", ["anon", "authenticated", "service_role"]],
   ["public.normalize_rating()", ["service_role"]],
+  // 0017: la asistencia la registra el servidor (con los minutos que informa Daily).
+  ["public.record_class_attendance(uuid, integer, integer)", ["service_role"]],
+  ["public.classes_awaiting_attendance(integer)", ["service_role"]],
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {

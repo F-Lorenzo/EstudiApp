@@ -32,6 +32,21 @@ const tokenSchema = z.object({ token: z.string().min(1) });
 
 export type DailyRoom = z.infer<typeof roomSchema>;
 
+// Sesiones de una sala (`GET /meetings`): quién estuvo y cuánto. Tiempos en segundos Unix; `duration` en segundos.
+// `user_id` es el que lleva el token de cada persona (el id de su cuenta); puede faltar si alguien entró sin uno.
+const participantSchema = z.object({
+  user_id: z.string().nullish(),
+  join_time: z.number(),
+  duration: z.number().nullish(),
+});
+const meetingSchema = z.object({
+  ongoing: z.boolean().nullish(),
+  participants: z.array(participantSchema).nullish(),
+});
+const meetingsSchema = z.object({ data: z.array(meetingSchema) });
+
+export type DailyMeeting = z.infer<typeof meetingSchema>;
+
 export type DailyClientOptions = {
   apiKey: string;
   fetch?: typeof fetch;
@@ -127,6 +142,18 @@ export class DailyClient {
       }),
     });
     return this.parse(tokenSchema, body).token;
+  }
+
+  /**
+   * Las sesiones de una sala desde `since` (Daily las guarda aunque la sala ya haya vencido). Una sala que nunca se
+   * creó (nadie entró) no tiene sesiones: devuelve una lista vacía.
+   */
+  async listMeetings({ roomName, since }: { roomName: string; since: Date }): Promise<DailyMeeting[]> {
+    if (!ROOM_NAME.test(roomName)) throw new DailyError("El nombre de la sala no es válido.");
+    const query = new URLSearchParams({ room: roomName, timeframe_start: String(unix(since)), limit: "100" });
+    const body = await this.request(`/meetings?${query}`, { method: "GET" }, { allowNotFound: true });
+    if (body === null) return [];
+    return this.parse(meetingsSchema, body).data;
   }
 
   private parse<T>(schema: z.ZodType<T>, body: unknown): T {

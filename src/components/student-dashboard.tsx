@@ -73,7 +73,11 @@ export function HistoryRow({ item }: { item: ClassItem }) {
           </p>
         </div>
       </div>
-      <Badge tone="muted">Completada</Badge>
+      {item.status === "completada" ? (
+        <Badge tone="muted">Completada</Badge>
+      ) : (
+        <Badge tone="orange">Confirmando asistencia</Badge>
+      )}
       <ClassRating
         bookingId={item.id}
         tutorName={item.tutorName}

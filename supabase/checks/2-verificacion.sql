@@ -102,7 +102,7 @@ begin
   ), 'FALLA';
 
   -- 12 a 15. Cimientos del cobro (migración 0011). La 16 es de la 0012, la 17 de la 0013, la 18 de la 0014
-  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016.
+  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016 y la 24 de la 0017.
   insert into _verificacion
   select 12, 'cobro: los tokens de Mercado Pago (mp_credentials) no se leen ni se escriben desde la API',
     case when to_regclass('public.mp_credentials') is null then false
@@ -239,6 +239,26 @@ begin
           and has_function_privilege('anon', 'public.tutor_reviews(uuid, integer)', 'execute')
           and not has_function_privilege('authenticated', 'public.normalize_rating()', 'execute')
           and exists (select 1 from pg_trigger where tgname = 'ratings_normalize' and not tgisinternal) end,
+    'FALLA';
+
+  -- 24. Asistencia (migración 0017): la tabla y sus funciones son del backend, y sync_bookings ya no completa
+  --     una clase apenas termina (espera su asistencia hasta 3 días).
+  insert into _verificacion
+  select 24, 'asistencia: class_attendance y record_class_attendance son del backend, y las clases esperan su asistencia',
+    case when to_regclass('public.class_attendance') is null
+           or to_regprocedure('public.record_class_attendance(uuid, integer, integer)') is null
+           or to_regprocedure('public.classes_awaiting_attendance(integer)') is null then false
+         else (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.class_attendance'))
+          and not has_table_privilege('anon', 'public.class_attendance', 'select')
+          and not has_table_privilege('authenticated', 'public.class_attendance', 'insert')
+          and not has_table_privilege('authenticated', 'public.class_attendance', 'update')
+          and not has_table_privilege('authenticated', 'public.class_attendance', 'delete')
+          and not has_function_privilege('anon', 'public.record_class_attendance(uuid, integer, integer)', 'execute')
+          and not has_function_privilege('authenticated', 'public.record_class_attendance(uuid, integer, integer)', 'execute')
+          and has_function_privilege('service_role', 'public.record_class_attendance(uuid, integer, integer)', 'execute')
+          and not has_function_privilege('authenticated', 'public.classes_awaiting_attendance(integer)', 'execute')
+          and exists (select 1 from pg_proc p
+                      where p.oid = to_regprocedure('public.sync_bookings()') and p.prosrc like '%interval ''3 days''%') end,
     'FALLA';
 
   -- 20. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).

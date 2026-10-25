@@ -163,17 +163,23 @@ await as(db, HOLD_USER, async () => {
 });
 await db.exec(`update public.tutor_profiles set verification_status = 'aprobado' where id = '${ids.docente2}'`);
 
-// 8 (medio). Las clases terminadas pasan a completadas.
+// 8 (medio). Las clases terminadas pasan a completadas. Desde la 0017 lo decide la asistencia a la sala; sin
+// asistencia registrada, sync_bookings las completa recién 3 días después (red de seguridad).
 await db.exec(`
-  insert into public.availability_slots (id, tutor_id, starts_at, ends_at, is_booked) values ('${T(80)}', '${ids.docente}', now() - interval '3 hours', now() - interval '2 hours', true);
-  insert into public.bookings (id, student_id, tutor_id, slot_id, status, starts_at, ends_at)
-    values ('b0000000-0000-0000-0000-000000000080', '${ids.alumno}', '${ids.docente}', '${T(80)}', 'confirmada', now() - interval '3 hours', now() - interval '2 hours');
+  insert into public.availability_slots (id, tutor_id, starts_at, ends_at, is_booked) values
+    ('${T(80)}', '${ids.docente}', now() - interval '4 days 1 hour', now() - interval '4 days', true),
+    ('${T(81)}', '${ids.docente}', now() - interval '3 hours', now() - interval '2 hours', true);
+  insert into public.bookings (id, student_id, tutor_id, slot_id, status, starts_at, ends_at) values
+    ('b0000000-0000-0000-0000-000000000080', '${ids.alumno}', '${ids.docente}', '${T(80)}', 'confirmada', now() - interval '4 days 1 hour', now() - interval '4 days'),
+    ('b0000000-0000-0000-0000-000000000081', '${ids.alumno}', '${ids.docente}', '${T(81)}', 'confirmada', now() - interval '3 hours', now() - interval '2 hours');
 `);
 await as(db, "alumno", () => q(`select public.sync_bookings()`));
 {
   const b = (await q(`select status from public.bookings where id = 'b0000000-0000-0000-0000-000000000080'`)).rows[0];
   const futura = (await q(`select status from public.bookings where id = 'b0000000-0000-0000-0000-000000000002'`)).rows[0];
-  r.push([b.status === "completada", "una clase confirmada que ya terminó pasa a completada"]);
+  r.push([b.status === "completada", "una clase confirmada que terminó hace más de 3 días pasa a completada"]);
+  const reciente = (await q(`select status from public.bookings where id = 'b0000000-0000-0000-0000-000000000081'`)).rows[0];
+  r.push([reciente.status === "confirmada", "una que terminó hace 2 horas espera su asistencia (sigue confirmada)"]);
   r.push([futura.status === "confirmada", "una clase confirmada futura sigue confirmada"]);
 }
 

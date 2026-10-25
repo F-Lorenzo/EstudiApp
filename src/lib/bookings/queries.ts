@@ -57,6 +57,11 @@ function toClassItem(row: StudentBookingRow): ClassItem {
   };
 }
 
+/** Una clase confirmada cuyo horario ya terminó (espera que se registre su asistencia). */
+export function hasEnded(item: Pick<ClassItem, "status" | "endsAt">, now = Date.now()) {
+  return item.status === "confirmada" && new Date(item.endsAt).getTime() <= now;
+}
+
 async function listStudentClasses(
   supabase: SupabaseClient,
   studentId: string,
@@ -83,23 +88,32 @@ export async function getUpcomingClasses(
     "confirmada",
     "pendiente_pago",
   ]);
+  const now = Date.now();
   return {
     error,
-    classes: classes.sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
+    classes: classes
+      // Una confirmada que ya terminó espera su asistencia: va al historial, no a las próximas.
+      .filter((item) => !hasEnded(item, now))
+      .sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
   };
 }
 
-// Historial de clases completadas del alumno, más recientes primero.
+// Historial del alumno (completadas y terminadas que esperan su asistencia), más recientes primero.
 export async function getCompletedClasses(
   supabase: SupabaseClient,
   studentId: string,
 ) {
   const { classes, error } = await listStudentClasses(supabase, studentId, [
     "completada",
+    "confirmada",
   ]);
+  const now = Date.now();
   return {
     error,
-    classes: classes.sort((a, b) => b.startsAt.localeCompare(a.startsAt)),
+    classes: classes
+      // Las confirmadas que ya terminaron esperan su asistencia (migración 0017): se muestran como tales.
+      .filter((item) => item.status === "completada" || hasEnded(item, now))
+      .sort((a, b) => b.startsAt.localeCompare(a.startsAt)),
   };
 }
 

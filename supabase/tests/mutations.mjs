@@ -1,4 +1,4 @@
-// Pruebas de MUTACIONES de las migraciones 0013 a 0016 (y de la 0011 en lo que usa la cancelación): se rompe UNA
+// Pruebas de MUTACIONES de las migraciones 0013 a 0017 (y de la 0011 en lo que usa la cancelación): se rompe UNA
 // regla a propósito y se comprueba que alguna prueba falle. Una regla que se puede romper sin que nada falle no
 // está probada.
 //
@@ -39,11 +39,13 @@ const F13 = "0013_cancel_with_refund.sql";
 const F14 = "0014_payout_accounts.sql";
 const F15 = "0015_email_outbox.sql";
 const F16 = "0016_reviews.sql";
+const F17 = "0017_class_attendance.sql";
 const F11 = "0011_payments_foundation.sql";
 const CANCEL = ["cancel-refund", "bookings", "payment-notifications", "email-outbox"];
 const PAYOUT = ["payout-accounts", "bookings", "hardening"];
 const EMAIL = ["email-outbox", "rls-matrix"];
 const REVIEWS = ["reviews", "rls-matrix", "rls-base"];
+const ATTENDANCE = ["attendance", "rls-matrix", "hardening"];
 
 const M = [
   // ---------------------------------------------------------------- 0013
@@ -133,6 +135,18 @@ const M = [
   [F16, "16-07 tutor_reviews muestra opiniones de docentes no aprobados", (s) => sub(s, " and tp.verification_status = 'aprobado'", ""), REVIEWS],
   [F16, "16-08 tutor_reviews cuenta solo las filas devueltas", (s) => sub(s, "    count(*) over ()\n", "    1::bigint\n"), REVIEWS],
   [F16, "16-09 el trigger que limpia la calificación queda abierto a la API", (s) => sub(s, "revoke all on function public.normalize_rating() from public, anon, authenticated;", ""), REVIEWS],
+  // ---------------------------------------------------------------- 0017
+  [F17, "17-01 alcanza con 5 minutos del docente", (s) => sub(s, "v_min_seconds constant integer := 600;", "v_min_seconds constant integer := 300;"), ATTENDANCE],
+  [F17, "17-02 la ausencia se decide sin esperar a que cierre la sala", (s) => sub(s, "if v_booking.ends_at + v_room_grace > now() then", "if false then"), ATTENDANCE],
+  [F17, "17-03 se completa antes de que termine el horario", (s) => sub(s, "if v_booking.ends_at > now() then\n    return jsonb_build_object('outcome', 'pendiente');", "if false then\n    return jsonb_build_object('outcome', 'pendiente');"), ATTENDANCE],
+  [F17, "17-04 por ausencia del docente se devuelve el 50 %", (s) => sub(s, "v_percent := 100;", "v_percent := 50;"), ATTENDANCE],
+  [F17, "17-05 la ausencia no cancela la reserva", (s) => sub(s, "  set status = 'cancelada',\n      cancellation_reason = 'El docente no se presentó a la clase.'", "  set cancellation_reason = 'El docente no se presentó a la clase.'"), ATTENDANCE],
+  [F17, "17-06 registrar de nuevo pisa lo registrado", (s) => sub(s, "  if found then\n    return jsonb_build_object('outcome', v_existing.outcome, 'already', true);\n  end if;\n", ""), ATTENDANCE],
+  [F17, "17-07 se registra una reserva no confirmada", (s) => sub(s, "if v_booking.status <> 'confirmada' then\n    raise exception 'La reserva no está confirmada.'", "if false then\n    raise exception 'La reserva no está confirmada.'"), ATTENDANCE],
+  [F17, "17-08 record_class_attendance abierta a authenticated", (s) => s + "\ngrant execute on function public.record_class_attendance(uuid, integer, integer) to authenticated;\n", ATTENDANCE],
+  [F17, "17-09 sync_bookings sigue completando al terminar", (s) => sub(s, "and ends_at < now() - interval '3 days';", "and ends_at < now();"), ATTENDANCE],
+  [F17, "17-10 la asistencia la lee cualquiera con sesión", (s) => sub(s, /using \(\n    public\.is_admin\(\)\n    or exists \([\s\S]*?\)\n  \);/, "using (true);"), ATTENDANCE],
+  [F17, "17-11 sin pago se informa como pagado", (s) => sub(s, "'paid', v_payment.id is not null,", "'paid', true,"), ATTENDANCE],
 ];
 
 const ALL_SUITES = fs.readdirSync(TESTS).filter((f) => f.endsWith(".db.mjs")).map((f) => f.replace(".db.mjs", "")).filter((n) => n !== "fresh-install");

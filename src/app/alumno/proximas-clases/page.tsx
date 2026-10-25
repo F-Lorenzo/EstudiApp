@@ -8,6 +8,7 @@ import { PageHeading } from "@/components/ui";
 import { getViewer } from "@/lib/auth/viewer";
 import { getUpcomingClasses } from "@/lib/bookings/queries";
 import { createClient } from "@/lib/supabase/server";
+import { syncViewerAttendance } from "@/lib/video/attendance-runtime";
 
 export const metadata = { title: "Próximas clases" };
 
@@ -15,6 +16,8 @@ export default async function ProximasClasesPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/login");
 
+  // Antes de leer: las clases que terminaron se completan (o se reembolsan) según la asistencia a la sala.
+  await syncViewerAttendance(viewer);
   const supabase = await createClient();
   const { classes, error } = await getUpcomingClasses(supabase, viewer.id);
 

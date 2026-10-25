@@ -8,6 +8,7 @@ import { getStudentBooking } from "@/lib/bookings/queries";
 import { paymentSimulationEnabled } from "@/lib/bookings/simulation";
 import { paymentsConfigured } from "@/lib/payments/config";
 import { createClient } from "@/lib/supabase/server";
+import { syncViewerAttendance } from "@/lib/video/attendance-runtime";
 
 export const metadata = { title: "Tu reserva" };
 
@@ -26,6 +27,8 @@ export default async function ReservaPage({
   const viewer = await getViewer();
   if (!viewer) redirect("/login");
 
+  // Antes de leer: las clases que terminaron se completan (o se reembolsan) según la asistencia a la sala.
+  await syncViewerAttendance(viewer);
   const supabase = await createClient();
   const booking = await getStudentBooking(supabase, id, viewer.id);
   if (!booking) notFound();

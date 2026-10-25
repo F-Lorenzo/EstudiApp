@@ -39,7 +39,13 @@ export type RoomAccess =
    * La clase ya terminó (o la reserva ya figura como completada). `rating` es solo para el alumno: la que ya dejó
    * y si todavía puede calificar.
    */
-  | { state: "ended"; view: RoomView; rating: { score: number | null; canRate: boolean } | null }
+  | {
+      state: "ended";
+      view: RoomView;
+      rating: { score: number | null; canRate: boolean } | null;
+      /** Terminó pero todavía no se registró la asistencia (sigue «confirmada», migración 0017). */
+      awaitingAttendance: boolean;
+    }
   /** Falta configurar Daily en el servidor. */
   | { state: "unavailable"; view: RoomView }
   /** Daily no respondió: se puede reintentar. */
@@ -123,7 +129,7 @@ export async function getRoomAccess(
     const score = one(row.ratings as { score: number } | { score: number }[] | null)?.score ?? null;
     const rating =
       role === "alumno" ? { score, canRate: canRate({ status: row.status, endsAt: row.ends_at, score }, now) } : null;
-    return { state: "ended", view, rating };
+    return { state: "ended", view, rating, awaitingAttendance: row.status === "confirmada" };
   }
   if (now.getTime() < opensAt.getTime()) return { state: "not_yet", view, opensAt: opensAt.toISOString() };
   if (!daily) return { state: "unavailable", view };
