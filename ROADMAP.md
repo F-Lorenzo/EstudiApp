@@ -123,7 +123,7 @@ Mercado Pago de la plataforma (credenciales de prueba y producción); proveedor 
 
 ---
 
-## Fase 2 — La clase: videollamada y reputación  ← en curso
+## Fase 2 — La clase: videollamada y reputación  ✅ cerrada el 25 de octubre de 2026
 
 **Decisiones del 23 de octubre de 2026:** Daily.co (la API key va como secreto `DAILY_API_KEY` en Cloudflare);
 las clases **no se graban**; el docente ve solo el **nombre y la foto** de sus alumnos.
@@ -137,8 +137,10 @@ con la API key real el 25 de octubre de 2026. ✅ código de 5: calificación al
 el historial, hasta 30 días después, una sola vez) y opiniones públicas con autor («Tomás R.») y fecha relativa
 (migración `0016`, aplicada). ✅ código de 4 (migración `0017`, aplicada): la clase
 se completa si el docente estuvo 10 minutos o más en la sala; si no, se cancela con reembolso del 100 %
-(decisión del 25 de octubre de 2026). Falta el criterio de salida: una clase real de punta a punta entre dos
-cuentas, con calificación posterior.
+(decisión del 25 de octubre de 2026). ✅ Criterio de salida cumplido el 25 de octubre de 2026: una clase real
+de punta a punta entre dos cuentas (confirmada con un pago simulado, porque el cobro real sigue pendiente en la
+Fase 4), completada por asistencia y con calificación que actualizó el promedio del docente. El mantenimiento
+corre cada hora con el cron de Cloudflare.
 
 Objetivo: alumno y docente se encuentran en una sala real y la clase deja una calificación.
 
@@ -157,7 +159,7 @@ que no se graba); qué datos del alumno ve el docente.
 
 ---
 
-## Fase 3 — Operación y confianza
+## Fase 3 — Operación y confianza  ← en curso
 
 Objetivo: que el equipo pueda operar el producto sin tocar la base de datos.
 
