@@ -135,7 +135,7 @@ hasta el final de la clase (la sala y el token vencen 10 minutos después y expu
 Prebuilt (cámara, micrófono, pantalla, chat); páginas `/alumno/sala/[id]` y `/docente/sala/[id]`. Probado
 con la API key real el 25 de octubre de 2026. ✅ código de 5: calificación al terminar la clase (en la sala y en
 el historial, hasta 30 días después, una sola vez) y opiniones públicas con autor («Tomás R.») y fecha relativa
-(migración `0016`, aplicada). ✅ código de 4 (migración `0017`, **falta aplicarla en el proyecto real**): la clase
+(migración `0016`, aplicada). ✅ código de 4 (migración `0017`, aplicada): la clase
 se completa si el docente estuvo 10 minutos o más en la sala; si no, se cancela con reembolso del 100 %
 (decisión del 25 de octubre de 2026). Falta el criterio de salida: una clase real de punta a punta entre dos
 cuentas, con calificación posterior.
