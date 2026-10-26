@@ -221,6 +221,17 @@ test("el catálogo busca sin tildes y muestra los docentes de a 10", async ({ pa
   await expect(page.locator(".pub-teacher-row")).toHaveCount(2);
 });
 
+test("con la indexación apagada, ningún buscador indexa el sitio", async ({ page, request }) => {
+  // SITE_INDEXABLE no está cargada (como hoy en producción): noindex en las páginas, robots.txt cerrado y mapa vacío.
+  await page.goto("/");
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, nofollow");
+  const robots = await (await request.get("/robots.txt")).text();
+  expect(robots).toMatch(/User-Agent: \*\s+Disallow: \//);
+  expect(robots).not.toMatch(/Sitemap:/);
+  const sitemap = await (await request.get("/sitemap.xml")).text();
+  expect(sitemap).not.toContain("<url>");
+});
+
 /**
  * Accesibilidad y diseño responsive (ROADMAP, Fase 4, ítem 1), con los datos que dejó el recorrido: cada pantalla
  * principal, en escritorio y en un celular de 390 px, no puede tener problemas de accesibilidad de WCAG 2.1 AA que
@@ -230,7 +241,7 @@ const SCREENS: { who: "anon" | "alumno" | "docente" | "admin"; paths: () => stri
   { who: "anon", paths: () => ["/", "/docentes", `/docentes/${idOf(DOCENTE.email)}`, "/como-funciona", "/login", "/registro/alumno", "/recuperar-password"] },
   { who: "alumno", paths: () => ["/alumno", "/alumno/historial", "/alumno/perfil", `/alumno/reservar/${idOf(DOCENTE.email)}`, `/alumno/reservas/${bookingId}`] },
   { who: "docente", paths: () => ["/docente", "/docente/disponibilidad", "/docente/perfil"] },
-  { who: "admin", paths: () => ["/admin/docentes/pendientes", "/admin/docentes/activos", `/admin/docentes/${idOf(DOCENTE.email)}`, "/admin/comision", "/admin/contenido", "/admin/emails", "/admin/metricas", "/admin/registro"] },
+  { who: "admin", paths: () => ["/admin/docentes/pendientes", "/admin/docentes/activos", `/admin/docentes/${idOf(DOCENTE.email)}`, "/admin/comision", "/admin/contenido", "/admin/emails", "/admin/metricas", "/admin/registro", "/admin/sistema"] },
 ];
 const EMAILS = { alumno: ALUMNO.email, docente: DOCENTE.email, admin: ADMIN.email };
 
@@ -244,7 +255,9 @@ for (const { who, paths } of SCREENS) {
     }
     const problems: string[] = [];
     for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
-      const context = await browser.newContext({ viewport, storageState, locale: "es-AR", timezoneId: "America/Argentina/Buenos_Aires" });
+      // Con «reducir movimiento» las animaciones de entrada (el hero del inicio) no corren: axe mide la pantalla quieta, no
+      // un texto a medio aparecer. De paso se revisa que todo se vea con prefers-reduced-motion.
+      const context = await browser.newContext({ viewport, storageState, locale: "es-AR", timezoneId: "America/Argentina/Buenos_Aires", reducedMotion: "reduce" });
       const page = await context.newPage();
       for (const path of paths()) {
         await page.goto(path, { waitUntil: "networkidle" });

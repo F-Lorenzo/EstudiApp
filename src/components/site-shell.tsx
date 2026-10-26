@@ -31,6 +31,7 @@ const NAV: Record<UserRole, NavItem[]> = {
     ["Emails", "/admin/emails", "bell"],
     ["Contenido", "/admin/contenido", "image"],
     ["Métricas", "/admin/metricas", "chart"],
+    ["Sistema", "/admin/sistema", "check"],
   ],
 };
 

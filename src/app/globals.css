@@ -993,22 +993,6 @@ button:active:not(:disabled) {
     display: none;
   }
 }
-.sample-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 18px;
-  margin-bottom: 28px;
-  border: 1px dashed var(--orange);
-  border-radius: 10px;
-  background: #fff5ec;
-  color: #85270a;
-  font-size: 13px;
-  line-height: 1.55;
-}
-.sample-banner .icon {
-  margin-top: 1px;
-}
 .teacher-image-fallback {
   position: absolute;
   inset: 0;

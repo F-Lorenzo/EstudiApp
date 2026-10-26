@@ -2868,3 +2868,9 @@
   }
 }
 
+
+/* /admin/sistema: un panel por grupo de comprobaciones. */
+.mgmt-system-groups {
+  display: grid;
+  gap: 24px;
+}

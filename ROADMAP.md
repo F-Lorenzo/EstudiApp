@@ -226,6 +226,11 @@ Objetivo: salir a producción con confianza.
 5. **Textos legales finales** (términos, privacidad, cancelación, condiciones de ingreso) y marca.
 6. Quitar `noindex`, quitar los avisos de «vista de muestra», verificar la firma del webhook en
    todos los entornos y **desplegar a producción**.
+   ✅ preparado (26 de octubre de 2026): la indexación es un interruptor del Worker (`SITE_INDEXABLE`), apagado
+   hasta el lanzamiento, con `robots.txt` y `sitemap.xml`; el aviso de «vista de muestra» ya no se usaba y se quitó;
+   la firma del aviso se exige en todo entorno (sin la clave, se rechaza todo) y `/admin/sistema` muestra si cada
+   variable de producción está cargada. El sitio se despliega solo con cada push a `main`. Falta: revisar
+   `/admin/sistema` en producción y, con los textos legales definitivos (ítem 5), encender la indexación.
 7. **Mercado Pago real** (pendiente de la Fase 1): prueba de punta a punta del cobro, la comisión, el
    aviso y el reembolso; dominio y clave de Resend (✅ código listo: migración `0023` aplicada, `/admin/emails` y la guía
    [docs/RESEND.md](docs/RESEND.md); falta crear la cuenta, verificar `mail.estudiapp.app` y cargar la clave); apagar `MERCADOPAGO_OAUTH_TEST_TOKEN` y desvincular al

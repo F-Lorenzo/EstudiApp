@@ -83,6 +83,24 @@ Pago, registra la asistencia de las clases terminadas, reintenta reembolsos y en
 - Para probarlo sin esperar la hora: `npx wrangler dev --test-scheduled` y luego
   `curl "http://localhost:8787/__scheduled?cron=7+*+*+*+*"` (después de `opennextjs-cloudflare build`).
 
+## Lanzamiento
+
+El sitio se publica solo: cada push a `main` lo compila y despliega Cloudflare (Workers Builds). Las variables
+`NEXT_PUBLIC_*` tienen que estar en el entorno del build (Settings → Build → Variables); las demás, en las del Worker.
+
+1. Abrí **`/admin/sistema`** con la cuenta de administración. Muestra, sin ninguna clave, qué variables están
+   cargadas y con la forma correcta: la dirección del sitio, la base al día, las claves de Mercado Pago (incluida la
+   **firma de los avisos**, `MERCADOPAGO_WEBHOOK_SECRET`, que se exige siempre: sin ella se rechazan todos los
+   avisos), la dirección del aviso para cargar en Mercado Pago, Daily, Resend, el cron, Turnstile y los
+   limitadores. También avisa si quedó encendido algo de prueba (`MERCADOPAGO_OAUTH_TEST_TOKEN`,
+   `ALLOW_SIMULATED_PAYMENTS`). Todo tiene que decir **OK**; la indexación figura como «Apagado» a propósito.
+2. **Indexación:** con todo en orden y los textos legales definitivos, cargá `SITE_INDEXABLE` = `true` (como texto)
+   en las variables del Worker. No hace falta desplegar: desde el pedido siguiente las páginas dicen «index»,
+   `robots.txt` se abre (menos `/admin`, `/alumno`, `/docente`, `/api` y `/auth`) y `sitemap.xml` lista las páginas
+   públicas y el perfil de cada docente aprobado. Solo vale en la dirección de `NEXT_PUBLIC_SITE_URL`: una versión
+   de prueba en otra dirección nunca se indexa. Para volver atrás, borrá la variable.
+3. Después de encenderla, cargá `https://estudiapp.app/sitemap.xml` en Google Search Console.
+
 ## Manifiesto de preview
 
 Con Next.js 16.4.1 y OpenNext 1.20.12 el build genera

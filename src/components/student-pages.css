@@ -2160,13 +2160,6 @@
   margin-top: 48px;
 }
 
-/* El aviso de «vista de muestra» ocupa lugar sobre el escenario: se compacta
-   para que los controles de la clase sigan a la vista. */
-.stu-classroom .sample-banner {
-  margin-bottom: 14px;
-  padding: 8px 14px;
-  font-size: 12px;
-}
 .stu-classroom .stu-stage {
   height: calc(100vh - 370px);
   min-height: 400px;

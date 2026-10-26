@@ -269,24 +269,6 @@ export function EmptyState({
   );
 }
 
-/** Aviso para las pantallas que todavía no están conectadas a datos reales. */
-export function SampleBanner({
-  title = "Vista de muestra.",
-  children,
-}: {
-  title?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="sample-banner" role="note">
-      <Icon name="info" size={18} />
-      <p>
-        <strong>{title}</strong> {children}
-      </p>
-    </div>
-  );
-}
-
 export function Logo({ light = false }: { light?: boolean }) {
   return (
     <Link

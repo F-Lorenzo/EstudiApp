@@ -28,19 +28,19 @@ Las pruebas de la base de datos (`npm run test:db`) aplican las migraciones real
 
 ## Hoja de ruta
 
-El proyecto se construye por fases, ordenadas por prioridad. Ver [ROADMAP.md](ROADMAP.md): la **Fase 0 (bases sólidas)** está cerrada; ahora estamos en la **Fase 1 (cobrar de verdad con Mercado Pago)**.
+El proyecto se construye por fases, ordenadas por prioridad. Ver [ROADMAP.md](ROADMAP.md): las fases 0 a 2 están cerradas y se trabaja en la **Fase 4 (calidad y lanzamiento)**. El sitio se publica solo con cada push a `main`; los pasos del lanzamiento están en [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md).
 
-## Qué funciona y qué es una vista de muestra
+## Qué funciona
 
 | Área | Estado |
 | --- | --- |
 | Home, Cómo funciona, legales | Funcionan. Los textos legales son preliminares. |
 | Registro, login, recuperar contraseña | Funcionan (Supabase Auth). |
-| Catálogo y perfil público del docente | Funcionan con datos reales (búsqueda, filtros, horarios y opiniones). |
+| Catálogo y perfil público del docente | Funcionan con datos reales (búsqueda sin tildes, filtros, páginas de a 10, horarios y opiniones). |
 | Alumno: inicio, próximas clases, historial, perfil | Funcionan con datos reales. |
 | Docente: inicio, perfil profesional (3 pasos), disponibilidad (abrir y cerrar franjas de 60 min) | Funcionan con datos reales. La disponibilidad requiere la migración 0007. |
-| Reservas: elegir un horario libre, retenerlo 15 min, pagar, cancelar | Funcionan con datos reales (migraciones 0008 y 0009). **El cobro con Mercado Pago todavía no existe:** hay un pago simulado solo para desarrollo (`ALLOW_SIMULATED_PAYMENTS`). |
-| Admin: solicitudes, ficha (aprobar, rechazar, reabrir, dar de baja), rechazados, docentes activos, métricas, comisión, contenido del inicio, registro de acciones | Funcionan con datos reales. |
+| Reservas: elegir un horario libre, retenerlo 15 min, pagar, cancelar | Funcionan con datos reales. El pago con tarjeta (Mercado Pago, Checkout API) está hecho y probado contra un proveedor simulado; la prueba con Mercado Pago real es el último paso antes del lanzamiento. Para desarrollo hay un pago simulado (`ALLOW_SIMULATED_PAYMENTS`). |
+| Admin: solicitudes, ficha (aprobar, rechazar, reabrir, dar de baja), rechazados, docentes activos, métricas, comisión, contenido del inicio, registro de acciones, emails y estado del sistema | Funcionan con datos reales. |
 | Sala de clase | **Real** con Daily.co (`DAILY_API_KEY`): sala privada por reserva, solo alumno y docente, desde 10 minutos antes hasta el final de la clase. No se graba. La clase cuenta como dada si el docente estuvo al menos 10 minutos; si no, se devuelve el 100 %. Al terminar, el alumno califica la clase (también desde su historial, hasta 30 días después). |
 | Docente: cuenta de cobro y cobros | Funcionan con datos reales (vinculación con Mercado Pago probada solo con credenciales de prueba). |
 
@@ -59,4 +59,4 @@ Black Forest `#023618`, Floral White `#FFFCF2`, Spicy Paprika `#EB5E28`, Oxidize
 
 ## Pendiente conocido
 
-Ver «Pendiente conocido» en [CLAUDE.md](CLAUDE.md) y el [ROADMAP](ROADMAP.md). Lo más importante: **aplicar las migraciones 0006 a 0010 en orden** (sin ellas el alumno no ve sus reservas y la RLS tiene huecos de seguridad), y construir reservas y pagos reales, sala de video, disponibilidad y gestión de contenido.
+Ver «Pendiente conocido» en [CLAUDE.md](CLAUDE.md) y el [ROADMAP](ROADMAP.md). Lo más importante antes del lanzamiento: los textos legales definitivos, la prueba con Mercado Pago real y encender la indexación (`SITE_INDEXABLE`).
