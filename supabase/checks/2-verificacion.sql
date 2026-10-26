@@ -102,7 +102,7 @@ begin
   ), 'FALLA';
 
   -- 12 a 15. Cimientos del cobro (migración 0011). La 16 es de la 0012, la 17 de la 0013, la 18 de la 0014
-  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021, la 29 de la 0022, la 30 de la 0023 y la 31 de la 0024.
+  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021, la 29 de la 0022, la 30 de la 0023, la 31 de la 0024 y la 32 de la 0025.
   insert into _verificacion
   select 12, 'cobro: los tokens de Mercado Pago (mp_credentials) no se leen ni se escriben desde la API',
     case when to_regclass('public.mp_credentials') is null then false
@@ -356,6 +356,19 @@ begin
           and not has_function_privilege('authenticated', 'public.register_card_attempt(uuid)', 'execute')
           and not has_function_privilege('anon', 'public.register_card_attempt(uuid)', 'execute')
           and exists (select 1 from pg_trigger where tgname = 'bookings_limit_daily_holds' and not tgisinternal) end,
+    'FALLA';
+
+  -- 32. Búsqueda del catálogo (migración 0025): unaccent en `extensions` y la función abierta al visitante, pero con
+  -- sus permisos (security invoker: la RLS de las tablas sigue mandando).
+  insert into _verificacion
+  select 32, 'catálogo: la búsqueda ignora tildes, es pública y respeta la RLS',
+    case when to_regprocedure('public.search_tutor_catalog(text, text[], numeric, numeric, boolean, text, integer, integer)') is null then false
+         else exists (select 1 from pg_extension e join pg_namespace n on n.oid = e.extnamespace
+                      where e.extname = 'unaccent' and n.nspname = 'extensions')
+          and has_schema_privilege('anon', 'extensions', 'usage')
+          and has_function_privilege('anon', 'public.search_tutor_catalog(text, text[], numeric, numeric, boolean, text, integer, integer)', 'execute')
+          and not (select p.prosecdef from pg_proc p
+                   where p.oid = to_regprocedure('public.search_tutor_catalog(text, text[], numeric, numeric, boolean, text, integer, integer)')) end,
     'FALLA';
 
   -- 20. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).

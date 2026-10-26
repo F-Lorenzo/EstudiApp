@@ -48,7 +48,9 @@ with estado(n, nombre, aplicada) as (
     (23, '0023 emails vencidos y estado de la bandeja (email_outbox_summary)',
         to_regprocedure('public.email_outbox_summary()') is not null),
     (24, '0024 límites contra el abuso (card_payment_attempts)',
-        to_regclass('public.card_payment_attempts') is not null)
+        to_regclass('public.card_payment_attempts') is not null),
+    (25, '0025 búsqueda del catálogo sin tildes y por páginas (search_tutor_catalog)',
+        to_regprocedure('public.search_tutor_catalog(text, text[], numeric, numeric, boolean, text, integer, integer)') is not null)
 ),
 -- Primera migración que falta, y si desde ahí faltan TODAS las siguientes (un tramo limpio).
 resumen as (

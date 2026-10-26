@@ -9,6 +9,9 @@ registro del alumno → búsqueda → reserva → pago (simulado) → cobros del
 opinión pública
 ```
 
+Después suma 11 docentes aprobados desde la base y prueba el catálogo: de a 10 por página, la búsqueda sin tildes
+ni mayúsculas («NUNEZ fisica» encuentra a «Joaquín Núñez», de Física) y que una página que no existe lleve a la última.
+
 Al final, con esos datos, recorre las pantallas principales de cada rol en escritorio y en un celular de 390 px:
 ninguna puede tener problemas de accesibilidad de WCAG 2.1 AA que detecte axe ni desbordar de costado.
 
@@ -44,6 +47,7 @@ Lo que no se puede hacer desde la app se hace con SQL directo (`e2e/db.ts`), com
   real se prueba aparte contra Mercado Pago (Fase 4, ítem 7).
 - **La clase.** Se adelanta el reloj (la clase pasa a ser de ayer) y la asistencia se anota con
   `record_class_attendance`, la función que usa el servidor con los datos de Daily.
+- **Los docentes de relleno del catálogo.** Se crean y se aprueban en la base, para no repetir 11 registros.
 
 Las cuentas confirman el email solas (`enable_confirmations = false` en `e2e/supabase/config.toml`): no hay
 servidor de correo. Resend tampoco está configurado, así que los emails quedan en la bandeja y la prueba

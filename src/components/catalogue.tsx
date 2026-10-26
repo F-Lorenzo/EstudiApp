@@ -7,19 +7,27 @@ import { Avatar, ButtonLink, EmptyState, Icon } from "@/components/ui";
 import { money, ratingAR } from "@/lib/format";
 import {
   catalogQueryString,
+  pageItems,
   PRICE_CEILING,
   PRICE_FLOOR,
+  SEARCH_MAX_LENGTH,
   type CatalogUiFilters,
 } from "@/lib/tutors/filters";
 import type { Teacher } from "@/lib/tutors/view";
 
 export function Catalogue({
   teachers,
+  total,
+  totalPages,
   subjects,
   filters,
   loadFailed,
 }: {
+  /** Los docentes de esta página. */
   teachers: Teacher[];
+  /** Todos los que coinciden con la búsqueda, en todas las páginas. */
+  total: number;
+  totalPages: number;
   subjects: string[];
   filters: CatalogUiFilters;
   /** La consulta a la base falló: se muestra un aviso en lugar de resultados. */
@@ -48,7 +56,9 @@ export function Catalogue({
     Number(draft.disponibilidad);
   const hasAnyFilter = filterCount > 0 || filters.q !== "";
 
-  function apply(next: CatalogUiFilters) {
+  function apply(changed: CatalogUiFilters) {
+    // Cambiar la búsqueda, un filtro o el orden vuelve a la primera página.
+    const next = { ...changed, pagina: 1 };
     setDraft(next);
     startTransition(() => {
       router.replace(`${pathname}${catalogQueryString(next)}`, {
@@ -67,6 +77,7 @@ export function Catalogue({
       precioMax: null,
       disponibilidad: false,
       orden: draft.orden,
+      pagina: 1,
     });
   }
   function toggleSubject(subject: string) {
@@ -222,6 +233,7 @@ export function Catalogue({
               enterKeyHint="search"
               aria-label="Buscar materia o docente"
               placeholder="Probá con Álgebra, Física o el nombre de un profe (Enter para buscar)"
+              maxLength={SEARCH_MAX_LENGTH}
               value={draft.q}
               onChange={(event) =>
                 setDraft({ ...draft, q: event.target.value })
@@ -239,8 +251,8 @@ export function Catalogue({
           </form>
           <div className="pub-results-top">
             <p aria-live="polite">
-              <strong>{loadFailed ? 0 : teachers.length}</strong>{" "}
-              {teachers.length === 1 ? "docente para vos" : "docentes para vos"}
+              <strong>{loadFailed ? 0 : total.toLocaleString("es-AR")}</strong>{" "}
+              {total === 1 ? "docente para vos" : "docentes para vos"}
             </p>
             <label>
               Ordenar por{" "}
@@ -291,7 +303,7 @@ export function Catalogue({
               )}
             </div>
           )}
-          <div className="pub-teacher-list">
+          <div className="pub-teacher-list" id="resultados">
             {teachers.map((teacher) => (
               <TeacherRow teacher={teacher} key={teacher.id} />
             ))}
@@ -332,6 +344,9 @@ export function Catalogue({
               )
             )}
           </div>
+          {!loadFailed && totalPages > 1 && (
+            <Pager filters={filters} totalPages={totalPages} pathname={pathname} />
+          )}
         </div>
       </section>
       <section className="pub-bottom-note pub-container">
@@ -349,6 +364,61 @@ export function Catalogue({
         </ButtonLink>
       </section>
     </div>
+  );
+}
+
+function Pager({
+  filters,
+  totalPages,
+  pathname,
+}: {
+  filters: CatalogUiFilters;
+  totalPages: number;
+  pathname: string;
+}) {
+  const current = filters.pagina;
+  // Enlaces comunes (se pueden abrir en otra pestaña y compartir); vuelven al principio de la lista.
+  const href = (pagina: number) => `${pathname}${catalogQueryString({ ...filters, pagina })}#resultados`;
+  return (
+    <nav className="pub-pager" aria-label="Páginas de resultados">
+      {current > 1 ? (
+        <Link className="pub-pager-step" href={href(current - 1)} rel="prev">
+          <Icon name="arrow-left" size={16} /> Anterior
+        </Link>
+      ) : (
+        <span className="pub-pager-step is-disabled" aria-hidden="true">
+          <Icon name="arrow-left" size={16} /> Anterior
+        </span>
+      )}
+      <ol>
+        {pageItems(current, totalPages).map((item, index) =>
+          item === "…" ? (
+            <li key={`hueco-${index}`} className="pub-pager-gap" aria-hidden="true">
+              …
+            </li>
+          ) : (
+            <li key={item}>
+              <Link
+                href={href(item)}
+                aria-current={item === current ? "page" : undefined}
+                aria-label={`Página ${item} de ${totalPages}`}
+              >
+                {item}
+              </Link>
+            </li>
+          ),
+        )}
+      </ol>
+      {current < totalPages ? (
+        <Link className="pub-pager-step" href={href(current + 1)} rel="next">
+          Siguiente <Icon name="arrow-right" size={16} />
+        </Link>
+      ) : (
+        <span className="pub-pager-step is-disabled" aria-hidden="true">
+          Siguiente <Icon name="arrow-right" size={16} />
+        </span>
+      )}
+    </nav>
   );
 }
 

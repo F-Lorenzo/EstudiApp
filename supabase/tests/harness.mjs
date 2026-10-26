@@ -3,6 +3,7 @@
 // migraciones de verdad. Cada prueba ejecuta consultas "como" un rol de la API, así que la RLS y
 // los permisos se comprueban de punta a punta.
 import { PGlite } from "@electric-sql/pglite";
+import { unaccent } from "@electric-sql/pglite/contrib/unaccent";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,16 +44,18 @@ export async function applyMigration(db, number) {
 
 /** Crea una base nueva con las migraciones hasta `upTo` (inclusive). */
 export async function makeDb({ upTo = 999 } = {}) {
-  const db = new PGlite();
+  // unaccent (0025) es una extensión de Postgres: PGlite la trae aparte. Supabase la instala en `extensions`.
+  const db = new PGlite({ extensions: { unaccent } });
   await db.exec(`
     create schema auth;
+    create schema extensions;
     create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb not null default '{}');
     create role anon nologin;
     create role authenticated nologin;
     create role service_role nologin bypassrls;
     create function auth.uid() returns uuid language sql stable
       as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-    grant usage on schema public, auth to anon, authenticated, service_role;
+    grant usage on schema public, auth, extensions to anon, authenticated, service_role;
     alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
     alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
     alter default privileges in schema public grant all on functions to anon, authenticated, service_role;

@@ -299,6 +299,8 @@ const FUNCIONES = [
   // 0024: el tope de intentos de pago lo usa solo el servidor; el de reservas por día es un trigger interno.
   ["public.register_card_attempt(uuid)", ["service_role"]],
   ["public.limit_daily_holds()", ["service_role"]],
+  // 0025: la búsqueda del catálogo es pública, como la vista que lee (corre con los permisos de quien consulta).
+  ["public.search_tutor_catalog(text, text[], numeric, numeric, boolean, text, integer, integer)", ["anon", "authenticated", "service_role"]],
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {

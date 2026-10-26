@@ -324,6 +324,56 @@
   color: var(--forest);
   cursor: pointer;
 }
+.pub-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 24px 0 0;
+  font-size: 13px;
+}
+.pub-pager ol {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pub-pager a,
+.pub-pager-step,
+.pub-pager-gap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 100px;
+  color: var(--forest);
+  font-weight: 650;
+  text-decoration: none;
+}
+.pub-pager ol a:hover,
+.pub-pager-step:not(.is-disabled):hover {
+  background: #e8eddf;
+}
+.pub-pager a[aria-current="page"] {
+  background: var(--forest);
+  color: var(--cream);
+}
+.pub-pager-step {
+  padding: 0 14px;
+}
+.pub-pager-step.is-disabled,
+.pub-pager-gap {
+  color: var(--muted);
+}
+.pub-pager-step.is-disabled {
+  visibility: hidden;
+}
 .pub-teacher-row {
   display: grid;
   grid-template-columns: 112px minmax(0, 1fr) 154px;
@@ -2013,6 +2063,14 @@
   }
 }
 @media (max-width: 650px) {
+  /* Los números arriba, en su propia fila; «Anterior» y «Siguiente» debajo. */
+  .pub-pager {
+    flex-wrap: wrap;
+  }
+  .pub-pager ol {
+    order: -1;
+    width: 100%;
+  }
   .pub-container {
     width: calc(100% - 40px);
   }

@@ -181,6 +181,46 @@ test("después de la clase, el alumno la califica y la opinión se ve en el perf
   await expect(page.getByText(ALUMNO.name)).toHaveCount(0);
 });
 
+test("el catálogo busca sin tildes y muestra los docentes de a 10", async ({ page }) => {
+  // 11 docentes aprobados más, como desde el SQL Editor: con Marina son 12, dos páginas.
+  sql(`
+    insert into auth.users (id, email, raw_user_meta_data)
+    select gen_random_uuid(), 'relleno' || i || '.e2e@estudiapp.test',
+      jsonb_build_object('full_name', case when i = 1 then 'Joaquín Núñez' else 'Profe Relleno ' || lpad(i::text, 2, '0') end, 'role', 'docente')
+    from generate_series(1, 11) i;
+    update public.tutor_profiles tp
+      set verification_status = 'aprobado', bio = 'Perfil de relleno para probar el catálogo.', tarifa_por_clase = 9000
+      from auth.users u where u.id = tp.id and u.email like 'relleno%.e2e@estudiapp.test';
+    insert into public.tutor_subjects (tutor_id, subject_id)
+      select u.id, s.id from auth.users u, public.subjects s
+      where u.email = 'relleno1.e2e@estudiapp.test' and s.name = 'Física';
+  `);
+
+  await page.goto("/docentes");
+  await expect(page.locator(".pub-results-top p")).toHaveText(/12 docentes para vos/);
+  await expect(page.locator(".pub-teacher-row")).toHaveCount(10);
+  const pager = page.getByRole("navigation", { name: "Páginas de resultados" });
+  await pager.getByRole("link", { name: /Siguiente/ }).click();
+  await expect(page).toHaveURL(/[?&]pagina=2/);
+  await expect(page.locator(".pub-teacher-row")).toHaveCount(2);
+  await expect(pager.getByRole("link", { name: "Página 2 de 2" })).toHaveAttribute("aria-current", "page");
+
+  // Sin tildes ni mayúsculas, una palabra en el nombre y otra en la materia. Buscar vuelve a la primera página.
+  const search = page.getByRole("searchbox");
+  await search.fill("NUNEZ fisica");
+  await search.press("Enter");
+  await expect(page).toHaveURL(/q=NUNEZ\+fisica/);
+  await expect(page).not.toHaveURL(/pagina=/);
+  await expect(page.locator(".pub-teacher-row")).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "Joaquín Núñez" })).toBeVisible();
+  await expect(pager).toHaveCount(0);
+
+  // Una página que no existe lleva a la última.
+  await page.goto("/docentes?pagina=9");
+  await expect(page).toHaveURL(/[?&]pagina=2/);
+  await expect(page.locator(".pub-teacher-row")).toHaveCount(2);
+});
+
 /**
  * Accesibilidad y diseño responsive (ROADMAP, Fase 4, ítem 1), con los datos que dejó el recorrido: cada pantalla
  * principal, en escritorio y en un celular de 390 px, no puede tener problemas de accesibilidad de WCAG 2.1 AA que

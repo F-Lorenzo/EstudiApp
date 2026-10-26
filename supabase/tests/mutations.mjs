@@ -47,6 +47,7 @@ const F21 = "0021_commission_tiers.sql";
 const F22 = "0022_site_content.sql";
 const F23 = "0023_email_expiry_and_summary.sql";
 const F24 = "0024_abuse_limits.sql";
+const F25 = "0025_catalog_search.sql";
 // `claim_pending_emails` se creó en la 0015 y la reemplazan la 0018, la 0019 y la 0023; `enqueue_tutor_decision_email`, de la
 // 0018, la reemplaza la 0019. Sus mutaciones van sobre la versión vigente.
 const CLAIM = F23;
@@ -64,6 +65,7 @@ const COMMISSION = ["commission", "payments", "rls-matrix"];
 const CONTENT = ["site-content", "rls-matrix"];
 const EXPIRY = ["email-expiry", "email-outbox", "reminders", "rls-matrix"];
 const ABUSE = ["abuse-limits", "rls-matrix", "bookings"];
+const CATALOG = ["catalog-search", "rls-matrix"];
 
 const M = [
   // ---------------------------------------------------------------- 0013
@@ -239,6 +241,19 @@ const M = [
   [F24, "24-07 las reservas pagas cuentan para el tope", (s) => sub(s, "      and not exists (\n        select 1 from public.payments p\n        where p.booking_id = b.id and p.status in ('aprobado', 'reembolsado'))\n", ""), ABUSE],
   [F24, "24-08 las reservas de hace días cuentan", (s) => sub(s, "      and b.created_at > now() - interval '24 hours'\n", ""), ABUSE],
   [F24, "24-09 los intentos se leen desde la API", (s) => s + "\ngrant select on public.card_payment_attempts to authenticated;\ncreate policy \"x\" on public.card_payment_attempts for select using (true);\n", ABUSE],
+  // ---------------------------------------------------------------- 0025
+  [F25, "25-01 la búsqueda distingue tildes", (s) => sub(s, "      lower(extensions.unaccent('extensions.unaccent'::regdictionary, left(coalesce(p_q, ''), 100))),", "      lower(left(coalesce(p_q, ''), 100)),"), CATALOG],
+  [F25, "25-02 la búsqueda distingue mayúsculas", (s) => sub(s, "      lower(extensions.unaccent('extensions.unaccent'::regdictionary,\n        coalesce(c.full_name, '')", "      (extensions.unaccent('extensions.unaccent'::regdictionary,\n        coalesce(c.full_name, '')"), CATALOG],
+  [F25, "25-03 alcanza con una de las palabras", (s) => sub(s, "and not exists (select 1 from unnest(v_words) w where strpos(k.search_key, w) = 0)", "and (cardinality(v_words) = 0 or exists (select 1 from unnest(v_words) w where strpos(k.search_key, w) > 0))"), CATALOG],
+  [F25, "25-04 el texto se interpreta con comodines", (s) => sub(s, "where strpos(k.search_key, w) = 0)", "where k.search_key not like '%' || w || '%')"), CATALOG],
+  [F25, "25-05 la búsqueda solo mira el nombre", (s) => sub(s, "coalesce(c.full_name, '') || ' ' || array_to_string(c.subject_names, ' '))) as search_key", "coalesce(c.full_name, ''))) as search_key"), CATALOG],
+  [F25, "25-06 sin tope de tamaño de página", (s) => sub(s, "least(greatest(coalesce(p_limit, 10), 1), 48)", "greatest(coalesce(p_limit, 10), 1)"), CATALOG],
+  [F25, "25-07 el total cuenta solo la página", (s) => sub(s, "'total', (select count(*) from filtrados),", "'total', (select count(*) from pagina),"), CATALOG],
+  [F25, "25-08 el orden no desempata", (s) => sub(s, "      rating_promedio desc,\n      -- `id` desempata: el orden tiene que ser estable entre páginas.\n      id\n", "      rating_promedio desc\n"), CATALOG],
+  [F25, "25-09 con horarios cuenta los de la próxima hora", (s) => sub(s, "and av.starts_at >= now() + interval '1 hour'", "and av.starts_at > now()"), CATALOG],
+  [F25, "25-10 con horarios aunque no pueda cobrar", (s) => sub(s, "        and public.tutor_can_receive_payments(c.id)\n", ""), CATALOG],
+  [F25, "25-11 el filtro de precio máximo no se aplica", (s) => sub(s, "and (p_precio_max is null or c.tarifa_por_clase <= p_precio_max)", ""), CATALOG],
+  [F25, "25-12 se puede pedir un salto negativo", (s) => sub(s, "v_offset integer := greatest(coalesce(p_offset, 0), 0);", "v_offset integer := coalesce(p_offset, 0);"), CATALOG],
   [F19, "19-14 se manda la reapertura de un perfil que ya no está pendiente", (s) => sub(s, "          else 'pendiente'\n        end);", "          else tp.verification_status::text\n        end);"), AUDIT],
 ];
 
