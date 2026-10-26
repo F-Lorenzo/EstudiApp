@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DecisionPanel } from "@/components/admin-pages";
+import { DecisionPanel, TutorHistory } from "@/components/admin-pages";
 import { Avatar, Badge, PageHeading } from "@/components/ui";
 import { VerificationStatusBanner } from "@/components/verification-status-banner";
+import { getTutorHistory } from "@/lib/admin/audit";
 import { longDate, money } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { getTutorDetail } from "@/lib/tutors/queries";
@@ -16,9 +17,19 @@ export default async function DetalleDocentePage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: tutor } = await getTutorDetail(supabase, id);
+  const [{ data: tutor }, { entries: history }] = await Promise.all([
+    getTutorDetail(supabase, id),
+    getTutorHistory(supabase, id),
+  ]);
 
   if (!tutor) notFound();
+
+  const back =
+    tutor.verification_status === "aprobado"
+      ? { href: "/admin/docentes/activos", label: "← Volver a docentes" }
+      : tutor.verification_status === "rechazado"
+        ? { href: "/admin/docentes/rechazados", label: "← Volver a rechazados" }
+        : { href: "/admin/docentes/pendientes", label: "← Volver a solicitudes" };
 
   const name = tutor.profiles?.full_name || "Docente";
   const subjectNames = (tutor.tutor_subjects ?? [])
@@ -29,17 +40,8 @@ export default async function DetalleDocentePage({
 
   return (
     <div className="mgmt-page">
-      <Link
-        href={
-          tutor.verification_status === "aprobado"
-            ? "/admin/docentes/activos"
-            : "/admin/docentes/pendientes"
-        }
-        className="mgmt-back-link"
-      >
-        {tutor.verification_status === "aprobado"
-          ? "← Volver a docentes"
-          : "← Volver a solicitudes"}
+      <Link href={back.href} className="mgmt-back-link">
+        {back.label}
       </Link>
       <PageHeading
         eyebrow="FICHA DOCENTE"
@@ -124,6 +126,7 @@ export default async function DetalleDocentePage({
               )}
             </div>
           </section>
+          <TutorHistory entries={history} />
         </div>
         <DecisionPanel
           tutorId={tutor.id}

@@ -1330,6 +1330,65 @@
   font-size: 0.85rem;
   color: var(--muted);
 }
+.mgmt-decision-result > .mgmt-button,
+.mgmt-decision-result > form {
+  margin-top: 16px;
+}
+.mgmt-decision-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.mgmt-rejected-reason {
+  max-width: 60ch;
+  overflow-wrap: anywhere;
+}
+.mgmt-history {
+  margin-top: 8px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.mgmt-history ol {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+.mgmt-history li {
+  display: grid;
+  gap: 4px;
+  padding-left: 16px;
+  border-left: 2px solid var(--line);
+}
+.mgmt-history li > span {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.mgmt-history li > p,
+.mgmt-history > p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.mgmt-audit-table td {
+  vertical-align: top;
+}
+.mgmt-audit-table td:last-child {
+  max-width: 32ch;
+  overflow-wrap: anywhere;
+}
+.mgmt-audit-when,
+.mgmt-audit-kind {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.mgmt-audit-kind {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
 .mgmt-filter {
   display: flex;
   align-items: center;

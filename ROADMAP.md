@@ -169,12 +169,16 @@ Objetivo: que el equipo pueda operar el producto sin tocar la base de datos.
    esté configurado Resend (Fase 4, ítem 7).
 2. **Administración**: lista de rechazados con motivo y reapertura (con historial de decisiones),
    editor de banners e imágenes, métricas con datos reales.
+   ✅ código de rechazados, reapertura, baja e historial (migración `0019`, falta aplicarla; decisiones del
+   26 de octubre de 2026): reabrir devuelve el perfil a «pendiente» y avisa al docente; dar de baja exige motivo
+   y deja en pie las clases confirmadas. Faltan banners e imágenes y las métricas reales.
 3. **Docente**: estado de la cuenta de Mercado Pago, historial y cobros.
 3b. **Comisión por reputación**: escalones según calificaciones (menos comisión cuanto mejores
    referencias), administrables desde el panel. Diseño en [docs/FASE-1-PLAN.md](docs/FASE-1-PLAN.md);
    necesita el formulario real de calificaciones de la Fase 2.
 4. **Modelo del docente ampliado**: años de experiencia, universidad, cantidad de reseñas.
 5. Auditoría de acciones de administración.
+   ✅ código (migración `0019`, falta aplicarla): `audit_log` y `/admin/registro`.
 
 **Criterio de salida:** alta, aprobación, soporte y seguimiento de cobros se resuelven desde la
 interfaz de administración.

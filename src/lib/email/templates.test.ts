@@ -29,7 +29,7 @@ function render(kind: string, payload: unknown, extra: { toName?: string | null;
 
 /** Los recordatorios necesitan además la reserva y a quién va; los de perfil no llevan horario. */
 const reminderExtra = { booking_id: BOOKING, recipient_role: "alumno" };
-const PROFILE_KINDS = ["perfil_aprobado", "perfil_rechazado"];
+const PROFILE_KINDS = ["perfil_aprobado", "perfil_rechazado", "perfil_reabierto"];
 const BOOKING_KINDS = EMAIL_KINDS.filter((kind) => !PROFILE_KINDS.includes(kind));
 const sample = (kind: string, payload: Record<string, unknown> = base) =>
   kind.startsWith("recordatorio") ? { ...reminderExtra, ...payload } : payload;
@@ -422,6 +422,30 @@ describe("perfil_rechazado", () => {
 
   it("sin motivo, sale igual sin la línea del motivo", () => {
     expect(render("perfil_rechazado", {}).text).not.toContain("Motivo");
+  });
+});
+
+describe("perfil_rechazado como baja", () => {
+  it("si el perfil estaba aprobado, dice que fue dado de baja, con el motivo y que sus clases siguen", () => {
+    const email = render("perfil_rechazado", { reason: "Denuncia de un alumno", was_approved: true });
+    expect(email.subject).toBe("Tu perfil docente fue dado de baja");
+    expect(email.text).toContain("Motivo: Denuncia de un alumno");
+    expect(email.text).toContain("ya tenías confirmadas siguen en pie");
+    expect(hrefs(email.html)[0]).toBe(`${BASE_URL}/docente/perfil`);
+  });
+
+  it("un was_approved raro se ignora y sale como rechazo", () => {
+    expect(render("perfil_rechazado", { reason: "x", was_approved: "sí" }).subject).toBe("Revisamos tu perfil docente");
+  });
+});
+
+describe("perfil_reabierto", () => {
+  it("le avisa que su perfil volvió a revisión y no le muestra notas internas", () => {
+    const email = render("perfil_reabierto", { tutor_name: "Martín Gómez", reason: "nota interna" }, { toName: "Martín Gómez" });
+    expect(email.subject).toBe("Tu perfil docente volvió a revisión");
+    expect(email.text).toContain("Hola Martín,");
+    expect(email.text).not.toContain("nota interna");
+    expect(hrefs(email.html)[0]).toBe(`${BASE_URL}/docente/perfil`);
   });
 });
 

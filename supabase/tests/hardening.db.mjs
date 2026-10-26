@@ -142,7 +142,7 @@ const seenId = holds[1];
 const owner = ids.alumno2;
 const ownerKey = "alumno2";
 await db.exec(`update public.bookings set status = 'confirmada' where id = '${seenId}'`);
-await db.exec(`update public.tutor_profiles set verification_status = 'rechazado' where id = '${ids.docente2}'`);
+await db.exec(`update public.tutor_profiles set verification_status = 'rechazado', verification_reason = 'prueba' where id = '${ids.docente2}'`);
 await as(db, ownerKey, async () => {
   const x = await q(`select b.id, p.full_name from public.bookings b
     join public.tutor_profiles tp on tp.id = b.tutor_id

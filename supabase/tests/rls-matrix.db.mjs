@@ -278,6 +278,13 @@ const FUNCIONES = [
   // 0018: los recordatorios los anota el mantenimiento; el email de la decisión sobre el perfil, un trigger.
   ["public.enqueue_class_reminders()", ["service_role"]],
   ["public.enqueue_tutor_decision_email()", ["service_role"]],
+  // 0019: decidir sobre un perfil (la función exige administración); el registro lo escriben triggers internos.
+  ["public.decide_tutor_profile(uuid, text, text)", ["authenticated", "service_role"]],
+  ["public.audit_actor()", ["service_role"]],
+  ["public.protect_audit_log()", ["service_role"]],
+  ["public.audit_tutor_status_change()", ["service_role"]],
+  ["public.audit_admin_booking_cancel()", ["service_role"]],
+  ["public.audit_role_change()", ["service_role"]],
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {

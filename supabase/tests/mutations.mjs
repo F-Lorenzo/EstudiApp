@@ -41,8 +41,11 @@ const F15 = "0015_email_outbox.sql";
 const F16 = "0016_reviews.sql";
 const F17 = "0017_class_attendance.sql";
 const F18 = "0018_reminder_and_tutor_decision_emails.sql";
-// `claim_pending_emails` se creó en la 0015 y la 0018 la reemplaza: sus mutaciones van sobre la versión vigente.
-const CLAIM = F18;
+const F19 = "0019_admin_audit_log.sql";
+// `claim_pending_emails` se creó en la 0015 y la reemplazan la 0018 y la 0019; `enqueue_tutor_decision_email`, de la
+// 0018, la reemplaza la 0019. Sus mutaciones van sobre la versión vigente.
+const CLAIM = F19;
+const DECISION = F19;
 const F11 = "0011_payments_foundation.sql";
 const CANCEL = ["cancel-refund", "bookings", "payment-notifications", "email-outbox"];
 const PAYOUT = ["payout-accounts", "bookings", "hardening"];
@@ -50,6 +53,7 @@ const EMAIL = ["email-outbox", "rls-matrix"];
 const REVIEWS = ["reviews", "rls-matrix", "rls-base"];
 const ATTENDANCE = ["attendance", "rls-matrix", "hardening"];
 const REMINDERS = ["reminders", "email-outbox", "rls-matrix"];
+const AUDIT = ["audit-log", "reminders", "rls-matrix", "hardening"];
 
 const M = [
   // ---------------------------------------------------------------- 0013
@@ -159,11 +163,26 @@ const M = [
   [F18, "18-05 se recuerda una clase que ya empezó", (s) => sub(s, "      and b.starts_at > now()\n      and b.starts_at <= now() + interval '90 minutes'", "      and b.starts_at <= now() + interval '90 minutes'"), REMINDERS],
   [F18, "18-06 solo se le recuerda al alumno", (s) => sub(s, "(values ((d.booking).student_id, 'alumno'), ((d.booking).tutor_id, 'docente'))", "(values ((d.booking).student_id, 'alumno'))"), REMINDERS],
   [F18, "18-07 los recordatorios se duplican", (s) => sub(s, "    on conflict (kind, booking_id, recipient_id) do nothing\n    returning 1", "    returning 1"), REMINDERS],
-  [F18, "18-08 se reclama el recordatorio de una clase cancelada", (s) => sub(s, "where b.id = o.booking_id and b.status = 'confirmada' and b.starts_at > now());", "where b.id = o.booking_id);"), REMINDERS],
-  [F18, "18-09 se manda el rechazo de un perfil que se reenvió", (s) => sub(s, "      last_error = 'El estado del perfil cambió.'\n  where o.status in ('pendiente', 'fallido')", "      last_error = 'El estado del perfil cambió.'\n  where false"), REMINDERS],
-  [F18, "18-10 el rechazo sale sin motivo", (s) => sub(s, "then nullif(btrim(new.verification_reason), '') end", "then null end"), REMINDERS],
-  [F18, "18-11 un fallo del email tira abajo la decisión", (s) => sub(s, "  exception when others then\n    raise warning 'No se pudo anotar el email de la decisión", "  exception when division_by_zero then\n    raise warning 'No se pudo anotar el email de la decisión"), REMINDERS],
+  [CLAIM, "18-08 se reclama el recordatorio de una clase cancelada", (s) => sub(s, "where b.id = o.booking_id and b.status = 'confirmada' and b.starts_at > now());", "where b.id = o.booking_id);"), REMINDERS],
+  [CLAIM, "18-09 se manda el rechazo de un perfil que se reenvió", (s) => sub(s, "      last_error = 'El estado del perfil cambió.'\n  where o.status in ('pendiente', 'fallido')", "      last_error = 'El estado del perfil cambió.'\n  where false"), REMINDERS],
+  [DECISION, "18-10 el rechazo sale sin motivo", (s) => sub(s, "then nullif(btrim(new.verification_reason), '') end", "then null end"), REMINDERS],
+  [DECISION, "18-11 un fallo del email tira abajo la decisión", (s) => sub(s, "  exception when others then\n    raise warning 'No se pudo anotar el email de la decisión", "  exception when division_by_zero then\n    raise warning 'No se pudo anotar el email de la decisión"), REMINDERS],
   [F18, "18-12 enqueue_class_reminders abierta a authenticated", (s) => s + "\ngrant execute on function public.enqueue_class_reminders() to authenticated;\n", REMINDERS],
+  // ---------------------------------------------------------------- 0019
+  [F19, "19-01 se rechaza sin motivo", (s) => sub(s, "if v_to = 'rechazado' and v_reason is null then", "if false then"), AUDIT],
+  [F19, "19-02 reabrir aprueba directamente", (s) => sub(s, "when 'reabrir' then v_from := 'rechazado'; v_to := 'pendiente';", "when 'reabrir' then v_from := 'rechazado'; v_to := 'aprobado';"), AUDIT],
+  [F19, "19-03 se decide sin mirar el estado actual", (s) => sub(s, "if v_current <> v_from then", "if false then"), AUDIT],
+  [F19, "19-04 cualquiera con sesión decide sobre un perfil", (s) => sub(s, "if not public.is_admin() then\n    raise exception 'Solo la administración", "if false then\n    raise exception 'Solo la administración"), AUDIT],
+  [F19, "19-05 el registro se puede editar y borrar", (s) => sub(s, "create trigger audit_log_immutable\n  before update or delete on public.audit_log\n  for each row execute function public.protect_audit_log();", ""), AUDIT],
+  [F19, "19-06 el registro lo lee cualquiera con sesión", (s) => sub(s, "on public.audit_log for select\n  using (public.is_admin());", "on public.audit_log for select\n  using (true);"), AUDIT],
+  [F19, "19-07 las cancelaciones de la administración no se registran", (s) => sub(s, "if v_actor.kind <> 'administracion' then", "if true then"), AUDIT],
+  [F19, "19-08 los cambios de rol no se registran", (s) => sub(s, "create trigger profiles_audit_role\n  after update of role on public.profiles", "create trigger profiles_audit_role\n  after update of full_name on public.profiles"), AUDIT],
+  [F19, "19-09 reabrir no avisa al docente", (s) => sub(s, "      when new.verification_status = 'pendiente' and old.verification_status = 'rechazado' and public.is_admin()\n        then 'perfil_reabierto'\n", ""), AUDIT],
+  [F19, "19-10 un rechazo sin motivo se guarda", (s) => sub(s, "alter table public.tutor_profiles\n  add constraint tutor_profiles_rejection_reason", "alter table public.tutor_profiles\n  add constraint tutor_profiles_rejection_reason check (true) not valid;\nselect 1 where false and"), AUDIT],
+  [F19, "19-11 la administración figura como «sistema»", (s) => sub(s, "when p.role = 'administrador' then 'administracion'", "when p.role = 'administrador' then 'sistema'"), AUDIT],
+  [F19, "19-12 el docente que reenvía figura como reapertura", (s) => sub(s, "and old.verification_status = 'rechazado' and new.verification_status = 'pendiente' then 'reenviar'", "and false then 'reenviar'"), AUDIT],
+  [F19, "19-13 la baja no se distingue de un rechazo en el email", (s) => sub(s, "'was_approved', case when v_kind = 'perfil_rechazado' and old.verification_status = 'aprobado' then true end,", ""), AUDIT],
+  [F19, "19-14 se manda la reapertura de un perfil que ya no está pendiente", (s) => sub(s, "          else 'pendiente'\n        end);", "          else tp.verification_status::text\n        end);"), AUDIT],
 ];
 
 const ALL_SUITES = fs.readdirSync(TESTS).filter((f) => f.endsWith(".db.mjs")).map((f) => f.replace(".db.mjs", "")).filter((n) => n !== "fresh-install");

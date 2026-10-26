@@ -25,6 +25,8 @@ const NAV: Record<UserRole, NavItem[]> = {
   administrador: [
     ["Solicitudes", "/admin/docentes/pendientes", "users"],
     ["Docentes", "/admin/docentes/activos", "graduation"],
+    ["Rechazados", "/admin/docentes/rechazados", "x"],
+    ["Registro", "/admin/registro", "shield"],
     ["Contenido", "/admin/contenido", "image"],
     ["Métricas", "/admin/metricas", "chart"],
   ],
@@ -238,7 +240,8 @@ export function AppShell({
                 pathname.startsWith(`${href}/`)) ||
               (href.endsWith("/pendientes") &&
                 pathname.startsWith("/admin/docentes/") &&
-                !pathname.startsWith("/admin/docentes/activos"));
+                !pathname.startsWith("/admin/docentes/activos") &&
+                !pathname.startsWith("/admin/docentes/rechazados"));
             return (
               <Link
                 key={href}

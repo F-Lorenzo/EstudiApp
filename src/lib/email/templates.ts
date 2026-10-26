@@ -16,7 +16,8 @@ import { renderHtml, renderText, type Block, type EmailContent } from "./layout"
  *   recordatorio_24h        los dos  base + booking_id, recipient_role ('alumno'|'docente')       (migración 0018)
  *   recordatorio_1h         los dos  lo mismo
  *   perfil_aprobado         docente  tutor_name?, can_receive_payments?                            (sin reserva)
- *   perfil_rechazado        docente  tutor_name?, reason?
+ *   perfil_rechazado        docente  tutor_name?, reason?, was_approved? (true: una baja)         (0019)
+ *   perfil_reabierto        docente  tutor_name?                                                 (0019)
  *
  * `reserva_cancelada` va a las dos partes con el mismo `kind`; el payload no dice cuál es el destinatario,
  * así que se distingue por el contenido: solo la copia del alumno trae datos de dinero (`amount_paid`,
@@ -36,6 +37,7 @@ export const EMAIL_KINDS = [
   "recordatorio_1h",
   "perfil_aprobado",
   "perfil_rechazado",
+  "perfil_reabierto",
 ] as const;
 export type EmailKind = (typeof EMAIL_KINDS)[number];
 
@@ -113,7 +115,9 @@ const approvedSchema = z.object({
 const rejectedSchema = z.object({
   tutor_name: optional(cleanText(120)),
   reason: optional(cleanText(500)),
+  was_approved: optional(z.boolean()),
 });
+const reopenedSchema = z.object({ tutor_name: optional(cleanText(120)) });
 
 type Base = z.infer<z.ZodObject<typeof baseShape>>;
 
@@ -543,6 +547,24 @@ function approved(p: z.infer<typeof approvedSchema>, ctx: Ctx): Built {
 }
 
 function rejected(p: z.infer<typeof rejectedSchema>, ctx: Ctx): Built {
+  if (p.was_approved) {
+    return {
+      subject: "Tu perfil docente fue dado de baja",
+      content: {
+        preheader: "Tu perfil dejó de aparecer en el catálogo de EstudiApp.",
+        title: "Tu perfil fue dado de baja",
+        blocks: [
+          { kind: "paragraph", text: "Tu perfil dejó de aparecer en el catálogo, así que los alumnos ya no pueden reservarte clases nuevas." },
+          ...(p.reason ? [{ kind: "callout", text: `Motivo: ${p.reason}` } satisfies Block] : []),
+          {
+            kind: "paragraph",
+            text: "Las clases que ya tenías confirmadas siguen en pie, salvo que te avisemos lo contrario. Si querés contarnos tu versión o corregir algo, podés actualizar tu perfil y volver a enviarlo a revisión.",
+          },
+          ...withLink(ctx, "/docente/perfil", "Ir a mi perfil"),
+        ],
+      },
+    };
+  }
   return {
     subject: "Revisamos tu perfil docente",
     content: {
@@ -556,6 +578,24 @@ function rejected(p: z.infer<typeof rejectedSchema>, ctx: Ctx): Built {
           text: "Podés corregir tu perfil y volver a enviarlo a revisión cuando quieras. Te avisamos por email apenas lo revisemos.",
         },
         ...withLink(ctx, "/docente/perfil", "Corregir mi perfil"),
+      ],
+    },
+  };
+}
+
+function reopened(_p: z.infer<typeof reopenedSchema>, ctx: Ctx): Built {
+  return {
+    subject: "Tu perfil docente volvió a revisión",
+    content: {
+      preheader: "Lo vamos a revisar de nuevo y te avisamos por email.",
+      title: "Tu perfil volvió a revisión",
+      blocks: [
+        {
+          kind: "paragraph",
+          text: "Volvimos a abrir tu perfil para revisarlo de nuevo. No tenés que hacer nada: te avisamos por email apenas tengamos una decisión.",
+        },
+        { kind: "paragraph", text: "Si querés sumar o corregir algo antes, podés editar tu perfil mientras tanto." },
+        ...withLink(ctx, "/docente/perfil", "Ver mi perfil"),
       ],
     },
   };
@@ -611,6 +651,12 @@ export function renderEmail({ kind, payload, toName, baseUrl }: RenderContext): 
       const parsed = rejectedSchema.safeParse(payload);
       if (!parsed.success) return { ok: false, reason: "invalid_payload" };
       built = rejected(parsed.data, ctx);
+      break;
+    }
+    case "perfil_reabierto": {
+      const parsed = reopenedSchema.safeParse(payload);
+      if (!parsed.success) return { ok: false, reason: "invalid_payload" };
+      built = reopened(parsed.data, ctx);
       break;
     }
     default:

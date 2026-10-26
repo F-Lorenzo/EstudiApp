@@ -9,6 +9,8 @@ export type TutorListRow = {
   nivel_academico: string | null;
   tarifa_por_clase: number;
   rating_promedio: number;
+  verification_reason: string | null;
+  updated_at: string;
   profiles: { full_name: string; avatar_url: string | null } | null;
   tutor_subjects: { subjects: { name: string } | null }[];
 };
@@ -20,10 +22,11 @@ export async function listTutorsByStatus(
   return supabase
     .from("tutor_profiles")
     .select(
-      "id, verification_status, created_at, bio, nivel_academico, tarifa_por_clase, rating_promedio, profiles(full_name, avatar_url), tutor_subjects(subjects(name))",
+      "id, verification_status, created_at, updated_at, bio, nivel_academico, tarifa_por_clase, rating_promedio, verification_reason, profiles(full_name, avatar_url), tutor_subjects(subjects(name))",
     )
     .eq("verification_status", status)
-    .order("created_at")
+    // Los rechazados, de la última decisión a la más vieja; el resto, por antigüedad.
+    .order(status === "rechazado" ? "updated_at" : "created_at", { ascending: status !== "rechazado" })
     .returns<TutorListRow[]>();
 }
 
@@ -40,6 +43,10 @@ export type AdminTutorRow = {
   ago: string;
   /** Todavía no cargó presentación o materias: no hay nada que revisar. */
   incomplete: boolean;
+  /** Motivo del rechazo o de la baja (solo en los rechazados). */
+  reason: string | null;
+  /** Cuándo cambió por última vez el perfil: «hace 2 días». */
+  updatedAgo: string;
 };
 
 export function toAdminRow(row: TutorListRow): AdminTutorRow {
@@ -57,6 +64,8 @@ export function toAdminRow(row: TutorListRow): AdminTutorRow {
     rating: Number(row.rating_promedio) || 0,
     ago: relativeFromNow(row.created_at),
     incomplete: !row.bio.trim() || subjects.length === 0,
+    reason: row.verification_reason?.trim() || null,
+    updatedAgo: relativeFromNow(row.updated_at ?? row.created_at),
   };
 }
 

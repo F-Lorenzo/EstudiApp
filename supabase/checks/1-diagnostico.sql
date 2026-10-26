@@ -36,7 +36,9 @@ with estado(n, nombre, aplicada) as (
     (17, '0017 asistencia a la sala (class_attendance)',
         to_regclass('public.class_attendance') is not null),
     (18, '0018 recordatorios de clase y decisión sobre el perfil (enqueue_class_reminders)',
-        to_regprocedure('public.enqueue_class_reminders()') is not null)
+        to_regprocedure('public.enqueue_class_reminders()') is not null),
+    (19, '0019 registro de acciones y decisiones sobre perfiles (audit_log)',
+        to_regclass('public.audit_log') is not null)
 ),
 -- Primera migración que falta, y si desde ahí faltan TODAS las siguientes (un tramo limpio).
 resumen as (

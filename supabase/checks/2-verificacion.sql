@@ -102,7 +102,7 @@ begin
   ), 'FALLA';
 
   -- 12 a 15. Cimientos del cobro (migración 0011). La 16 es de la 0012, la 17 de la 0013, la 18 de la 0014
-  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017 y la 25 de la 0018.
+  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018 y la 26 de la 0019.
   insert into _verificacion
   select 12, 'cobro: los tokens de Mercado Pago (mp_credentials) no se leen ni se escriben desde la API',
     case when to_regclass('public.mp_credentials') is null then false
@@ -276,6 +276,26 @@ begin
           and exists (select 1 from pg_proc p
                       where p.oid = to_regprocedure('public.claim_pending_emails(integer)')
                         and p.prosrc like '%recordatorio_24h%') end,
+    'FALLA';
+
+  -- 26. Registro de acciones (migración 0019): solo lo lee la administración, nadie lo escribe desde la API ni lo
+  --     edita, y decidir sobre un perfil pasa por decide_tutor_profile.
+  insert into _verificacion
+  select 26, 'registro: audit_log lo lee solo la administración, no se edita ni se borra, y las decisiones quedan anotadas',
+    case when to_regclass('public.audit_log') is null
+           or to_regprocedure('public.decide_tutor_profile(uuid, text, text)') is null then false
+         else (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.audit_log'))
+          and not has_table_privilege('anon', 'public.audit_log', 'select')
+          and not has_table_privilege('authenticated', 'public.audit_log', 'insert')
+          and not has_table_privilege('authenticated', 'public.audit_log', 'update')
+          and not has_table_privilege('authenticated', 'public.audit_log', 'delete')
+          and exists (select 1 from pg_policies
+                      where schemaname = 'public' and tablename = 'audit_log' and policyname = 'audit_log_select_admin')
+          and not has_function_privilege('anon', 'public.decide_tutor_profile(uuid, text, text)', 'execute')
+          and exists (select 1 from pg_trigger where tgname = 'audit_log_immutable' and not tgisinternal)
+          and exists (select 1 from pg_trigger where tgname = 'tutor_profiles_audit_status' and not tgisinternal)
+          and exists (select 1 from pg_trigger where tgname = 'bookings_audit_admin_cancel' and not tgisinternal)
+          and exists (select 1 from pg_trigger where tgname = 'profiles_audit_role' and not tgisinternal) end,
     'FALLA';
 
   -- 20. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).
