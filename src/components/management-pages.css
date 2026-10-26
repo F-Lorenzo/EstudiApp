@@ -2773,3 +2773,43 @@
     padding-left: 36px;
   }
 }
+
+/* Emails (/admin/emails): la configuración del envío y la bandeja. */
+.mgmt-email-setup {
+  display: grid;
+  margin: 0;
+}
+.mgmt-email-setup > div {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.mgmt-email-setup dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.mgmt-email-setup dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.875rem;
+}
+.mgmt-email-setup dd > span:not(.badge) {
+  overflow-wrap: anywhere;
+}
+.mgmt-email-setup small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.mgmt-email-strip {
+  margin-top: 36px;
+}
+@media (max-width: 640px) {
+  .mgmt-email-setup > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}

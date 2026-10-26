@@ -28,6 +28,7 @@ const NAV: Record<UserRole, NavItem[]> = {
     ["Rechazados", "/admin/docentes/rechazados", "x"],
     ["Comisión", "/admin/comision", "wallet"],
     ["Registro", "/admin/registro", "shield"],
+    ["Emails", "/admin/emails", "bell"],
     ["Contenido", "/admin/contenido", "image"],
     ["Métricas", "/admin/metricas", "chart"],
   ],

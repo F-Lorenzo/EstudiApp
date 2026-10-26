@@ -5,10 +5,12 @@ import { EmailSendError, sanitizeText, type EmailMessage, type EmailSender } fro
  * Envío de emails con Resend (https://resend.com/docs/api-reference/emails/send-email).
  *
  *   RESEND_API_KEY   clave de la API (solo servidor)
- *   EMAIL_FROM       remitente con dominio verificado en Resend, p. ej. «EstudiApp <hola@tu-dominio.com>»
+ *   EMAIL_FROM       remitente con dominio verificado en Resend, p. ej. «EstudiApp <avisos@mail.estudiapp.app>»
+ *   EMAIL_REPLY_TO   (opcional) adónde van las respuestas, p. ej. «soporte@estudiapp.app»
  *
- * Si falta alguna, el sender queda «no configurado» (`configured === false`): la bandeja de salida no
- * reclama filas y los emails esperan pendientes hasta que se configure.
+ * Si falta alguna de las dos primeras, o el «responder a» no es un email válido, el sender queda «no
+ * configurado» (`configured === false`): la bandeja de salida no reclama filas y los emails esperan
+ * pendientes hasta que se configure.
  *
  * A VERIFICAR CON LA CUENTA REAL DE RESEND (nada de esto se probó contra el servicio): el formato exacto de
  * los errores, que la cabecera `Idempotency-Key` se respete durante 24 h, y el límite de pedidos por segundo
@@ -28,6 +30,7 @@ const DEFAULT_TIMEOUT_MS = 8_000;
 export type ResendSenderOptions = {
   apiKey?: string;
   from?: string;
+  replyTo?: string;
   /** Se inyecta en las pruebas. */
   fetch?: typeof fetch;
   timeoutMs?: number;
@@ -47,6 +50,7 @@ export class ResendEmailSender implements EmailSender {
   readonly configured: boolean;
   private readonly apiKey: string;
   private readonly from: string;
+  private readonly replyTo: string | null;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
   private readonly url: string;
@@ -54,7 +58,8 @@ export class ResendEmailSender implements EmailSender {
   constructor(options: ResendSenderOptions = {}) {
     this.apiKey = options.apiKey?.trim() ?? "";
     this.from = options.from?.trim() ?? "";
-    this.configured = this.apiKey.length > 0 && FROM_PATTERN.test(this.from);
+    this.replyTo = options.replyTo?.trim() || null;
+    this.configured = this.apiKey.length > 0 && isValidSender(this.from) && (this.replyTo === null || isValidReplyTo(this.replyTo));
     this.fetchImpl = options.fetch ?? ((...args) => fetch(...args));
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.url = options.url ?? API_URL;
@@ -92,6 +97,7 @@ export class ResendEmailSender implements EmailSender {
           subject: message.subject.replace(/[\r\n]+/g, " ").trim(),
           html: message.html,
           text: message.text,
+          ...(this.replyTo ? { reply_to: this.replyTo } : {}),
         }),
         signal: AbortSignal.timeout(this.timeoutMs),
         cache: "no-store",
@@ -142,6 +148,17 @@ export class ResendEmailSender implements EmailSender {
   }
 }
 
+/** ¿Sirve como remitente? «Nombre <hola@dominio.com>» o «hola@dominio.com». */
+export function isValidSender(from: string): boolean {
+  return FROM_PATTERN.test(from.trim());
+}
+
+/** ¿Sirve como «responder a»? Una sola dirección, sin nombre. */
+export function isValidReplyTo(replyTo: string): boolean {
+  const value = replyTo.trim();
+  return value.length <= 254 && TO_PATTERN.test(value);
+}
+
 /** Resend responde errores como `{ statusCode, name, message }`. */
 function describeErrorBody(text: string): { code: string | null; message: string | null } {
   try {
@@ -157,8 +174,8 @@ function describeErrorBody(text: string): { code: string | null; message: string
 /** Sender de producción, con las variables de entorno del servidor. */
 export function createResendSender(
   env: Record<string, string | undefined> = runtimeEnv(),
-  overrides: Omit<ResendSenderOptions, "apiKey" | "from"> = {},
+  overrides: Omit<ResendSenderOptions, "apiKey" | "from" | "replyTo"> = {},
 ) {
-  return new ResendEmailSender({ apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM, ...overrides });
+  return new ResendEmailSender({ apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM, replyTo: env.EMAIL_REPLY_TO, ...overrides });
 }
 import { runtimeEnv } from "@/lib/runtime-env";

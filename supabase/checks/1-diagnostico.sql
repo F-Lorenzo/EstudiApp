@@ -44,7 +44,9 @@ with estado(n, nombre, aplicada) as (
     (21, '0021 comisión por reputación (commission_tiers)',
         to_regclass('public.commission_tiers') is not null),
     (22, '0022 contenido editable del sitio (site_content)',
-        to_regclass('public.site_content') is not null)
+        to_regclass('public.site_content') is not null),
+    (23, '0023 emails vencidos y estado de la bandeja (email_outbox_summary)',
+        to_regprocedure('public.email_outbox_summary()') is not null)
 ),
 -- Primera migración que falta, y si desde ahí faltan TODAS las siguientes (un tramo limpio).
 resumen as (

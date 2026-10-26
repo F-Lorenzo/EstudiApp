@@ -45,9 +45,10 @@ const F19 = "0019_admin_audit_log.sql";
 const F20 = "0020_admin_metrics.sql";
 const F21 = "0021_commission_tiers.sql";
 const F22 = "0022_site_content.sql";
-// `claim_pending_emails` se creó en la 0015 y la reemplazan la 0018 y la 0019; `enqueue_tutor_decision_email`, de la
+const F23 = "0023_email_expiry_and_summary.sql";
+// `claim_pending_emails` se creó en la 0015 y la reemplazan la 0018, la 0019 y la 0023; `enqueue_tutor_decision_email`, de la
 // 0018, la reemplaza la 0019. Sus mutaciones van sobre la versión vigente.
-const CLAIM = F19;
+const CLAIM = F23;
 const DECISION = F19;
 const F11 = "0011_payments_foundation.sql";
 const CANCEL = ["cancel-refund", "bookings", "payment-notifications", "email-outbox"];
@@ -60,6 +61,7 @@ const AUDIT = ["audit-log", "reminders", "rls-matrix", "hardening"];
 const METRICS = ["metrics", "rls-matrix"];
 const COMMISSION = ["commission", "payments", "rls-matrix"];
 const CONTENT = ["site-content", "rls-matrix"];
+const EXPIRY = ["email-expiry", "email-outbox", "reminders", "rls-matrix"];
 
 const M = [
   // ---------------------------------------------------------------- 0013
@@ -217,6 +219,14 @@ const M = [
   [F22, "22-05 el anuncio se enciende sin texto", (s) => sub(s, "constraint site_content_announcement_text check (not announcement_enabled or announcement_text is not null),", ""), CONTENT],
   [F22, "22-06 los cambios no se registran", (s) => sub(s, "create trigger site_content_audit\n  after update on public.site_content", "create trigger site_content_audit\n  after insert on public.site_content"), CONTENT],
   [F22, "22-07 guardar sin cambios igual se registra", (s) => sub(s, "  if v_changed is null then\n    return null;\n  end if;\n", ""), CONTENT],
+  // ---------------------------------------------------------------- 0023
+  [CLAIM, "23-01 los emails no vencen", (s) => sub(s, "    and o.created_at <= now() - interval '48 hours';", "    and false;"), EXPIRY],
+  [CLAIM, "23-02 vencen a la semana, no a las 48 horas", (s) => sub(s, "interval '48 hours'", "interval '7 days'"), EXPIRY],
+  [CLAIM, "23-03 vence también lo que agotó los intentos", (s) => sub(s, "  where o.status in ('pendiente', 'fallido')\n    and o.attempts < 5\n    and o.created_at", "  where o.status in ('pendiente', 'fallido')\n    and o.created_at"), EXPIRY],
+  [CLAIM, "23-04 vence también lo enviado", (s) => sub(s, "  where o.status in ('pendiente', 'fallido')\n    and o.attempts < 5\n    and o.created_at", "  where o.status <> 'omitido'\n    and o.attempts < 5\n    and o.created_at"), EXPIRY],
+  [F23, "23-05 cualquiera con sesión ve el resumen", (s) => sub(s, "if not public.is_admin() then\n    raise exception 'Solo la administración ve la bandeja", "if false then\n    raise exception 'Solo la administración ve la bandeja"), EXPIRY],
+  [F23, "23-06 el resumen abierto a un visitante", (s) => s + "\ngrant execute on function public.email_outbox_summary() to anon;\n", EXPIRY],
+  [F23, "23-07 «esperando» cuenta lo que agotó los intentos", (s) => sub(s, "'waiting', count(*) filter (where o.status in ('pendiente', 'fallido') and o.attempts < 5)", "'waiting', count(*) filter (where o.status in ('pendiente', 'fallido'))"), EXPIRY],
   [F19, "19-14 se manda la reapertura de un perfil que ya no está pendiente", (s) => sub(s, "          else 'pendiente'\n        end);", "          else tp.verification_status::text\n        end);"), AUDIT],
 ];
 

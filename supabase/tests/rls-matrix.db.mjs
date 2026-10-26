@@ -294,6 +294,8 @@ const FUNCIONES = [
   ["public.audit_commission_change()", ["service_role"]],
   // 0022: el registro de los cambios del contenido del sitio, interno.
   ["public.audit_site_content_change()", ["service_role"]],
+  // 0023: el resumen de la bandeja de emails (la función exige administración).
+  ["public.email_outbox_summary()", ["authenticated", "service_role"]],
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {

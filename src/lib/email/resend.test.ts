@@ -63,6 +63,14 @@ describe("envío correcto", () => {
     });
   });
 
+  it("con EMAIL_REPLY_TO, las respuestas van a esa dirección", async () => {
+    const fetchMock = vi.fn(async () => json({ id: "re-id-2" }));
+    const sender = new ResendEmailSender({ apiKey: API_KEY, from: FROM, replyTo: " soporte@estudiapp.example ", fetch: fetchMock as unknown as typeof fetch });
+    await sender.send(message);
+    const init = (fetchMock.mock.calls[0] as unknown as [string, { body: string }])[1];
+    expect(JSON.parse(init.body).reply_to).toBe("soporte@estudiapp.example");
+  });
+
   it("corta a los 8 segundos por defecto (y respeta otro plazo si se lo piden)", async () => {
     const { sender, calls } = setup([json({ id: "a" }), json({ id: "b" })]);
     await sender.send(message);
@@ -209,6 +217,9 @@ describe("sin configuración", () => {
     ["remitente sin arroba", { apiKey: API_KEY, from: "EstudiApp" }],
     ["remitente con salto de línea", { apiKey: API_KEY, from: "EstudiApp <hola@estudiapp.example>\r\nBcc: x@y.example" }],
     ["remitente con varios destinos", { apiKey: API_KEY, from: "a@estudiapp.example, b@estudiapp.example" }],
+    ["responder a sin arroba", { apiKey: API_KEY, from: FROM, replyTo: "soporte" }],
+    ["responder a con varias direcciones", { apiKey: API_KEY, from: FROM, replyTo: "a@estudiapp.example, b@estudiapp.example" }],
+    ["responder a con salto de línea", { apiKey: API_KEY, from: FROM, replyTo: "a@estudiapp.example\r\nBcc: x@y.example" }],
   ])("%s: queda no configurado y no llama a la red", async (_label, options) => {
     const { sender, fetchMock } = setup([], options);
     expect(sender.configured).toBe(false);
@@ -226,6 +237,8 @@ describe("sin configuración", () => {
     expect(createResendSender({ RESEND_API_KEY: API_KEY }).configured).toBe(false);
     expect(createResendSender({ EMAIL_FROM: FROM }).configured).toBe(false);
     expect(createResendSender({}).configured).toBe(false);
+    expect(createResendSender({ RESEND_API_KEY: API_KEY, EMAIL_FROM: FROM, EMAIL_REPLY_TO: "soporte@estudiapp.example" }).configured).toBe(true);
+    expect(createResendSender({ RESEND_API_KEY: API_KEY, EMAIL_FROM: FROM, EMAIL_REPLY_TO: "soporte" }).configured).toBe(false);
   });
 });
 

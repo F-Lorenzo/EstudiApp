@@ -24,7 +24,8 @@ Además, cargar en **Workers & Pages → estudiapp → Settings → Runtime vari
 and secrets → Production** las variables solo de servidor: `SUPABASE_SERVICE_ROLE_KEY`,
 `MERCADOPAGO_CLIENT_ID`, `MERCADOPAGO_CLIENT_SECRET`,
 `MERCADOPAGO_WEBHOOK_SECRET`, `MERCADOPAGO_TOKEN_ENCRYPTION_KEY`, `RESEND_API_KEY`,
-`EMAIL_FROM` y `CRON_SECRET`. El código de servidor lee los bindings runtime de
+`EMAIL_FROM`, `EMAIL_REPLY_TO` y `CRON_SECRET` (`EMAIL_FROM` y `EMAIL_REPLY_TO` pueden ir como texto; el resto,
+como secretos; Resend paso a paso en [RESEND.md](RESEND.md)). El código de servidor lee los bindings runtime de
 OpenNext; no alcanza con definir estos secretos exclusivamente durante el build.
 
 Wrangler usa `keep_vars: true` para conservar las variables existentes del

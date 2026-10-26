@@ -102,7 +102,7 @@ begin
   ), 'FALLA';
 
   -- 12 a 15. Cimientos del cobro (migración 0011). La 16 es de la 0012, la 17 de la 0013, la 18 de la 0014
-  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021 y la 29 de la 0022.
+  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021, la 29 de la 0022 y la 30 de la 0023.
   insert into _verificacion
   select 12, 'cobro: los tokens de Mercado Pago (mp_credentials) no se leen ni se escriben desde la API',
     case when to_regclass('public.mp_credentials') is null then false
@@ -335,6 +335,15 @@ begin
           and exists (select 1 from pg_policies
                       where schemaname = 'public' and tablename = 'site_content' and policyname = 'site_content_update_admin')
           and exists (select 1 from pg_trigger where tgname = 'site_content_audit' and not tgisinternal) end,
+    'FALLA';
+
+  -- 30. Emails (migración 0023): vencen a las 48 horas y el resumen de la bandeja es solo de la administración.
+  insert into _verificacion
+  select 30, 'emails: los que no salen en 48 horas vencen y el resumen de la bandeja no lo ve un visitante',
+    case when to_regprocedure('public.email_outbox_summary()') is null then false
+         else not has_function_privilege('anon', 'public.email_outbox_summary()', 'execute')
+          and not has_function_privilege('authenticated', 'public.claim_pending_emails(integer)', 'execute')
+          and coalesce(position('48 hours' in pg_get_functiondef(to_regprocedure('public.claim_pending_emails(integer)'))), 0) > 0 end,
     'FALLA';
 
   -- 20. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).
