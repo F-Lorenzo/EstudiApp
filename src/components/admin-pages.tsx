@@ -532,6 +532,7 @@ const TARGET_LABEL: Record<AuditEntry["targetType"], string> = {
   docente: "Docente",
   reserva: "Clase",
   cuenta: "Cuenta",
+  comision: "Comisión",
 };
 
 /** Registro de acciones de la administración (y los cambios de estado de los perfiles). */

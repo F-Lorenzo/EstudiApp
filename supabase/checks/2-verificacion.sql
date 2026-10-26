@@ -102,7 +102,7 @@ begin
   ), 'FALLA';
 
   -- 12 a 15. Cimientos del cobro (migración 0011). La 16 es de la 0012, la 17 de la 0013, la 18 de la 0014
-  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019 y la 27 de la 0020.
+  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019, la 27 de la 0020 y la 28 de la 0021.
   insert into _verificacion
   select 12, 'cobro: los tokens de Mercado Pago (mp_credentials) no se leen ni se escriben desde la API',
     case when to_regclass('public.mp_credentials') is null then false
@@ -306,6 +306,22 @@ begin
           and exists (select 1 from pg_proc p
                       where p.oid = to_regprocedure('public.admin_metrics(integer)')
                         and p.prosecdef and p.prosrc like '%is_admin()%') end,
+    'FALLA';
+
+  -- 28. Comisión por reputación (migración 0021): la configuración y los escalones son de la administración y
+  --     cada cambio queda registrado.
+  insert into _verificacion
+  select 28, 'comisión: configuración y escalones solo de la administración, con registro de cada cambio',
+    case when to_regclass('public.commission_tiers') is null
+           or to_regclass('public.commission_settings') is null then false
+         else (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.commission_tiers'))
+          and (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.commission_settings'))
+          and not has_table_privilege('anon', 'public.commission_tiers', 'select')
+          and not has_table_privilege('anon', 'public.commission_settings', 'select')
+          and not has_function_privilege('anon', 'public.commission_preview()', 'execute')
+          and not has_function_privilege('authenticated', 'public.tutor_review_stats(uuid)', 'execute')
+          and exists (select 1 from pg_trigger where tgname = 'commission_tiers_audit' and not tgisinternal)
+          and exists (select 1 from pg_trigger where tgname = 'commission_settings_audit' and not tgisinternal) end,
     'FALLA';
 
   -- 20. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).

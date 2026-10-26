@@ -43,6 +43,7 @@ const F17 = "0017_class_attendance.sql";
 const F18 = "0018_reminder_and_tutor_decision_emails.sql";
 const F19 = "0019_admin_audit_log.sql";
 const F20 = "0020_admin_metrics.sql";
+const F21 = "0021_commission_tiers.sql";
 // `claim_pending_emails` se creó en la 0015 y la reemplazan la 0018 y la 0019; `enqueue_tutor_decision_email`, de la
 // 0018, la reemplaza la 0019. Sus mutaciones van sobre la versión vigente.
 const CLAIM = F19;
@@ -56,6 +57,7 @@ const ATTENDANCE = ["attendance", "rls-matrix", "hardening"];
 const REMINDERS = ["reminders", "email-outbox", "rls-matrix"];
 const AUDIT = ["audit-log", "reminders", "rls-matrix", "hardening"];
 const METRICS = ["metrics", "rls-matrix"];
+const COMMISSION = ["commission", "payments", "rls-matrix"];
 
 const M = [
   // ---------------------------------------------------------------- 0013
@@ -192,6 +194,19 @@ const M = [
   [F20, "20-05 las semanas no son de lunes a domingo", (s) => sub(s, "date_trunc('week', now() at time zone v_tz))::date - (v_weeks - 1) * 7", "date_trunc('week', now() at time zone v_tz))::date - (v_weeks - 1) * 7 + 2"), METRICS],
   [F20, "20-06 sin tope de semanas", (s) => sub(s, "least(coalesce(p_weeks, 8), 26)", "coalesce(p_weeks, 8)"), METRICS],
   [F20, "20-07 las reservas vencidas se cuentan como canceladas pagas", (s) => sub(s, "        where b.status = 'cancelada' and b.updated_at >= v_since\n          and exists", "        where b.status = 'cancelada' and b.updated_at >= v_since\n          and true or exists"), METRICS],
+  // ---------------------------------------------------------------- 0021
+  [F21, "21-01 arranca encendida", (s) => sub(s, "enabled boolean not null default false,", "enabled boolean not null default true,"), COMMISSION],
+  [F21, "21-02 apagada igual aplica los escalones", (s) => sub(s, "if not v_settings.enabled then\n    return v_settings.base_rate;\n  end if;", ""), COMMISSION],
+  [F21, "21-03 sin piso", (s) => sub(s, "return greatest(v_settings.floor_rate, least(", "return greatest(0, least("), COMMISSION],
+  [F21, "21-04 se elige el escalón más alto en vez del más bajo", (s) => sub(s, "select min(t.rate) into v_tier", "select max(t.rate) into v_tier"), COMMISSION],
+  [F21, "21-05 un escalón desactivado cuenta", (s) => sub(s, "  where t.active and v_reviews >= t.min_reviews and v_average >= t.min_rating;", "  where v_reviews >= t.min_reviews and v_average >= t.min_rating;"), COMMISSION],
+  [F21, "21-06 no se mira la calificación mínima", (s) => sub(s, "  where t.active and v_reviews >= t.min_reviews and v_average >= t.min_rating;", "  where t.active and v_reviews >= t.min_reviews;"), COMMISSION],
+  [F21, "21-07 un alumno con varias clases cuenta varias veces", (s) => sub(s, "    group by r.student_id\n", "    group by r.student_id, r.id\n"), COMMISSION],
+  [F21, "21-08 cuentan las clases sin pago aprobado", (s) => sub(s, "    join public.payments p on p.booking_id = b.id and p.status = 'aprobado'\n    where r.tutor_id = p_tutor", "    left join public.payments p on p.booking_id = b.id\n    where r.tutor_id = p_tutor"), COMMISSION],
+  [F21, "21-09 cualquiera con sesión edita los escalones", (s) => sub(s, `create policy "commission_tiers_insert_admin" on public.commission_tiers for insert with check (public.is_admin());`, `create policy "commission_tiers_insert_admin" on public.commission_tiers for insert with check (true);`), COMMISSION],
+  [F21, "21-10 los cambios de la configuración no se registran", (s) => sub(s, "create trigger commission_settings_audit\n  after update on public.commission_settings", "create trigger commission_settings_audit\n  after insert on public.commission_settings"), COMMISSION],
+  [F21, "21-11 cualquiera ve la vista previa", (s) => sub(s, "if not public.is_admin() then\n    raise exception 'Solo la administración ve la comisión", "if false then\n    raise exception 'Solo la administración ve la comisión"), COMMISSION],
+  [F21, "21-12 el piso puede quedar por encima de la base", (s) => sub(s, "check (floor_rate >= 0 and floor_rate <= base_rate and base_rate < 1)", "check (floor_rate >= 0 and base_rate < 1)"), COMMISSION],
   [F19, "19-14 se manda la reapertura de un perfil que ya no está pendiente", (s) => sub(s, "          else 'pendiente'\n        end);", "          else tp.verification_status::text\n        end);"), AUDIT],
 ];
 

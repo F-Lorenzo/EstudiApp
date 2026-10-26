@@ -16,6 +16,10 @@ const ACTIONS: Record<string, string> = {
   cambiar_estado: "Cambió el estado del perfil",
   cancelar_clase: "Canceló una clase",
   cambiar_rol: "Cambió el rol de una cuenta",
+  cambiar_comision: "Cambió la configuración de la comisión",
+  crear_escalon: "Agregó un escalón de comisión",
+  cambiar_escalon: "Cambió un escalón de comisión",
+  borrar_escalon: "Borró un escalón de comisión",
 };
 
 const ROLES: Record<string, string> = { alumno: "alumno", docente: "docente", administrador: "administración" };
@@ -25,7 +29,7 @@ const rowSchema = z.object({
   actor_kind: z.enum(["administracion", "docente", "sistema"]),
   actor_name: z.string().nullable(),
   action: z.string(),
-  target_type: z.enum(["docente", "reserva", "cuenta"]),
+  target_type: z.enum(["docente", "reserva", "cuenta", "comision"]),
   target_id: z.string(),
   reason: z.string().nullable(),
   details: z.record(z.string(), z.unknown()).catch({}),
@@ -41,7 +45,7 @@ export type AuditEntry = {
   actor: string;
   actorKind: "administracion" | "docente" | "sistema";
   reason: string | null;
-  targetType: "docente" | "reserva" | "cuenta";
+  targetType: "docente" | "reserva" | "cuenta" | "comision";
   targetId: string;
   /** A quién o a qué se le hizo: el docente, la clase («Lucía con Martín, 20 de octubre»), la cuenta. */
   target: string | null;
@@ -56,12 +60,36 @@ export type AuditEntry = {
 // Según la versión de ICU, el día sale «lunes 26 de octubre» o «lunes, 26 de octubre»: se unifica sin la coma.
 const day = (iso: string) => longDate(iso).replace(/^([^\s,]+),\s*/, "$1 ");
 
+const pct = (value: unknown) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? `${(Math.round(n * 10000) / 100).toLocaleString("es-AR")} %` : null;
+};
+
+/** «Encendida · base 12 % · piso 6 %» o «10 reseñas · 4,5 · 10 %», con lo que quedó (o lo que había, si se borró). */
+function describeCommission(details: Record<string, unknown>): string | null {
+  const row = (details.after ?? details.before) as Record<string, unknown> | undefined;
+  if (!row || typeof row !== "object") return null;
+  if ("enabled" in row) {
+    return [row.enabled ? "Encendida" : "Apagada", `base ${pct(row.base_rate)}`, `piso ${pct(row.floor_rate)}`].join(" · ");
+  }
+  const rating = Number(row.min_rating);
+  return [
+    `${row.min_reviews} reseñas`,
+    Number.isFinite(rating) ? `${rating.toLocaleString("es-AR")} o más` : null,
+    pct(row.rate),
+    row.active === false ? "inactivo" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : null);
 
 function describeTarget(row: z.infer<typeof rowSchema>): string | null {
   const d = row.details;
   if (row.target_type === "docente") return text(d.tutor_name);
   if (row.target_type === "cuenta") return text(d.account_name);
+  if (row.target_type === "comision") return describeCommission(d);
   const student = text(d.student_name);
   const tutor = text(d.tutor_name);
   const startsAt = text(d.starts_at);

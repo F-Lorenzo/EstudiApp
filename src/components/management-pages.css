@@ -1731,6 +1731,91 @@
   font-size: clamp(1.75rem, 3vw, 2.75rem);
   overflow-wrap: anywhere;
 }
+.mgmt-commission-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+.mgmt-commission-settings {
+  display: grid;
+  gap: 18px;
+}
+.mgmt-commission-preview {
+  margin-top: 32px;
+}
+.mgmt-check {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.mgmt-check input {
+  margin-top: 3px;
+  accent-color: var(--forest);
+  width: 18px;
+  height: 18px;
+}
+.mgmt-check small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.mgmt-tier-list {
+  display: grid;
+  gap: 4px;
+}
+.mgmt-tier-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) 70px auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.mgmt-tier-head {
+  font-size: 0.7rem;
+  color: var(--muted);
+  padding-bottom: 6px;
+}
+.mgmt-tier-head + .mgmt-tier-base {
+  margin: 8px 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.mgmt-tier-label {
+  display: none;
+}
+.mgmt-tier-active {
+  padding-top: 10px;
+}
+.mgmt-tier-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.mgmt-tier-message {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+@media (max-width: 860px) {
+  .mgmt-commission-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mgmt-tier-head {
+    display: none;
+  }
+  .mgmt-tier-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mgmt-tier-label {
+    display: inline;
+  }
+  .mgmt-tier-actions {
+    grid-column: 1 / -1;
+  }
+}
 .mgmt-metric-strip-secondary {
   border-top: 0;
 }

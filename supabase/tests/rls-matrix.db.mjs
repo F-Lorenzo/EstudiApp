@@ -287,6 +287,11 @@ const FUNCIONES = [
   ["public.audit_role_change()", ["service_role"]],
   // 0020: las métricas (la función exige administración).
   ["public.admin_metrics(integer)", ["authenticated", "service_role"]],
+  // 0021: comisión por reputación. La vista previa exige administración; las reseñas que cuentan y el registro,
+  // internos.
+  ["public.commission_preview()", ["authenticated", "service_role"]],
+  ["public.tutor_review_stats(uuid)", ["service_role"]],
+  ["public.audit_commission_change()", ["service_role"]],
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {

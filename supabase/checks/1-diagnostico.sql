@@ -40,7 +40,9 @@ with estado(n, nombre, aplicada) as (
     (19, '0019 registro de acciones y decisiones sobre perfiles (audit_log)',
         to_regclass('public.audit_log') is not null),
     (20, '0020 métricas de la administración (admin_metrics)',
-        to_regprocedure('public.admin_metrics(integer)') is not null)
+        to_regprocedure('public.admin_metrics(integer)') is not null),
+    (21, '0021 comisión por reputación (commission_tiers)',
+        to_regclass('public.commission_tiers') is not null)
 ),
 -- Primera migración que falta, y si desde ahí faltan TODAS las siguientes (un tramo limpio).
 resumen as (

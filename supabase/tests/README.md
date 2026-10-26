@@ -27,6 +27,7 @@ npm run test:db -- bookings  # solo las que tengan «bookings» en el nombre
 | `reminders.db.mjs` | Recordatorios y decisión sobre el perfil (0018): las ventanas de 24 horas y 1 hora, las dos partes, sin duplicar, sin recordatorio pegado al email de la reserva, el descarte al reclamar de los recordatorios de clases canceladas o empezadas y de las decisiones que cambiaron, que el email nunca haga fallar la decisión y los permisos |
 | `audit-log.db.mjs` | Registro de acciones y decisiones sobre perfiles (0019): cada acción de `decide_tutor_profile` con sus transiciones y motivos, que todo cambio de estado quede registrado (también el docente que reenvía y los cambios sin sesión), las cancelaciones y los cambios de rol de la administración, que el registro no se edite ni se borre (ni con la service role), quién lo lee y los emails de reapertura y baja |
 | `metrics.db.mjs` | Métricas (0020): que solo la administración las vea y que cada cifra cuente lo que dice (pagos cobrados, también los devueltos enteros; comisión neta de reembolsos; cancelaciones, ausencias y reservas vencidas; activos; calificaciones; semanas de lunes a domingo) |
+| `commission.db.mjs` | Comisión por reputación (0021): apagada todos pagan la base; encendida, el escalón más bajo que se cumple sin bajar del piso; qué reseñas cuentan (completadas y pagas, una por alumno); la reserva guarda la tasa del momento; solo la administración lee y edita, y cada cambio queda en el registro |
 | `checks.db.mjs` | Que las consultas de `supabase/checks` (diagnóstico y verificación para el SQL Editor) funcionen en cualquier estado de la base y digan lo correcto (cada una de las 22 filas, con las migraciones hasta cada punto, y que marquen FALLA si una función queda con permisos de más) |
 
 Los ayudantes `seed.mjs` (datos base; el docente base ya tiene una cuenta de cobro de relleno vigente) y
@@ -50,7 +51,7 @@ cambio: así la regla queda escrita.
 ### Mutaciones
 
 Una regla que se puede romper sin que ninguna prueba falle no está probada. `mutations.mjs` rompe a propósito
-**127 reglas** de las migraciones 0013 a 0020 (y de la política de reembolsos de la 0011) y comprueba que alguna
+**139 reglas** de las migraciones 0013 a 0021 (y de la política de reembolsos de la 0011) y comprueba que alguna
 suite falle: un umbral de 24 h o 2 h, el porcentaje del tramo parcial, el redondeo del monto, un `for update`, la
 cuenta de cobro que se guarda en el reembolso, un permiso abierto a `authenticated`, la restricción única de la
 bandeja de emails, el payload con el email adentro, el reintento sin espera, una fila enviada que vuelve atrás, etc.

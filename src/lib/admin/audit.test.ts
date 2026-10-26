@@ -58,6 +58,19 @@ describe("toAuditEntry", () => {
     expect(entry).toMatchObject({ target: "Tomás", change: "de alumno a administración" });
   });
 
+  it("los cambios de comisión dicen cómo quedó", () => {
+    const settings = toAuditEntry(
+      row({ action: "cambiar_comision", target_type: "comision", reason: null, details: { after: { enabled: true, base_rate: 0.12, floor_rate: 0.06 } } }),
+      NOW,
+    );
+    expect(settings).toMatchObject({ label: "Cambió la configuración de la comisión", target: "Encendida · base 12 % · piso 6 %" });
+    const tier = toAuditEntry(
+      row({ action: "borrar_escalon", target_type: "comision", details: { before: { min_reviews: 10, min_rating: 4.5, rate: 0.1, active: true } } }),
+      NOW,
+    );
+    expect(tier).toMatchObject({ label: "Borró un escalón de comisión", target: "10 reseñas · 4,5 o más · 10 %" });
+  });
+
   it("una fila ilegible se descarta; una acción desconocida se muestra tal cual", () => {
     expect(toAuditEntry({ id: 1 }, NOW)).toBeNull();
     expect(toAuditEntry(row({ action: "nueva_accion" }), NOW)?.label).toBe("nueva_accion");
