@@ -208,7 +208,7 @@ Objetivo: salir a producción con confianza.
    reducido ya estaba cubierto (CSS global y la mascota con `gsap.matchMedia`). Las pantallas principales quedan
    controladas en el CI (`e2e/recorrido.spec.ts`).
 2. **Búsqueda sin tildes en SQL** (`unaccent`) y paginación del catálogo.
-   ✅ hecho (migración `0025`, falta aplicarla; 26 de octubre de 2026): `search_tutor_catalog` busca sin tildes ni
+   ✅ hecho (migración `0025`, aplicada; 26 de octubre de 2026): `search_tutor_catalog` busca sin tildes ni
    mayúsculas, con cada palabra en el nombre o en alguna materia, filtra, ordena y devuelve de a 10 docentes con el
    total; el catálogo tiene páginas (`?pagina=`). «Con horarios disponibles» pasa a ser «se puede reservar».
 3. **Rate limiting y anti-bots** en login, registro, recuperación, reservas y **pago con tarjeta**
