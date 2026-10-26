@@ -164,7 +164,7 @@ que no se graba); qué datos del alumno ve el docente.
 Objetivo: que el equipo pueda operar el producto sin tocar la base de datos.
 
 1. **Emails restantes**: recordatorio de clase, aprobación o rechazo del perfil docente.
-   ✅ código (migración `0018`, falta aplicarla): recordatorio 24 horas y 1 hora antes a las dos partes
+   ✅ código (migración `0018`, aplicada): recordatorio 24 horas y 1 hora antes a las dos partes
    (decisión del 25 de octubre de 2026) y email al docente con la decisión sobre su perfil. Se envían cuando
    esté configurado Resend (Fase 4, ítem 7).
 2. **Administración**: lista de rechazados con motivo y reapertura (con historial de decisiones),
