@@ -5,7 +5,8 @@
   --rust: #b02e0c;
   --dust: #ccc5b9;
   --ink: #173d2b;
-  --muted: #64736a;
+  /* Textos secundarios: 4,5 a 1 o más sobre todos los fondos crema (revisión de accesibilidad, 26/10/2026). */
+  --muted: #58675e;
   --line: #deddd1;
   --surface: #f6f3e9;
   --font-body: "Figtree Variable", sans-serif;

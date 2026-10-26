@@ -9,6 +9,9 @@ registro del alumno → búsqueda → reserva → pago (simulado) → cobros del
 opinión pública
 ```
 
+Al final, con esos datos, recorre las pantallas principales de cada rol en escritorio y en un celular de 390 px:
+ninguna puede tener problemas de accesibilidad de WCAG 2.1 AA que detecte axe ni desbordar de costado.
+
 Además de lo que se ve en pantalla, cada paso comprueba la base: el estado del perfil y de la reserva, el registro
 de acciones, el reparto del pago con la comisión (15.000 = 1.800 + 13.200) y los emails anotados en la bandeja.
 

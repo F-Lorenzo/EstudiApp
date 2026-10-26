@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dateKeyAR, dayParts, initials, longDate, money, relativeDate, timeAR, timeRange } from "./format";
+import { dateKeyAR, dayParts, initials, longDate, money, relativeDate, timeAR, timeRange, ratingAR } from "./format";
 
 // Argentina no cambia de horario: UTC-3 todo el año. Las pruebas no dependen de la zona de la máquina.
 describe("fechas en hora de Argentina", () => {
@@ -66,5 +66,13 @@ describe("initials", () => {
 
   it("tiene un valor por defecto para un nombre vacío", () => {
     expect(initials("")).toBe("E");
+  });
+});
+
+describe("calificaciones", () => {
+  it("van con un decimal y coma", () => {
+    expect(ratingAR(5)).toBe("5,0");
+    expect(ratingAR(4.75)).toBe("4,8");
+    expect(ratingAR(3.333)).toBe("3,3");
   });
 });

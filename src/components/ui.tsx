@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { initials, money } from "@/lib/format";
+import { initials, money, ratingAR } from "@/lib/format";
 import type { Teacher } from "@/lib/tutors/view";
 
 const iconPaths: Record<string, string[]> = {
@@ -218,7 +218,7 @@ export function TeacherCard({
           </span>
           <span>
             <Icon name="star" size={14} />{" "}
-            {teacher.rating > 0 ? teacher.rating.toFixed(1) : "Nuevo"}
+            {teacher.rating > 0 ? ratingAR(teacher.rating) : "Nuevo"}
           </span>
         </div>
         <h3>

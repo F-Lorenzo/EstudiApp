@@ -11,6 +11,7 @@ Este repo combina la funcionalidad (Supabase, roles, aprobación de docentes) co
 - El tono es cercano, claro y respaldado por experiencia. No prometas resultados académicos garantizados.
 - Los estilos son CSS plano con clases con prefijo por área (`pub-`, `stu-`, `mgmt-`). No hay Tailwind. Las fechas se muestran en hora de Argentina con los helpers de `src/lib/format.ts`.
 - Mantené los estados vacíos, de carga, éxito y error ya diseñados. La revisión visual debe incluir escritorio, móvil y `prefers-reduced-motion`.
+- Accesibilidad (revisión del 26 de octubre de 2026): todo texto cumple 4,5 a 1 de contraste (3 a 1 si es grande). Para textos secundarios usá `var(--muted)` (`#58675e`), no grises más claros; sobre fondos verdes, crema o `#d3ddbf`. Una tabla que se desplaza de costado va dentro de `<TableWrap label="…">` (`management-ui.tsx`). Las calificaciones se muestran con `ratingAR` («4,8»). El CI corre axe (WCAG 2.1 AA) y busca desbordes en las pantallas principales, en escritorio y a 390 px.
 
 ## Convenciones del código
 

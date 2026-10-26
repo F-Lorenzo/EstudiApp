@@ -264,8 +264,8 @@ export function Home({
             <Icon name="clock" size={17} />
             Un ritmo que es tuyo
           </span>
-          <a href="#descubri" aria-label="Descubrí EstudiApp">
-            SEGUÍ EXPLORANDO <span>↓</span>
+          <a href="#descubri">
+            SEGUÍ EXPLORANDO <span aria-hidden="true">↓</span>
           </a>
         </div>
       </section>

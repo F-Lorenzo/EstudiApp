@@ -6,6 +6,7 @@ import { Avatar, Icon } from "@/components/ui";
 import { rateClass } from "@/app/alumno/historial/actions";
 import { initialActionState } from "@/lib/validation/form-state";
 import { RATING_COMMENT_MAX } from "@/lib/validation/rating";
+import { ratingAR } from "@/lib/format";
 
 const DESCRIPTIONS = [
   "Elegí una puntuación",
@@ -62,7 +63,7 @@ export function ClassRating({
       {shownScore != null ? (
         <span className="stu-review-score" aria-label={`Calificaste la clase con ${shownScore} de 5 estrellas`}>
           <Icon name="star" size={16} />
-          {shownScore.toFixed(1).replace(".", ",")}
+          {ratingAR(shownScore)}
         </span>
       ) : showForm ? (
         <button

@@ -61,6 +61,11 @@ export function timeRange(startIso: string, endIso: string) {
   return `${timeAR(startIso)} – ${timeAR(endIso)} h`;
 }
 
+/** Una calificación con un decimal y coma, como se escribe en Argentina: «4,8». */
+export function ratingAR(value: number) {
+  return value.toLocaleString("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
 /** «miércoles 30 de septiembre». */
 export function longDate(iso: string) {
   return part(iso, { weekday: "long", day: "numeric", month: "long" });

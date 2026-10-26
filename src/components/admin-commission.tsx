@@ -15,6 +15,7 @@ import {
   type CommissionTier,
 } from "@/lib/admin/commission";
 import { initialActionState } from "@/lib/validation/form-state";
+import { TableWrap } from "@/components/management-ui";
 
 /** Una tasa (0,125) como la escribe una persona en el formulario («12,5»). */
 const asPercentInput = (rate: number) => String(Math.round(rate * 10000) / 100).replace(".", ",");
@@ -80,7 +81,7 @@ export function CommissionAdmin({
           </div>
         </div>
         {preview.length ? (
-          <div className="mgmt-table-wrap">
+          <TableWrap label="Cómo queda cada docente">
             <table className="mgmt-table">
               <thead>
                 <tr>
@@ -105,7 +106,7 @@ export function CommissionAdmin({
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableWrap>
         ) : (
           <EmptyState title="Todavía no hay docentes aprobados" description="Cuando apruebes uno, aparece acá con su comisión." />
         )}

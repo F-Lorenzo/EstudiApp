@@ -11,10 +11,11 @@ import {
 import { FieldError } from "@/components/field-error";
 import { Avatar, Badge, EmptyState, PageHeading } from "@/components/ui";
 import type { AuditEntry } from "@/lib/admin/audit";
-import { money } from "@/lib/format";
+import { money, ratingAR } from "@/lib/format";
 import type { AdminTutorRow } from "@/lib/tutors/queries";
 import { initialActionState, type ActionState } from "@/lib/validation/form-state";
 import { MODERATION_REASON_MAX } from "@/lib/validation/moderation";
+import { TableWrap } from "@/components/management-ui";
 
 function normalize(value: string) {
   return value
@@ -145,7 +146,7 @@ export function ActiveTeachers({ rows }: { rows: AdminTutorRow[] }) {
           />
         </label>
       </div>
-      <div className="mgmt-table-wrap">
+      <TableWrap label="Docentes">
         {filtered.length > 0 && (
           <table className="mgmt-table mgmt-teachers-table">
             <thead>
@@ -177,7 +178,7 @@ export function ActiveTeachers({ rows }: { rows: AdminTutorRow[] }) {
                     {row.rating > 0 ? (
                       <>
                         <span className="mgmt-star">★</span>{" "}
-                        {row.rating.toFixed(1)}
+                        {ratingAR(row.rating)}
                       </>
                     ) : (
                       "Sin valoraciones"
@@ -230,7 +231,7 @@ export function ActiveTeachers({ rows }: { rows: AdminTutorRow[] }) {
             )}
           </EmptyState>
         )}
-      </div>
+      </TableWrap>
       <div className="mgmt-list-footnote">
         <span>
           {filtered.length} {filtered.length === 1 ? "docente" : "docentes"}
@@ -547,7 +548,7 @@ export function AuditLog({ entries }: { entries: AuditEntry[] }) {
       >
         <span className="mgmt-count-tag">Últimas {entries.length}</span>
       </PageHeading>
-      <div className="mgmt-table-wrap">
+      <TableWrap label="Registro de acciones">
         {entries.length ? (
           <table className="mgmt-table mgmt-audit-table">
             <thead>
@@ -562,18 +563,18 @@ export function AuditLog({ entries }: { entries: AuditEntry[] }) {
             <tbody>
               {entries.map((entry) => (
                 <tr key={entry.id}>
-                  <td>
+                  <td data-label="Cuándo">
                     <time dateTime={entry.createdAt} title={entry.when}>
                       {entry.ago}
                     </time>
                     <span className="mgmt-audit-when">{entry.when}</span>
                   </td>
-                  <td>{entry.actor}</td>
-                  <td>
+                  <td data-label="Quién">{entry.actor}</td>
+                  <td data-label="Acción">
                     {entry.label}
                     {entry.change && <span className="mgmt-audit-when">{entry.change}</span>}
                   </td>
-                  <td>
+                  <td data-label="Sobre">
                     <span className="mgmt-audit-kind">{TARGET_LABEL[entry.targetType]}</span>
                     {entry.targetType === "docente" ? (
                       <Link href={`/admin/docentes/${entry.targetId}`} className="mgmt-text-button">
@@ -583,7 +584,7 @@ export function AuditLog({ entries }: { entries: AuditEntry[] }) {
                       (entry.target ?? "—")
                     )}
                   </td>
-                  <td>{entry.reason ?? "—"}</td>
+                  <td data-label="Motivo">{entry.reason ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -594,7 +595,7 @@ export function AuditLog({ entries }: { entries: AuditEntry[] }) {
             description="Cuando se apruebe, rechace o dé de baja un perfil, queda anotado acá."
           />
         )}
-      </div>
+      </TableWrap>
     </div>
   );
 }

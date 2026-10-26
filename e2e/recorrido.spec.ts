@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { sql, value } from "./db";
 
@@ -179,3 +180,43 @@ test("después de la clase, el alumno la califica y la opinión se ve en el perf
   await expect(page.getByText("Tomás E.")).toBeVisible();
   await expect(page.getByText(ALUMNO.name)).toHaveCount(0);
 });
+
+/**
+ * Accesibilidad y diseño responsive (ROADMAP, Fase 4, ítem 1), con los datos que dejó el recorrido: cada pantalla
+ * principal, en escritorio y en un celular de 390 px, no puede tener problemas de accesibilidad de WCAG 2.1 AA que
+ * detecte axe ni desbordar de costado.
+ */
+const SCREENS: { who: "anon" | "alumno" | "docente" | "admin"; paths: () => string[] }[] = [
+  { who: "anon", paths: () => ["/", "/docentes", `/docentes/${idOf(DOCENTE.email)}`, "/como-funciona", "/login", "/registro/alumno", "/recuperar-password"] },
+  { who: "alumno", paths: () => ["/alumno", "/alumno/historial", "/alumno/perfil", `/alumno/reservar/${idOf(DOCENTE.email)}`, `/alumno/reservas/${bookingId}`] },
+  { who: "docente", paths: () => ["/docente", "/docente/disponibilidad", "/docente/perfil"] },
+  { who: "admin", paths: () => ["/admin/docentes/pendientes", "/admin/docentes/activos", `/admin/docentes/${idOf(DOCENTE.email)}`, "/admin/comision", "/admin/contenido", "/admin/emails", "/admin/metricas", "/admin/registro"] },
+];
+const EMAILS = { alumno: ALUMNO.email, docente: DOCENTE.email, admin: ADMIN.email };
+
+for (const { who, paths } of SCREENS) {
+  test(`accesibilidad y celular: pantallas de ${who === "anon" ? "visitante" : who}`, async ({ browser }) => {
+    let storageState;
+    if (who !== "anon") {
+      const page = await login(browser, EMAILS[who]);
+      storageState = await page.context().storageState();
+      await page.context().close();
+    }
+    const problems: string[] = [];
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      const context = await browser.newContext({ viewport, storageState, locale: "es-AR", timezoneId: "America/Argentina/Buenos_Aires" });
+      const page = await context.newPage();
+      for (const path of paths()) {
+        await page.goto(path, { waitUntil: "networkidle" });
+        const where = `${path} (${viewport.width} px)`;
+        const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+        for (const v of violations) problems.push(`${where}: ${v.id} en ${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join(", ")}`);
+        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        if (overflow > 1) problems.push(`${where}: la página se desborda ${overflow} px de costado`);
+      }
+      await context.close();
+    }
+    expect(problems).toEqual([]);
+  });
+}
+

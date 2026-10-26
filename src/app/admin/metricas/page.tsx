@@ -1,13 +1,14 @@
 import { ButtonLink, EmptyState, PageHeading } from "@/components/ui";
 import { getAdminMetrics, weekLabel } from "@/lib/admin/metrics";
-import { moneyExact, relativeFromNow } from "@/lib/format";
+import { moneyExact, relativeFromNow, ratingAR } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
+import { TableWrap } from "@/components/management-ui";
 
 export const metadata = { title: "Métricas" };
 
 const WEEKS = 8;
 const number = (value: number) => value.toLocaleString("es-AR");
-const rating = (value: number | null) => (value === null ? "—" : value.toFixed(1).replace(".", ","));
+const rating = (value: number | null) => (value === null ? "—" : ratingAR(value));
 
 export default async function MetricasPage() {
   const supabase = await createClient();
@@ -121,7 +122,7 @@ export default async function MetricasPage() {
             </p>
           </div>
         </div>
-        <div className="mgmt-table-wrap">
+        <TableWrap label="Semana a semana">
           <table className="mgmt-table mgmt-weeks-table">
             <thead>
               <tr>
@@ -153,7 +154,7 @@ export default async function MetricasPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableWrap>
         <p className="mgmt-field-hint">
           En los últimos 30 días se devolvieron {moneyExact(month.refunded)} a alumnos y {number(month.expired_holds)}{" "}
           {month.expired_holds === 1 ? "reserva venció" : "reservas vencieron"} sin pagarse. A los docentes les quedaron{" "}

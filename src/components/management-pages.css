@@ -19,6 +19,10 @@
 .mgmt-page a {
   color: inherit;
 }
+/* El botón naranja lleva siempre texto oscuro, también sobre la tarjeta verde de la próxima clase. */
+.mgmt-page a.button-primary {
+  color: #142419;
+}
 .mgmt-page button:focus-visible,
 .mgmt-page a:focus-visible,
 .mgmt-page input:focus-visible,
@@ -904,7 +908,6 @@
   padding: 0 0 28px;
 }
 .mgmt-calendar-toolbar h2 {
-  text-transform: capitalize;
   margin-top: 6px;
   font-size: 1.75rem;
 }
@@ -1138,7 +1141,7 @@
   background: #f1f1e5;
 }
 .mgmt-request-index {
-  color: #94a088;
+  color: var(--muted);
   font-size: 0.7rem;
   align-self: center;
 }
@@ -1991,7 +1994,7 @@
   font-size: 0.75rem;
 }
 .mgmt-report-rank {
-  color: #95a187;
+  color: var(--muted);
   font-size: 0.65rem;
 }
 .mgmt-subject-report-row > strong {
@@ -2813,3 +2816,55 @@
     gap: 4px;
   }
 }
+
+/* Pestañas: en un celular entran las cuatro del panel docente. */
+@media (max-width: 420px) {
+  .mgmt-tabs {
+    gap: 16px;
+  }
+}
+
+/* Registro de acciones en el celular: cada acción es una tarjeta, con el motivo a la vista (no fuera de la pantalla). */
+@media (max-width: 640px) {
+  .mgmt-audit-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .mgmt-audit-table,
+  .mgmt-audit-table tbody,
+  .mgmt-audit-table tr,
+  .mgmt-audit-table td {
+    display: block;
+    width: 100%;
+  }
+  .mgmt-audit-table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .mgmt-audit-table td,
+  .mgmt-audit-table td:first-child,
+  .mgmt-audit-table td:last-child {
+    max-width: none;
+    padding: 0;
+    border: 0;
+  }
+  .mgmt-audit-table td[data-label="Motivo"] {
+    grid-column: 1 / -1;
+  }
+  .mgmt-audit-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--muted);
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+}
+

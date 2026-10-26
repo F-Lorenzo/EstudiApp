@@ -4,7 +4,7 @@ import { useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, ButtonLink, EmptyState, Icon } from "@/components/ui";
-import { money } from "@/lib/format";
+import { money, ratingAR } from "@/lib/format";
 import {
   catalogQueryString,
   PRICE_CEILING,
@@ -358,7 +358,9 @@ function TeacherRow({ teacher }: { teacher: Teacher }) {
       <Link
         href={`/docentes/${teacher.id}`}
         className="pub-teacher-photo"
-        aria-label={`Ver perfil de ${teacher.name}`}
+        // Repite el enlace del nombre: fuera del orden de tabulación y de los lectores de pantalla.
+        aria-hidden="true"
+        tabIndex={-1}
       >
         <Avatar name={teacher.name} src={teacher.photo ?? undefined} size={112} />
         <span className="pub-verified" title="Perfil verificado por EstudiApp">
@@ -375,7 +377,7 @@ function TeacherRow({ teacher }: { teacher: Teacher }) {
           {teacher.rating > 0 ? (
             <>
               <Icon name="star" size={15} />
-              <strong>{teacher.rating.toFixed(1)}</strong>
+              <strong>{ratingAR(teacher.rating)}</strong>
             </>
           ) : (
             <span>Nuevo en EstudiApp</span>

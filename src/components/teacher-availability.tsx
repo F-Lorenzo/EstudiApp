@@ -50,11 +50,13 @@ export function TeacherAvailability({
   const [saving, startSaving] = useTransition();
 
   const dates = weekDates(weekStart);
-  const monthLabel = new Date(`${weekStart}T12:00:00Z`).toLocaleDateString("es-AR", {
+  const month = new Date(`${weekStart}T12:00:00Z`).toLocaleDateString("es-AR", {
     month: "long",
     year: "numeric",
     timeZone: "UTC",
   });
+  // «Octubre de 2026»: solo la primera letra en mayúscula (con `text-transform: capitalize` salía «Octubre De 2026»).
+  const monthLabel = month.charAt(0).toUpperCase() + month.slice(1);
   const dayOf = (date: string) => Number(date.slice(8));
   const changeCount = Object.keys(pendingChanges).length;
 

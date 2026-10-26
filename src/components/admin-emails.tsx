@@ -5,6 +5,7 @@ import { sendTestEmail } from "@/app/admin/emails/actions";
 import { Badge, PageHeading } from "@/components/ui";
 import type { EmailSetup } from "@/lib/admin/email-status";
 import { initialActionState } from "@/lib/validation/form-state";
+import { TableWrap } from "@/components/management-ui";
 
 export type EmailProblemRow = { key: string; kind: string; status: "fallido" | "omitido"; error: string; when: string };
 
@@ -74,6 +75,8 @@ export function EmailStatus({ setup, outbox }: EmailStatusView) {
       </PageHeading>
 
       <div className="mgmt-commission-layout">
+        {/* Como en Comisión: el formulario en la columna angosta y la tabla en la ancha. */}
+        <TestEmailForm ready={setup.ready} />
         <section className="mgmt-panel">
           <div className="mgmt-section-heading">
             <div>
@@ -93,7 +96,6 @@ export function EmailStatus({ setup, outbox }: EmailStatusView) {
             ))}
           </dl>
         </section>
-        <TestEmailForm ready={setup.ready} />
       </div>
 
       {outbox ? (
@@ -128,7 +130,7 @@ export function EmailStatus({ setup, outbox }: EmailStatusView) {
               </div>
             </div>
             {outbox.problems.length ? (
-              <div className="mgmt-table-wrap">
+              <TableWrap label="Últimos problemas">
                 <table className="mgmt-table">
                   <thead>
                     <tr>
@@ -153,7 +155,7 @@ export function EmailStatus({ setup, outbox }: EmailStatusView) {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TableWrap>
             ) : (
               <p className="mgmt-field-hint">Ningún problema por ahora.</p>
             )}

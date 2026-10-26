@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Avatar, Badge, ButtonLink, Icon } from "@/components/ui";
-import { money } from "@/lib/format";
+import { money, ratingAR } from "@/lib/format";
 import type { UserRole } from "@/lib/auth/roles";
 import type { Teacher } from "@/lib/tutors/view";
 
@@ -74,7 +74,7 @@ export function TeacherProfile({
                 {teacher.rating > 0 ? (
                   <>
                     <Icon name="star" size={18} />
-                    <strong>{teacher.rating.toFixed(1)}</strong>
+                    <strong>{ratingAR(teacher.rating)}</strong>
                     <a href="#opiniones">
                       {reviewCount}{" "}
                       {reviewCount === 1 ? "opinión" : "opiniones"}
@@ -139,7 +139,7 @@ export function TeacherProfile({
               </div>
               {reviews.length > 0 && (
                 <div className="pub-review-score">
-                  <strong>{teacher.rating.toFixed(1)}</strong>
+                  <strong>{ratingAR(teacher.rating)}</strong>
                   <span>
                     <Icon name="star" size={17} /> {reviewCount}{" "}
                     {reviewCount === 1 ? "opinión" : "opiniones"}
@@ -167,6 +167,7 @@ export function TeacherProfile({
                 </div>
                 <div
                   className="pub-review-stars"
+                  role="img"
                   aria-label={`${review.score} de 5 estrellas`}
                 >
                   {[1, 2, 3, 4, 5].map((number) => (

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Tabs } from "@/components/management-ui";
+import { Tabs, TableWrap } from "@/components/management-ui";
 import {
   Avatar,
   Badge,
@@ -20,7 +20,7 @@ import {
 import type { PayoutAccountView } from "@/app/docente/cuenta-de-cobro/state";
 import type { EarningsTotals, TutorEarning } from "@/lib/bookings/tutor-earnings";
 import type { TutorClass } from "@/lib/bookings/tutor-queries";
-import { dayParts, isToday, longDate, moneyExact, timeAR, timeRange } from "@/lib/format";
+import { dayParts, isToday, longDate, moneyExact, timeAR, timeRange, ratingAR } from "@/lib/format";
 import type { AccountNotice } from "@/lib/payments/account-notice";
 
 export function TeacherDashboard({
@@ -100,7 +100,7 @@ export function TeacherDashboard({
           {rating > 0 ? (
             <>
               <strong>
-                {rating.toFixed(1).replace(".", ",")}{" "}
+                {ratingAR(rating)}{" "}
                 <span className="mgmt-star">★</span>
               </strong>{" "}
               valoración promedio
@@ -235,7 +235,7 @@ export function TeacherDashboard({
             </Badge>
           </div>
           {completed.length ? (
-            <div className="mgmt-table-wrap">
+            <TableWrap label="Lo que ya compartiste">
               <table className="mgmt-table">
                 <thead>
                   <tr>
@@ -261,7 +261,7 @@ export function TeacherDashboard({
                           {row.score != null ? (
                             <>
                               <span className="mgmt-star">★</span>{" "}
-                              {row.score.toFixed(1).replace(".", ",")}
+                              {ratingAR(row.score)}
                             </>
                           ) : (
                             "Sin reseña"
@@ -272,7 +272,7 @@ export function TeacherDashboard({
                   })}
                 </tbody>
               </table>
-            </div>
+            </TableWrap>
           ) : (
             <EmptyState
               title="Todavía no completaste clases"
@@ -342,7 +342,7 @@ function TeacherEarnings({
         )}
       </div>
       {items.length ? (
-        <div className="mgmt-table-wrap">
+        <TableWrap label="Cobros">
           <table className="mgmt-table mgmt-earnings-table">
             <thead>
               <tr>
@@ -395,7 +395,7 @@ function TeacherEarnings({
               })}
             </tbody>
           </table>
-        </div>
+        </TableWrap>
       ) : (
         <EmptyState
           title="Todavía no tenés cobros"

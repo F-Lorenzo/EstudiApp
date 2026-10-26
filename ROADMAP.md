@@ -200,6 +200,13 @@ Objetivo: salir a producción con confianza.
 
 1. **Revisión responsive y de accesibilidad** de todas las pantallas con sesión; movimiento
    reducido.
+   ✅ hecho (26 de octubre de 2026): las 35 pantallas, con cada rol, en escritorio y en un celular de 390 px, con
+   datos reales, axe (WCAG 2.1 AA) y capturas revisadas a ojo. Arreglado: el gris de los textos secundarios
+   (`--muted`, de 4,0–4,5 a 1 a 4,75 a 1 o más), el botón naranja y «Cancelar esta clase» sobre la tarjeta verde,
+   tablas que se desplazan de costado ahora enfocables, el registro de acciones como tarjetas en el celular, la
+   pantalla de emails en escritorio, etiquetas para lectores de pantalla y calificaciones con coma. El movimiento
+   reducido ya estaba cubierto (CSS global y la mascota con `gsap.matchMedia`). Las pantallas principales quedan
+   controladas en el CI (`e2e/recorrido.spec.ts`).
 2. **Búsqueda sin tildes en SQL** (`unaccent`) y paginación del catálogo.
 3. **Rate limiting y anti-bots** en login, registro, recuperación, reservas y **pago con tarjeta**
    (`payWithCard`: hoy una persona con una reserva pendiente puede probar tarjetas sin límite durante

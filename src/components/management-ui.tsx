@@ -1,5 +1,19 @@
 "use client";
 
+import type { ReactNode } from "react";
+
+/**
+ * Contenedor de una tabla que se desplaza de costado en pantallas chicas. Es enfocable para que se pueda recorrer
+ * con el teclado, y tiene nombre para los lectores de pantalla.
+ */
+export function TableWrap({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="mgmt-table-wrap" role="region" aria-label={label} tabIndex={0}>
+      {children}
+    </div>
+  );
+}
+
 export function Notice({ message }: { message: string }) {
   return message ? (
     <div className="mgmt-notice" role="status">

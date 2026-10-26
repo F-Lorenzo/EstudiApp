@@ -2286,6 +2286,9 @@
   text-transform: uppercase;
   color: var(--muted);
 }
+.stu-day-grid button.is-selected small {
+  color: #d3ddbf;
+}
 .stu-day-grid {
   grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
 }

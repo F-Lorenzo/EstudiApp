@@ -21,6 +21,10 @@
   text-underline-offset: 4px;
   cursor: pointer;
 }
+/* Sobre la tarjeta verde de la próxima clase, el óxido no se lee: va en crema. */
+.mgmt-next-class .tcc-trigger {
+  color: var(--cream);
+}
 .tcc-trigger:disabled {
   cursor: not-allowed;
   opacity: 0.5;
