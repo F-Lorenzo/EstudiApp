@@ -29,7 +29,7 @@ los mismos pasos en el real. Si el proyecto solo tiene datos de prueba, podés i
 | La última fila dice… | Hacé esto |
 |---|---|
 | «aplicá supabase/aplicar-0006-a-0010.sql…» | Seguí con el paso 2. Es el caso esperado. |
-| «proyecto vacío…» | **Instalación desde cero**: corré `npm run db:bundle -- 1 22`, copiá todo `supabase/aplicar-0001-a-0022.sql` (o `npm run db:bundle -- 1 22 --compacto` para la versión sin comentarios), pegalo en el SQL Editor y Run. Con eso quedan las diecisiete migraciones y **saltás directo al paso 4** (verificación). |
+| «proyecto vacío…» | **Instalación desde cero**: corré `npm run db:bundle -- 1 22`, copiá todo `supabase/aplicar-0001-a-0022.sql` (o `npm run db:bundle -- 1 22 --compacto` para la versión sin comentarios), pegalo en el SQL Editor y Run. Con eso quedan las veintidós migraciones y **saltás directo al paso 4** (verificación). |
 | «faltan algunas de 0001 a 0005…» | Aplicá solo las de 0001 a 0005 que dicen NO, en orden. Volvé a correr el diagnóstico. |
 | «nada: están todas…» | Saltá al paso 4. |
 | «estado mezclado…» | **No sigas.** Mandame el resultado completo del diagnóstico. |
