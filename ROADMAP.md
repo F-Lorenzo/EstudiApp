@@ -210,6 +210,9 @@ Objetivo: salir a producción con confianza.
    registro y recuperación, y Turnstile (se enciende al cargar sus claves).
 4. **Pruebas de punta a punta** del recorrido completo (registro → aprobación → búsqueda →
    reserva → pago → clase → calificación).
+   ✅ hecho (26 de octubre de 2026): `npm run e2e` (Playwright, [e2e/README.md](e2e/README.md)) con la app y un
+   Supabase local reales, y un job propio en el CI. El pago es el simulado y la cuenta de Mercado Pago del docente
+   es de mentira: el cobro real se prueba en el ítem 7.
 5. **Textos legales finales** (términos, privacidad, cancelación, condiciones de ingreso) y marca.
 6. Quitar `noindex`, quitar los avisos de «vista de muestra», verificar la firma del webhook en
    todos los entornos y **desplegar a producción**.

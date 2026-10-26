@@ -45,3 +45,37 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # El recorrido completo en un navegador contra un Supabase local (e2e/README.md). Tampoco usa secretos: las
+  # claves son las de demo del Supabase local.
+  punta-a-punta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Supabase local
+        run: npm run e2e:supabase
+
+      - name: Navegador
+        run: npx playwright install --with-deps chromium
+
+      - name: Recorrido de punta a punta
+        run: npm run e2e
+
+      - name: Informe del recorrido
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: recorrido-punta-a-punta
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

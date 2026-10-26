@@ -1,0 +1,53 @@
+# Supabase local SOLO para las pruebas de punta a punta (e2e/README.md). No es la configuración del proyecto
+# real. Las migraciones no salen de acá: `scripts/e2e-db.mjs` aplica supabase/migrations con el mismo archivo
+# único que se usa para un proyecto nuevo (`npm run db:bundle`).
+project_id = "estudiapp-e2e"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.migrations]
+enabled = false
+
+[db.seed]
+enabled = false
+
+[realtime]
+enabled = false
+
+[studio]
+enabled = false
+
+[storage]
+enabled = false
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false
+
+[local_smtp]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://localhost:3100"
+additional_redirect_urls = ["http://localhost:3100"]
+jwt_expiry = 3600
+enable_signup = true
+minimum_password_length = 8
+
+[auth.email]
+enable_signup = true
+# Sin servidor de correo en las pruebas: las cuentas quedan confirmadas al crearse.
+enable_confirmations = false

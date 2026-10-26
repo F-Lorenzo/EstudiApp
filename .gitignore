@@ -12,6 +12,11 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/e2e/supabase/.temp/
+/supabase/.temp/
+/e2e/supabase/.branches/
 
 # next.js
 /.next/
