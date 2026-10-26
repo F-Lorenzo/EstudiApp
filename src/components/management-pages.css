@@ -205,6 +205,20 @@
 .mgmt-star {
   color: var(--rust);
 }
+.mgmt-earnings-summary {
+  padding-top: 8px;
+}
+.mgmt-earnings-table td {
+  vertical-align: top;
+  white-space: nowrap;
+}
+.mgmt-earnings-sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.7rem;
+  color: var(--muted);
+  white-space: normal;
+}
 .mgmt-tabs {
   display: flex;
   gap: 32px;

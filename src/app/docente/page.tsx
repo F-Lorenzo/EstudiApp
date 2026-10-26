@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { TeacherDashboard } from "@/components/teacher-dashboard";
 import { getViewer } from "@/lib/auth/viewer";
+import { getTutorEarnings } from "@/lib/bookings/tutor-earnings";
 import {
   getNextOpenSlot,
   getTutorClasses,
@@ -32,6 +33,7 @@ export default async function DocenteInicioPage({
     nextOpenSlot,
     privateData,
     canReceive,
+    earnings,
   ] =
     await Promise.all([
       supabase
@@ -54,6 +56,7 @@ export default async function DocenteInicioPage({
         .eq("id", viewer.id)
         .maybeSingle<{ mercadopago_account_id: string | null }>(),
       supabase.rpc("tutor_can_receive_payments", { p_tutor: viewer.id }),
+      getTutorEarnings(supabase, viewer.id),
     ]);
 
   return (
@@ -72,6 +75,11 @@ export default async function DocenteInicioPage({
         failed: Boolean(privateData.error || canReceive.error),
       })}
       accountNotice={parseAccountNotice(cuenta)}
+      earnings={{
+        items: earnings.items,
+        totals: earnings.totals,
+        failed: Boolean(earnings.error),
+      }}
     />
   );
 }

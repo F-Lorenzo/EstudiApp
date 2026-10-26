@@ -18,8 +18,9 @@ import {
   PayoutAccountReminder,
 } from "@/app/docente/cuenta-de-cobro/payout-account-card";
 import type { PayoutAccountView } from "@/app/docente/cuenta-de-cobro/state";
+import type { EarningsTotals, TutorEarning } from "@/lib/bookings/tutor-earnings";
 import type { TutorClass } from "@/lib/bookings/tutor-queries";
-import { dayParts, isToday, longDate, timeAR, timeRange } from "@/lib/format";
+import { dayParts, isToday, longDate, moneyExact, timeAR, timeRange } from "@/lib/format";
 import type { AccountNotice } from "@/lib/payments/account-notice";
 
 export function TeacherDashboard({
@@ -33,6 +34,7 @@ export function TeacherDashboard({
   loadFailed,
   payoutAccount,
   accountNotice,
+  earnings,
 }: {
   tutorId: string;
   status: string;
@@ -46,6 +48,8 @@ export function TeacherDashboard({
   payoutAccount: PayoutAccountView;
   /** Resultado de la vinculación recién hecha (`?cuenta=`), si vuelve de Mercado Pago. */
   accountNotice: AccountNotice | null;
+  /** Cobros: cada clase pagada con sus tres cifras, y los totales. */
+  earnings: { items: TutorEarning[]; totals: EarningsTotals; failed: boolean };
 }) {
   // Al volver de Mercado Pago se abre directo la pestaña donde está el resultado.
   const [tab, setTab] = useState(
@@ -107,7 +111,7 @@ export function TeacherDashboard({
         </span>
       </div>
       <Tabs
-        items={["Próximas clases", "Historial", "Cuenta de cobro"]}
+        items={["Próximas clases", "Historial", "Cobros", "Cuenta de cobro"]}
         value={tab}
         onChange={setTab}
       />
@@ -277,9 +281,127 @@ export function TeacherDashboard({
           )}
         </section>
       )}
+      {tab === "Cobros" && <TeacherEarnings {...earnings} />}
       {tab === "Cuenta de cobro" && (
         <PayoutAccountPanel view={payoutAccount} notice={accountNotice} />
       )}
     </div>
+  );
+}
+
+const EARNING_STATUS: Record<TutorEarning["status"], { label: string; tone: "green" | "orange" | "muted" }> = {
+  proxima: { label: "Próxima", tone: "orange" },
+  confirmando: { label: "Confirmando asistencia", tone: "orange" },
+  completada: { label: "Dada", tone: "green" },
+  cancelada: { label: "Cancelada", tone: "muted" },
+};
+
+/** Pestaña «Cobros»: por cada clase pagada, lo que pagó el alumno, la comisión y lo que le queda al docente. */
+function TeacherEarnings({
+  items,
+  totals,
+  failed,
+}: {
+  items: TutorEarning[];
+  totals: EarningsTotals;
+  failed: boolean;
+}) {
+  if (failed)
+    return (
+      <EmptyState
+        title="No pudimos cargar tus cobros."
+        description="Hubo un problema de nuestro lado. Actualizá la página en un momento."
+      />
+    );
+
+  return (
+    <section className="mgmt-panel">
+      <div className="mgmt-section-heading">
+        <div>
+          <h2>Tus cobros, clase por clase</h2>
+          <p>
+            Lo que pagó cada alumno, la comisión de EstudiApp y lo que te queda. Tu parte se acredita en tu
+            cuenta de Mercado Pago.
+          </p>
+        </div>
+      </div>
+      <div className="mgmt-summary-line mgmt-earnings-summary">
+        <span>
+          <strong>{moneyExact(totals.earned)}</strong> te quedaron por clases dadas
+        </span>
+        <span>
+          <strong>{moneyExact(totals.upcoming)}</strong> por clases confirmadas
+        </span>
+        <span>
+          <strong>{moneyExact(totals.commission)}</strong> de comisión
+        </span>
+        {totals.refunded > 0 && (
+          <span>
+            <strong>{moneyExact(totals.refunded)}</strong> devueltos a alumnos
+          </span>
+        )}
+      </div>
+      {items.length ? (
+        <div className="mgmt-table-wrap">
+          <table className="mgmt-table mgmt-earnings-table">
+            <thead>
+              <tr>
+                <th>Clase</th>
+                <th>Estado</th>
+                <th>Pagó el alumno</th>
+                <th>Comisión</th>
+                <th>Te queda</th>
+                <th>Reembolso</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => {
+                const { day, month } = dayParts(item.startsAt);
+                const status = EARNING_STATUS[item.status];
+                return (
+                  <tr key={item.id}>
+                    <td>
+                      <strong>
+                        {day} {month}
+                      </strong>
+                      <span className="mgmt-earnings-sub">
+                        {item.studentName} · {timeRange(item.startsAt, item.endsAt)}
+                      </span>
+                    </td>
+                    <td>
+                      <Badge tone={status.tone}>{status.label}</Badge>
+                    </td>
+                    <td>{moneyExact(item.paid)}</td>
+                    <td>{moneyExact(item.commission)}</td>
+                    <td>
+                      <strong>{moneyExact(item.tutorAmount)}</strong>
+                    </td>
+                    <td>
+                      {item.refund ? (
+                        <>
+                          {moneyExact(item.refund.amount)} ({item.refund.percent} %)
+                          <span className="mgmt-earnings-sub">
+                            {item.refund.state === "hecho"
+                              ? "Devuelto al alumno"
+                              : "En curso: las cifras se ajustan cuando se complete"}
+                          </span>
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <EmptyState
+          title="Todavía no tenés cobros"
+          description="Cuando un estudiante pague una clase con vos, la vas a ver acá con lo que te queda."
+        />
+      )}
+    </section>
   );
 }

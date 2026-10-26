@@ -8,6 +8,16 @@ export function money(value: number) {
   }).format(value);
 }
 
+/** Como `money`, pero con centavos cuando los hay («$ 1.200,50»): para cifras de cobros, que no se redondean. */
+export function moneyExact(value: number) {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 /** Todas las fechas se muestran en hora de Argentina, sin importar dónde corra el código. */
 const TIME_ZONE = "America/Argentina/Buenos_Aires";
 

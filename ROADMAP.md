@@ -173,6 +173,9 @@ Objetivo: que el equipo pueda operar el producto sin tocar la base de datos.
    26 de octubre de 2026): reabrir devuelve el perfil a «pendiente» y avisa al docente; dar de baja exige motivo
    y deja en pie las clases confirmadas. Faltan banners e imágenes y las métricas reales.
 3. **Docente**: estado de la cuenta de Mercado Pago, historial y cobros.
+   ✅ pestaña «Cobros» del panel (sin migración: la RLS ya le deja leer los pagos y reembolsos de sus clases):
+   por cada clase pagada, lo que pagó el alumno, la comisión y lo que le queda (decisión del 26 de octubre
+   de 2026), los reembolsos y los totales.
 3b. **Comisión por reputación**: escalones según calificaciones (menos comisión cuanto mejores
    referencias), administrables desde el panel. Diseño en [docs/FASE-1-PLAN.md](docs/FASE-1-PLAN.md);
    necesita el formulario real de calificaciones de la Fase 2.
