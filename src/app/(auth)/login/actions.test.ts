@@ -13,6 +13,8 @@ vi.mock("next/navigation", async () => {
   };
 });
 vi.mock("@/lib/supabase/server", () => ({ createClient }));
+const guardAuthRequest = vi.hoisted(() => vi.fn(async () => null as string | null));
+vi.mock("@/lib/security/auth-guard", () => ({ guardAuthRequest }));
 
 function formulario(campos: Record<string, string>) {
   const form = new FormData();
@@ -29,7 +31,11 @@ function sesion(role: string | null) {
   });
 }
 
-beforeEach(() => createClient.mockReset());
+beforeEach(() => {
+  createClient.mockReset();
+  guardAuthRequest.mockReset();
+  guardAuthRequest.mockResolvedValue(null);
+});
 
 describe("login", () => {
   it("con datos inválidos no llama a Supabase y conserva el email", async () => {
@@ -81,5 +87,16 @@ describe("login", () => {
   it("si no se puede leer el rol, entra como alumno (el rol más limitado)", async () => {
     createClient.mockResolvedValue(sesion(null).client);
     expect(await catchRedirect(() => login({}, formulario(VALIDO)))).toBe("/alumno");
+  });
+
+  it("si el control contra abuso lo frena, no llama a Supabase", async () => {
+    const supabase = fakeSupabase();
+    createClient.mockResolvedValue(supabase.client);
+    guardAuthRequest.mockResolvedValue("Hiciste muchos intentos seguidos. Esperá un minuto y probá de nuevo.");
+
+    const result = await login({}, formulario(VALIDO));
+    expect(result).toEqual({ error: "Hiciste muchos intentos seguidos. Esperá un minuto y probá de nuevo.", values: { email: VALIDO.email } });
+    expect(guardAuthRequest).toHaveBeenCalledWith("login", expect.any(FormData), { email: VALIDO.email });
+    expect(supabase.client.auth.signInWithPassword).not.toHaveBeenCalled();
   });
 });

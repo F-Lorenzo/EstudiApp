@@ -7,6 +7,9 @@ describe("errores de reservas", () => {
   it("traduce el código de la base a un texto para la persona", () => {
     expect(bookingErrorMessage({ hint: "slot_taken" })).toMatch(/otra persona/);
     expect(bookingErrorMessage({ hint: "too_many_holds" })).toMatch(/sin pagar/);
+    expect(bookingErrorMessage({ hint: "too_many_daily_holds" })).toMatch(/24 horas/);
+    expect(bookingErrorMessage({ hint: "too_many_card_attempts_booking" })).toMatch(/5 intentos/);
+    expect(bookingErrorMessage({ hint: "too_many_card_attempts" })).toMatch(/mañana/);
   });
 
   it("nunca muestra un mensaje técnico", () => {

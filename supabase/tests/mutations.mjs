@@ -46,6 +46,7 @@ const F20 = "0020_admin_metrics.sql";
 const F21 = "0021_commission_tiers.sql";
 const F22 = "0022_site_content.sql";
 const F23 = "0023_email_expiry_and_summary.sql";
+const F24 = "0024_abuse_limits.sql";
 // `claim_pending_emails` se creó en la 0015 y la reemplazan la 0018, la 0019 y la 0023; `enqueue_tutor_decision_email`, de la
 // 0018, la reemplaza la 0019. Sus mutaciones van sobre la versión vigente.
 const CLAIM = F23;
@@ -62,6 +63,7 @@ const METRICS = ["metrics", "rls-matrix"];
 const COMMISSION = ["commission", "payments", "rls-matrix"];
 const CONTENT = ["site-content", "rls-matrix"];
 const EXPIRY = ["email-expiry", "email-outbox", "reminders", "rls-matrix"];
+const ABUSE = ["abuse-limits", "rls-matrix", "bookings"];
 
 const M = [
   // ---------------------------------------------------------------- 0013
@@ -227,6 +229,16 @@ const M = [
   [F23, "23-05 cualquiera con sesión ve el resumen", (s) => sub(s, "if not public.is_admin() then\n    raise exception 'Solo la administración ve la bandeja", "if false then\n    raise exception 'Solo la administración ve la bandeja"), EXPIRY],
   [F23, "23-06 el resumen abierto a un visitante", (s) => s + "\ngrant execute on function public.email_outbox_summary() to anon;\n", EXPIRY],
   [F23, "23-07 «esperando» cuenta lo que agotó los intentos", (s) => sub(s, "'waiting', count(*) filter (where o.status in ('pendiente', 'fallido') and o.attempts < 5)", "'waiting', count(*) filter (where o.status in ('pendiente', 'fallido'))"), EXPIRY],
+  // ---------------------------------------------------------------- 0024
+  [F24, "24-01 sin tope de intentos por reserva", (s) => sub(s, "where a.booking_id = p_booking) >= 5 then", "where a.booking_id = p_booking) >= 50 then"), ABUSE],
+  [F24, "24-02 sin tope de intentos por día", (s) => sub(s, "and a.created_at > now() - interval '24 hours') >= 10 then", "and a.created_at > now() - interval '24 hours') >= 100 then"), ABUSE],
+  [F24, "24-03 el tope del día cuenta para siempre", (s) => sub(s, "and a.created_at > now() - interval '24 hours') >= 10 then", ") >= 10 then"), ABUSE],
+  [F24, "24-04 el intento no se anota", (s) => sub(s, "  insert into public.card_payment_attempts (booking_id, student_id) values (p_booking, v_student);\n", ""), ABUSE],
+  [F24, "24-05 cualquiera con sesión registra intentos", (s) => s + "\ngrant execute on function public.register_card_attempt(uuid) to authenticated;\n", ABUSE],
+  [F24, "24-06 sin tope de reservas por día", (s) => sub(s, "  ) >= 10 then\n    raise exception 'Hoy ya dejaste vencer", "  ) >= 100 then\n    raise exception 'Hoy ya dejaste vencer"), ABUSE],
+  [F24, "24-07 las reservas pagas cuentan para el tope", (s) => sub(s, "      and not exists (\n        select 1 from public.payments p\n        where p.booking_id = b.id and p.status in ('aprobado', 'reembolsado'))\n", ""), ABUSE],
+  [F24, "24-08 las reservas de hace días cuentan", (s) => sub(s, "      and b.created_at > now() - interval '24 hours'\n", ""), ABUSE],
+  [F24, "24-09 los intentos se leen desde la API", (s) => s + "\ngrant select on public.card_payment_attempts to authenticated;\ncreate policy \"x\" on public.card_payment_attempts for select using (true);\n", ABUSE],
   [F19, "19-14 se manda la reapertura de un perfil que ya no está pendiente", (s) => sub(s, "          else 'pendiente'\n        end);", "          else tp.verification_status::text\n        end);"), AUDIT],
 ];
 

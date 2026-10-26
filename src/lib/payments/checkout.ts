@@ -60,6 +60,8 @@ export type CheckoutFailure =
   | "provider_unavailable"
   | "provider_rejected"
   | "card_rejected"
+  /** Se pasó del tope de intentos de pago con tarjeta (migración 0024). */
+  | "too_many_attempts"
   | "unavailable";
 
 /** `stale`: lo que la persona ve ya no es así (venció, se canceló): conviene volver a leer la pantalla. */
@@ -202,6 +204,19 @@ export async function payBookingWithCard(
   if (!result.ok) return result;
   const { booking } = result;
   const { card } = input;
+
+  // El tope de intentos (migración 0024) se cuenta ANTES de pedir el cobro: así nadie puede probar tarjetas una
+  // tras otra. Si la base no puede contarlo, no se cobra.
+  const attempt = await deps.db.rpc("register_card_attempt", { p_booking: booking.id });
+  if (attempt.error) {
+    const hint = attempt.error.hint;
+    if (hint === "too_many_card_attempts_booking" || hint === "too_many_card_attempts") {
+      log("se alcanzó el tope de intentos de pago", { bookingId: booking.id, hint });
+      return fail("too_many_attempts", bookingErrorMessage({ hint }));
+    }
+    log("no se pudo registrar el intento de pago", { bookingId: booking.id, code: attempt.error.code ?? null });
+    return fail("unavailable", UNAVAILABLE);
+  }
 
   let payment: ProviderPayment;
   try {

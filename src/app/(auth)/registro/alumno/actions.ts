@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { guardAuthRequest } from "@/lib/security/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { registerAlumnoSchema } from "@/lib/validation/auth";
 import { echoValues, type ActionState } from "@/lib/validation/form-state";
@@ -21,6 +22,9 @@ export async function registerAlumno(
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors, values };
   }
+
+  const blocked = await guardAuthRequest("registro", formData);
+  if (blocked) return { error: blocked, values };
 
   const { fullName, email, password } = parsed.data;
   const supabase = await createClient();

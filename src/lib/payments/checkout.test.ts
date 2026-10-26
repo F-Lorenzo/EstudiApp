@@ -19,11 +19,17 @@ const SELLER_TOKEN = "APP_USR-token-docente";
 function dependencies({
   row = booking,
   applyOutcome = "confirmada",
+  attemptResult = { data: null, error: null },
   ...overrides
-}: Partial<CheckoutDeps> & { row?: typeof booking; applyOutcome?: string } = {}) {
+}: Partial<CheckoutDeps> & {
+  row?: typeof booking;
+  applyOutcome?: string;
+  attemptResult?: { data: null; error: { hint?: string; code?: string } | null };
+} = {}) {
   const provider = new SimulatedPaymentProvider().registerSeller(SELLER_TOKEN, "3757610146");
   const rpc = vi.fn(async (name: string) => {
     if (name === "booking_commission") return { data: 5400, error: null };
+    if (name === "register_card_attempt") return attemptResult;
     if (name === "apply_payment_notification") return { data: { outcome: applyOutcome, detail: null, booking_id: booking.id }, error: null };
     throw new Error(`rpc inesperada: ${name}`);
   });
@@ -117,6 +123,33 @@ describe("pagar con tarjeta", () => {
       "apply_payment_notification",
       expect.objectContaining({ p_booking_id: booking.id, p_status: "approved", p_amount: 45000, p_collector_id: "3757610146" }),
     );
+  });
+
+  it("cuenta el intento en la base antes de pedir el cobro", async () => {
+    const { deps, rpc, provider } = dependencies();
+    let calledFirst = false;
+    const original = provider.createPayment.bind(provider);
+    provider.createPayment = async (...args) => {
+      calledFirst = rpc.mock.calls.some(([name]) => name === "register_card_attempt");
+      return original(...args);
+    };
+    await payBookingWithCard(deps, { ...input, card });
+    expect(rpc).toHaveBeenCalledWith("register_card_attempt", { p_booking: booking.id });
+    expect(calledFirst).toBe(true);
+  });
+
+  it.each(["too_many_card_attempts_booking", "too_many_card_attempts"])("con el tope alcanzado (%s) no se cobra", async (hint) => {
+    const { deps, provider } = dependencies({ attemptResult: { data: null, error: { hint } } });
+    const result = await payBookingWithCard(deps, { ...input, card });
+    expect(result).toMatchObject({ ok: false, code: "too_many_attempts", stale: false });
+    expect(result.ok ? "" : result.error).toMatch(/intentos/);
+    expect(provider.calls.filter((c) => c.operation === "createPayment")).toHaveLength(0);
+  });
+
+  it("si la base no puede contar el intento, no se cobra", async () => {
+    const { deps, provider } = dependencies({ attemptResult: { data: null, error: { code: "PGRST202" } } });
+    await expect(payBookingWithCard(deps, { ...input, card })).resolves.toMatchObject({ ok: false, code: "unavailable" });
+    expect(provider.calls.filter((c) => c.operation === "createPayment")).toHaveLength(0);
   });
 
   it("repetir con el mismo token de tarjeta no cobra dos veces", async () => {

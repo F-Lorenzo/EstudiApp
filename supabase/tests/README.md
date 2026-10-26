@@ -30,6 +30,7 @@ npm run test:db -- bookings  # solo las que tengan «bookings» en el nombre
 | `commission.db.mjs` | Comisión por reputación (0021): apagada todos pagan la base; encendida, el escalón más bajo que se cumple sin bajar del piso; qué reseñas cuentan (completadas y pagas, una por alumno); la reserva guarda la tasa del momento; solo la administración lee y edita, y cada cambio queda en el registro |
 | `site-content.db.mjs` | Contenido del inicio (0022): lo lee cualquiera y lo cambia solo la administración; límites del hero (renglones, largos); el anuncio necesita texto; enlaces solo a rutas del sitio o https (nada de `javascript:` ni `//`); cada cambio queda en el registro y guardar sin cambios no agrega nada |
 | `email-expiry.db.mjs` | Emails vencidos y resumen de la bandeja (0023): vence lo que lleva 48 horas sin salir (no lo reciente, lo enviado ni lo que agotó los intentos) y no se reclama; el resumen cuenta por estado, muestra los últimos problemas sin destinatarios ni contenido y lo ve solo la administración |
+| `abuse-limits.db.mjs` | Límites contra el abuso (0024): 5 intentos de pago con tarjeta por reserva y 10 por alumno en 24 horas (el rechazado no se anota, el tope por reserva no vence, otro alumno no se ve afectado), 10 reservas sin pagar vencidas o canceladas por día (las pagas y las de ayer no cuentan) y que todo sea solo del backend |
 | `checks.db.mjs` | Que las consultas de `supabase/checks` (diagnóstico y verificación para el SQL Editor) funcionen en cualquier estado de la base y digan lo correcto (cada una de las filas, con las migraciones hasta cada punto, y que marquen FALLA si una función queda con permisos de más) |
 
 Los ayudantes `seed.mjs` (datos base; el docente base ya tiene una cuenta de cobro de relleno vigente) y
@@ -53,7 +54,7 @@ cambio: así la regla queda escrita.
 ### Mutaciones
 
 Una regla que se puede romper sin que ninguna prueba falle no está probada. `mutations.mjs` rompe a propósito
-**153 reglas** de las migraciones 0013 a 0023 (y de la política de reembolsos de la 0011) y comprueba que alguna
+**162 reglas** de las migraciones 0013 a 0024 (y de la política de reembolsos de la 0011) y comprueba que alguna
 suite falle: un umbral de 24 h o 2 h, el porcentaje del tramo parcial, el redondeo del monto, un `for update`, la
 cuenta de cobro que se guarda en el reembolso, un permiso abierto a `authenticated`, la restricción única de la
 bandeja de emails, el payload con el email adentro, el reintento sin espera, una fila enviada que vuelve atrás, etc.

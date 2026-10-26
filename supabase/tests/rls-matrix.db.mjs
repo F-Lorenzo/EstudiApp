@@ -296,6 +296,9 @@ const FUNCIONES = [
   ["public.audit_site_content_change()", ["service_role"]],
   // 0023: el resumen de la bandeja de emails (la función exige administración).
   ["public.email_outbox_summary()", ["authenticated", "service_role"]],
+  // 0024: el tope de intentos de pago lo usa solo el servidor; el de reservas por día es un trigger interno.
+  ["public.register_card_attempt(uuid)", ["service_role"]],
+  ["public.limit_daily_holds()", ["service_role"]],
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {

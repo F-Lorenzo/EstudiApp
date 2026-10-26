@@ -205,6 +205,9 @@ Objetivo: salir a producción con confianza.
    (`payWithCard`: hoy una persona con una reserva pendiente puede probar tarjetas sin límite durante
    los 15 minutos de la retención; Mercado Pago tiene su propio antifraude, pero conviene un tope de
    intentos por reserva en la base).
+   ✅ código (migración `0024`, falta aplicarla; decisiones del 26 de octubre de 2026): 5 intentos de pago por
+   reserva y 10 por día por alumno, 10 reservas sin pagar vencidas o canceladas por día, límite por IP en login,
+   registro y recuperación, y Turnstile (se enciende al cargar sus claves).
 4. **Pruebas de punta a punta** del recorrido completo (registro → aprobación → búsqueda →
    reserva → pago → clase → calificación).
 5. **Textos legales finales** (términos, privacidad, cancelación, condiciones de ingreso) y marca.

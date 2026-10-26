@@ -49,6 +49,25 @@ curl -fSs -D /tmp/estudiapp-headers https://estudiapp.app/ -o /tmp/estudiapp.htm
 también comprobar login y catálogo. El build validado localmente no demuestra
 que producción haya sido actualizada.
 
+## Límites por IP y Turnstile
+
+El login, el registro y la recuperación de contraseña pasan por `src/lib/security/auth-guard.ts` (decisión del 26 de
+octubre de 2026):
+
+- **Límite por IP:** los bindings `LOGIN_RATE_LIMITER` (10 por minuto, por IP y por email) y `SIGNUP_RATE_LIMITER`
+  (5 por minuto por IP, registro y recuperación) están declarados en `wrangler.jsonc` (`ratelimits`). Se crean solos
+  con el próximo `npm run deploy`; no hay nada que configurar en el panel. Cuentan por ubicación de Cloudflare, así
+  que no son una cuenta exacta. Fuera de un Worker (`next dev`, pruebas) no limitan.
+- **Turnstile:** se enciende cuando están las dos claves. Pasos:
+  1. Cloudflare → **Turnstile → Add widget**. Nombre: `EstudiApp`. Hostnames: `estudiapp.app` (y el de los previews
+     si se usan). Modo: **Managed**. Pre-clearance: no.
+  2. Copiá la **Site Key** y la **Secret Key**.
+  3. En **Workers & Pages → estudiapp → Settings → Variables and Secrets → Production**: `TURNSTILE_SITE_KEY` como
+     texto y `TURNSTILE_SECRET_KEY` como **secreto**. La clave pública se lee en el servidor, no hace falta volver a
+     compilar.
+  4. Abrí `/login` en una ventana privada e ingresá: casi siempre no se ve nada; a veces aparece una casilla para tocar.
+  Turnstile se exige solo cuando están las dos claves; con una sola queda apagado.
+
 ## Cron de mantenimiento
 
 `wrangler.jsonc` apunta `main` a `cloudflare-worker.ts`: es el Worker que genera OpenNext

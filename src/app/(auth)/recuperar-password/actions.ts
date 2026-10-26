@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { guardAuthRequest } from "@/lib/security/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { requestPasswordResetSchema } from "@/lib/validation/auth";
 import { echoValues, type ActionState } from "@/lib/validation/form-state";
@@ -19,6 +20,9 @@ export async function requestPasswordReset(
       values: echoValues(formData, ["email"]),
     };
   }
+
+  const blocked = await guardAuthRequest("recuperar", formData);
+  if (blocked) return { error: blocked, values: echoValues(formData, ["email"]) };
 
   const supabase = await createClient();
   const origin =

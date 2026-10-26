@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { postLoginPath } from "@/lib/auth/redirect";
 import type { UserRole } from "@/lib/auth/roles";
+import { guardAuthRequest } from "@/lib/security/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { loginSchema } from "@/lib/validation/auth";
 import { echoValues, type ActionState } from "@/lib/validation/form-state";
@@ -20,6 +21,9 @@ export async function login(
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors, values };
   }
+
+  const blocked = await guardAuthRequest("login", formData, { email: parsed.data.email });
+  if (blocked) return { error: blocked, values };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);

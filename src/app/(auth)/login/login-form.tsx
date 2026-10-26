@@ -9,6 +9,7 @@ import {
   SubmitButton,
   TextField,
 } from "@/components/auth-ui";
+import { TurnstileWidget } from "@/components/turnstile";
 import { initialActionState } from "@/lib/validation/form-state";
 import { login } from "./actions";
 
@@ -56,6 +57,7 @@ export function LoginForm({
         <Link className="pub-forgot" href="/recuperar-password">
           Olvidé mi contraseña
         </Link>
+        <TurnstileWidget action="login" resetKey={state} />
         <SubmitButton pending={pending} idle="Ingresar" busy="Ingresando…" />
       </form>
       <p className="pub-auth-switch">

@@ -1341,6 +1341,16 @@
 .pub-password > button:hover {
   background: #ebeede;
 }
+/* Turnstile (src/components/turnstile.tsx): casi siempre invisible; si pide una interacción, va centrado. */
+.pub-turnstile {
+  display: flex;
+  justify-content: center;
+  max-width: 100%;
+  overflow: hidden;
+}
+.pub-turnstile:empty {
+  display: none;
+}
 .pub-forgot {
   margin-top: -7px;
   align-self: flex-end;

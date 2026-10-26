@@ -11,11 +11,11 @@ pendiente (tarjeta "Setup de Supabase").
    aprovisionarse).
 2. `cp .env.local.example .env.local` y completar `NEXT_PUBLIC_SUPABASE_URL`
    y `NEXT_PUBLIC_SUPABASE_ANON_KEY` desde Project Settings → API.
-3. Aplicar las migraciones (`supabase/migrations/0001` a `0023`) en el
+3. Aplicar las migraciones (`supabase/migrations/0001` a `0024`) en el
    SQL Editor del dashboard. (Alternativa con la CLI: ver más abajo.)
 
-   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 23` genera
-   `supabase/aplicar-0001-a-0023.sql` (con `--compacto`, la misma versión sin
+   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 24` genera
+   `supabase/aplicar-0001-a-0024.sql` (con `--compacto`, la misma versión sin
    comentarios).
 
    **Proyecto que ya tiene hasta la 0011** (el de EstudiApp hoy):
@@ -245,8 +245,14 @@ las dos entradas `seed:demo*` de `package.json`.
   muestra a la administración cuántos emails hay en cada estado y los últimos
   problemas, sin destinatarios ni contenido. Va **antes** de cargar la clave de
   Resend, para que no salgan los avisos viejos de prueba ([docs/RESEND.md](../docs/RESEND.md)).
+- `0024_abuse_limits.sql`: **límites contra el abuso.** `register_card_attempt`
+  (solo el servidor, antes de pedir el cobro): hasta 5 intentos de pago con
+  tarjeta por reserva y 10 por alumno en 24 horas. El trigger
+  `limit_daily_holds`: hasta 10 reservas sin pagar que vencieron o se
+  cancelaron por alumno en 24 horas. **Sin ella el pago con tarjeta no
+  funciona** (el servidor no cobra si no puede contar el intento).
 
-Las migraciones 0006 a 0023 se probaron con unas 1.000 comprobaciones (la matriz de la RLS hace además 623 intentos por rol) y con 153 mutaciones (se rompe una regla a propósito y se comprueba que alguna prueba falle) en un Postgres real
+Las migraciones 0006 a 0024 se probaron con unas 1.000 comprobaciones (la matriz de la RLS hace además 623 intentos por rol) y con 162 mutaciones (se rompe una regla a propósito y se comprueba que alguna prueba falle) en un Postgres real
 (roles anónimo, alumno, docente, administrador y service role; ver
 [tests/README.md](tests/README.md) y `npm run test:db`), pero **no contra tu
 proyecto de Supabase**: revisalas y probalas en un proyecto de prueba antes de
@@ -282,9 +288,9 @@ propio en vez de a la app. El texto completo de las dos plantillas está en
 
 - `1-diagnostico.sql`: qué migraciones tiene el proyecto y qué hacer a continuación.
 - `2-verificacion.sql`: después de aplicar, comprueba la RLS, los permisos, las guardas y los datos
-  que hay que revisar a mano. Son 30 filas: las 1 a 19 y las 23 a 30 son comprobaciones de las migraciones (la 16
+  que hay que revisar a mano. Son 31 filas: las 1 a 19 y las 23 a 31 son comprobaciones de las migraciones (la 16
   es de la 0012, la 17 de la 0013, la 18 de la 0014, la 19 de la 0015, la 23 de la 0016, la 24 de la 0017, la 25
-  de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021, la 29 de la 0022 y la 30 de la 0023) y
+  de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021, la 29 de la 0022, la 30 de la 0023 y la 31 de la 0024) y
   tienen que decir OK; las 20 a 22
   son datos para revisar (reservas confirmadas sin pago, cuentas de administración y cuentas del seed de
   demo viejo) y pueden decir REVISAR (qué hacer con cada una: [docs/FASE-0-PASO-A-PASO.md](../docs/FASE-0-PASO-A-PASO.md), paso 4).

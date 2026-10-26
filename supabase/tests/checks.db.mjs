@@ -17,25 +17,26 @@ async function correr(db, sql) {
 }
 
 // --- Diagnóstico en cada estado ------------------------------------------------------------------------
-const TODAS = ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010", "0011", "0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019", "0020", "0021", "0022", "0023"];
+const TODAS = ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010", "0011", "0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019", "0020", "0021", "0022", "0023", "0024"];
 const casos = [
-  [0, [], /proyecto vacío: corré «npm run db:bundle -- 1 23»/],
-  [3, TODAS.slice(0, 3), /faltan de la 0004 en adelante: corré «npm run db:bundle -- 4 23»/],
-  [5, TODAS.slice(0, 5), /faltan de la 0006 en adelante: corré «npm run db:bundle -- 6 23»/],
-  [7, TODAS.slice(0, 7), /faltan de la 0008 en adelante: corré «npm run db:bundle -- 8 23»/],
-  [10, TODAS.slice(0, 10), /faltan de la 0011 en adelante: corré «npm run db:bundle -- 11 23» y pegá supabase\/aplicar-0011-a-0023\.sql/],
-  [11, TODAS.slice(0, 11), /faltan de la 0012 en adelante: corré «npm run db:bundle -- 12 23» y pegá supabase\/aplicar-0012-a-0023\.sql/],
-  [12, TODAS.slice(0, 12), /faltan de la 0013 en adelante: corré «npm run db:bundle -- 13 23» y pegá supabase\/aplicar-0013-a-0023\.sql/],
-  [13, TODAS.slice(0, 13), /faltan de la 0014 en adelante: corré «npm run db:bundle -- 14 23» y pegá supabase\/aplicar-0014-a-0023\.sql/],
-  [14, TODAS.slice(0, 14), /faltan de la 0015 en adelante: corré «npm run db:bundle -- 15 23» y pegá supabase\/aplicar-0015-a-0023\.sql/],
-  [15, TODAS.slice(0, 15), /faltan de la 0016 en adelante: corré «npm run db:bundle -- 16 23» y pegá supabase\/aplicar-0016-a-0023\.sql/],
-  [16, TODAS.slice(0, 16), /faltan de la 0017 en adelante: corré «npm run db:bundle -- 17 23» y pegá supabase\/aplicar-0017-a-0023\.sql/],
-  [17, TODAS.slice(0, 17), /faltan de la 0018 en adelante: corré «npm run db:bundle -- 18 23» y pegá supabase\/aplicar-0018-a-0023\.sql/],
-  [18, TODAS.slice(0, 18), /faltan de la 0019 en adelante: corré «npm run db:bundle -- 19 23» y pegá supabase\/aplicar-0019-a-0023\.sql/],
-  [19, TODAS.slice(0, 19), /faltan de la 0020 en adelante: corré «npm run db:bundle -- 20 23» y pegá supabase\/aplicar-0020-a-0023\.sql/],
-  [20, TODAS.slice(0, 20), /faltan de la 0021 en adelante: corré «npm run db:bundle -- 21 23» y pegá supabase\/aplicar-0021-a-0023\.sql/],
-  [21, TODAS.slice(0, 21), /faltan de la 0022 en adelante: corré «npm run db:bundle -- 22 23» y pegá supabase\/aplicar-0022-a-0023\.sql/],
-  [22, TODAS.slice(0, 22), /faltan de la 0023 en adelante: corré «npm run db:bundle -- 23 23» y pegá supabase\/aplicar-0023-a-0023\.sql/],
+  [0, [], /proyecto vacío: corré «npm run db:bundle -- 1 24»/],
+  [3, TODAS.slice(0, 3), /faltan de la 0004 en adelante: corré «npm run db:bundle -- 4 24»/],
+  [5, TODAS.slice(0, 5), /faltan de la 0006 en adelante: corré «npm run db:bundle -- 6 24»/],
+  [7, TODAS.slice(0, 7), /faltan de la 0008 en adelante: corré «npm run db:bundle -- 8 24»/],
+  [10, TODAS.slice(0, 10), /faltan de la 0011 en adelante: corré «npm run db:bundle -- 11 24» y pegá supabase\/aplicar-0011-a-0024\.sql/],
+  [11, TODAS.slice(0, 11), /faltan de la 0012 en adelante: corré «npm run db:bundle -- 12 24» y pegá supabase\/aplicar-0012-a-0024\.sql/],
+  [12, TODAS.slice(0, 12), /faltan de la 0013 en adelante: corré «npm run db:bundle -- 13 24» y pegá supabase\/aplicar-0013-a-0024\.sql/],
+  [13, TODAS.slice(0, 13), /faltan de la 0014 en adelante: corré «npm run db:bundle -- 14 24» y pegá supabase\/aplicar-0014-a-0024\.sql/],
+  [14, TODAS.slice(0, 14), /faltan de la 0015 en adelante: corré «npm run db:bundle -- 15 24» y pegá supabase\/aplicar-0015-a-0024\.sql/],
+  [15, TODAS.slice(0, 15), /faltan de la 0016 en adelante: corré «npm run db:bundle -- 16 24» y pegá supabase\/aplicar-0016-a-0024\.sql/],
+  [16, TODAS.slice(0, 16), /faltan de la 0017 en adelante: corré «npm run db:bundle -- 17 24» y pegá supabase\/aplicar-0017-a-0024\.sql/],
+  [17, TODAS.slice(0, 17), /faltan de la 0018 en adelante: corré «npm run db:bundle -- 18 24» y pegá supabase\/aplicar-0018-a-0024\.sql/],
+  [18, TODAS.slice(0, 18), /faltan de la 0019 en adelante: corré «npm run db:bundle -- 19 24» y pegá supabase\/aplicar-0019-a-0024\.sql/],
+  [19, TODAS.slice(0, 19), /faltan de la 0020 en adelante: corré «npm run db:bundle -- 20 24» y pegá supabase\/aplicar-0020-a-0024\.sql/],
+  [20, TODAS.slice(0, 20), /faltan de la 0021 en adelante: corré «npm run db:bundle -- 21 24» y pegá supabase\/aplicar-0021-a-0024\.sql/],
+  [21, TODAS.slice(0, 21), /faltan de la 0022 en adelante: corré «npm run db:bundle -- 22 24» y pegá supabase\/aplicar-0022-a-0024\.sql/],
+  [22, TODAS.slice(0, 22), /faltan de la 0023 en adelante: corré «npm run db:bundle -- 23 24» y pegá supabase\/aplicar-0023-a-0024\.sql/],
+  [23, TODAS.slice(0, 23), /faltan de la 0024 en adelante: corré «npm run db:bundle -- 24 24» y pegá supabase\/aplicar-0024-a-0024\.sql/],
   [999, TODAS, /nada: están todas/],
 ];
 for (const [upTo, esperadas, consejo] of casos) {
@@ -62,7 +63,7 @@ for (const [upTo, esperadas, consejo] of casos) {
   const filas = await correr(db, VERIFICACION);
   const por = Object.fromEntries(filas.map((f) => [f.orden, f]));
   const migracionesOk = filas.filter((f) => f.orden <= 19 || f.orden >= 23).every((f) => f.resultado === "OK");
-  r.push([migracionesOk && filas.length === 30, `verificación completa: las 27 comprobaciones de migraciones (1 a 19 y 23 a 30) dan OK (${filas.length} filas)`]);
+  r.push([migracionesOk && filas.length === 31, `verificación completa: las 28 comprobaciones de migraciones (1 a 19 y 23 a 31) dan OK (${filas.length} filas)`]);
   // El seed de las pruebas tiene una reserva «confirmada» sin pago: la verificación tiene que verla.
   r.push([por[20].resultado === "REVISAR", `detecta reservas confirmadas sin pago: ${por[20].comprobacion} → ${por[20].resultado}`]);
   r.push([por[21].resultado === "OK", `ve la cuenta de administración: ${por[21].comprobacion}`]);
@@ -95,7 +96,7 @@ for (const [upTo, esperadas, consejo] of casos) {
   if (filas) {
     const fallas = filas.filter((f) => f.resultado === "FALLA").map((f) => f.orden);
     r.push([
-      JSON.stringify(fallas) === JSON.stringify([2, 3, 4, 9, 12, 13, 14, 15, 16, 17, 18, 19, 23, 24, 25, 26, 27, 28, 29, 30]),
+      JSON.stringify(fallas) === JSON.stringify([2, 3, 4, 9, 12, 13, 14, 15, 16, 17, 18, 19, 23, 24, 25, 26, 27, 28, 29, 30, 31]),
       `sin la 0010 ni las siguientes marca FALLA en datos privados, guardas y cobro (filas ${fallas.join(", ")})`,
     ]);
   }
@@ -104,21 +105,22 @@ for (const [upTo, esperadas, consejo] of casos) {
 // --- Verificación con las migraciones hasta una dada: solo faltan las comprobaciones de las que no están ---------
 //   hasta 0010 → faltan 0011 a 0015; hasta 0011 → 0012 a 0015; hasta 0012 → 0013 a 0015; hasta 0013 → 0014 y 0015;
 //   hasta 0014 → de la 0015 en adelante; hasta 0015 → la 0016 (fila 23), la 0017 (fila 24) y la 0018 (fila 25); hasta 0016 → 0017 y 0018;
-//   hasta 0017 → 0018 y 0019; hasta 0018 → 0019 y 0020; hasta 0019 → 0020 y 0021; hasta 0020 → 0021 a 0023; hasta 0021 → 0022 y 0023; hasta 0022 → solo la 0023 (fila 30).
+//   hasta 0017 → 0018 y 0019; hasta 0018 → 0019 y 0020; hasta 0019 → 0020 y 0021; hasta 0020 → 0021 a 0023; hasta 0021 → 0022 a 0024; hasta 0022 → 0023 y 0024; hasta 0023 → solo la 0024 (fila 31).
 for (const [upTo, esperadas] of [
-  [10, [12, 13, 14, 15, 16, 17, 18, 19, 23, 24, 25, 26, 27, 28, 29, 30]],
-  [11, [16, 17, 18, 19, 23, 24, 25, 26, 27, 28, 29, 30]],
-  [12, [17, 18, 19, 23, 24, 25, 26, 27, 28, 29, 30]],
-  [13, [18, 19, 23, 24, 25, 26, 27, 28, 29, 30]],
-  [14, [19, 23, 24, 25, 26, 27, 28, 29, 30]],
-  [15, [23, 24, 25, 26, 27, 28, 29, 30]],
-  [16, [24, 25, 26, 27, 28, 29, 30]],
-  [17, [25, 26, 27, 28, 29, 30]],
-  [18, [26, 27, 28, 29, 30]],
-  [19, [27, 28, 29, 30]],
-  [20, [28, 29, 30]],
-  [21, [29, 30]],
-  [22, [30]],
+  [10, [12, 13, 14, 15, 16, 17, 18, 19, 23, 24, 25, 26, 27, 28, 29, 30, 31]],
+  [11, [16, 17, 18, 19, 23, 24, 25, 26, 27, 28, 29, 30, 31]],
+  [12, [17, 18, 19, 23, 24, 25, 26, 27, 28, 29, 30, 31]],
+  [13, [18, 19, 23, 24, 25, 26, 27, 28, 29, 30, 31]],
+  [14, [19, 23, 24, 25, 26, 27, 28, 29, 30, 31]],
+  [15, [23, 24, 25, 26, 27, 28, 29, 30, 31]],
+  [16, [24, 25, 26, 27, 28, 29, 30, 31]],
+  [17, [25, 26, 27, 28, 29, 30, 31]],
+  [18, [26, 27, 28, 29, 30, 31]],
+  [19, [27, 28, 29, 30, 31]],
+  [20, [28, 29, 30, 31]],
+  [21, [29, 30, 31]],
+  [22, [30, 31]],
+  [23, [31]],
 ]) {
   const db = await makeDb({ upTo });
   const filas = await correr(db, VERIFICACION);
@@ -157,6 +159,8 @@ for (const [fila, descripcion, sabotaje] of [
   [28, "los cambios de escalones dejan de registrarse", "drop trigger commission_tiers_audit on public.commission_tiers"],
   [29, "un visitante puede cambiar el contenido", "grant update on public.site_content to anon"],
   [30, "el resumen de la bandeja queda abierto a un visitante", "grant execute on function public.email_outbox_summary() to anon"],
+  [31, "cualquiera con sesión registra intentos de pago", "grant execute on function public.register_card_attempt(uuid) to authenticated"],
+  [31, "se quita el tope de reservas por día", "drop trigger bookings_limit_daily_holds on public.bookings"],
 ]) {
   // Cada sabotaje corre en una transacción que se deshace, así que se reutiliza la misma base.
   await sabotajes.exec("begin");

@@ -11,6 +11,7 @@ import {
   TextField,
 } from "@/components/auth-ui";
 import { Icon } from "@/components/ui";
+import { TurnstileWidget } from "@/components/turnstile";
 import { initialActionState } from "@/lib/validation/form-state";
 import { requestPasswordReset } from "./actions";
 
@@ -60,6 +61,7 @@ export default function RecuperarPasswordPage() {
           defaultValue={state.values?.email}
           errors={state.fieldErrors?.email}
         />
+        <TurnstileWidget action="recuperar" resetKey={state} />
         <SubmitButton
           pending={pending}
           idle="Recuperar acceso"

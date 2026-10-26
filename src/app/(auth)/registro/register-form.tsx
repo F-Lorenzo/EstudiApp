@@ -11,6 +11,7 @@ import {
   TermsCheck,
   TextField,
 } from "@/components/auth-ui";
+import { TurnstileWidget } from "@/components/turnstile";
 import { initialActionState } from "@/lib/validation/form-state";
 import { registerAlumno } from "./alumno/actions";
 import { registerDocente } from "./docente/actions";
@@ -72,6 +73,7 @@ export function RegisterForm({ role }: { role: "alumno" | "docente" }) {
           defaultChecked={state.values?.terms === "on"}
           errors={state.fieldErrors?.terms}
         />
+        <TurnstileWidget action="registro" resetKey={state} />
         <SubmitButton
           pending={pending}
           idle="Crear mi cuenta"

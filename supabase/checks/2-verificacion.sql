@@ -102,7 +102,7 @@ begin
   ), 'FALLA';
 
   -- 12 a 15. Cimientos del cobro (migración 0011). La 16 es de la 0012, la 17 de la 0013, la 18 de la 0014
-  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021, la 29 de la 0022 y la 30 de la 0023.
+  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021, la 29 de la 0022, la 30 de la 0023 y la 31 de la 0024.
   insert into _verificacion
   select 12, 'cobro: los tokens de Mercado Pago (mp_credentials) no se leen ni se escriben desde la API',
     case when to_regclass('public.mp_credentials') is null then false
@@ -344,6 +344,18 @@ begin
          else not has_function_privilege('anon', 'public.email_outbox_summary()', 'execute')
           and not has_function_privilege('authenticated', 'public.claim_pending_emails(integer)', 'execute')
           and coalesce(position('48 hours' in pg_get_functiondef(to_regprocedure('public.claim_pending_emails(integer)'))), 0) > 0 end,
+    'FALLA';
+
+  -- 31. Límites contra el abuso (migración 0024): intentos de pago con tarjeta y reservas sin pagar por día.
+  insert into _verificacion
+  select 31, 'abuso: tope de intentos de pago con tarjeta y de reservas sin pagar por día, solo del backend',
+    case when to_regclass('public.card_payment_attempts') is null then false
+         else (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.card_payment_attempts'))
+          and not has_table_privilege('authenticated', 'public.card_payment_attempts', 'select')
+          and not has_table_privilege('anon', 'public.card_payment_attempts', 'select')
+          and not has_function_privilege('authenticated', 'public.register_card_attempt(uuid)', 'execute')
+          and not has_function_privilege('anon', 'public.register_card_attempt(uuid)', 'execute')
+          and exists (select 1 from pg_trigger where tgname = 'bookings_limit_daily_holds' and not tgisinternal) end,
     'FALLA';
 
   -- 20. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).

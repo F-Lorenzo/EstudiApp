@@ -16,6 +16,12 @@ const MESSAGES: Record<string, string> = {
   student_overlap: "Ya tenés una clase reservada en ese horario.",
   too_many_holds:
     "Ya tenés dos reservas sin pagar. Pagá o cancelá una para reservar otra.",
+  too_many_daily_holds:
+    "Hoy dejaste vencer o cancelaste muchas reservas sin pagar. Vas a poder reservar de nuevo dentro de 24 horas.",
+  too_many_card_attempts_booking:
+    "Ya hiciste 5 intentos de pago para esta reserva. Por seguridad no se puede volver a intentar: cancelala y reservá de nuevo.",
+  too_many_card_attempts:
+    "Hiciste demasiados intentos de pago en las últimas 24 horas. Por seguridad, vas a poder volver a intentar mañana.",
   not_found: "No encontramos esa reserva.",
   not_cancellable: "Esta reserva ya no se puede cancelar.",
   already_started: "La clase ya empezó, así que no se puede cancelar.",
