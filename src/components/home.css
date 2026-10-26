@@ -51,6 +51,9 @@
   letter-spacing: -0.035em;
   font-weight: 600;
 }
+.hero-copy h1 {
+  overflow-wrap: break-word;
+}
 .hero-copy h1 > span {
   position: relative;
   display: inline-block;
@@ -1658,5 +1661,45 @@
     min-height: 32px;
     display: inline-flex;
     align-items: center;
+  }
+}
+
+/* Franja de anuncio sobre el hero (la edita la administración, migración 0022). */
+.home-announcement {
+  background: var(--cream);
+  color: var(--forest);
+  border-bottom: 1px solid var(--line);
+}
+.home-announcement p {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.home-announcement-mark {
+  color: var(--orange);
+}
+.home-announcement a {
+  color: var(--rust);
+  text-underline-offset: 4px;
+  white-space: nowrap;
+}
+.home-announcement a:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .home-announcement p {
+    padding: 10px 16px;
+    font-size: 13px;
   }
 }

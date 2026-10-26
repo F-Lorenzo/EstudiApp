@@ -292,6 +292,8 @@ const FUNCIONES = [
   ["public.commission_preview()", ["authenticated", "service_role"]],
   ["public.tutor_review_stats(uuid)", ["service_role"]],
   ["public.audit_commission_change()", ["service_role"]],
+  // 0022: el registro de los cambios del contenido del sitio, interno.
+  ["public.audit_site_content_change()", ["service_role"]],
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {

@@ -65,7 +65,7 @@ const conteoAntes = await contar(antes);
 
 // --- Se aplican 0006 a la última en orden, una por una --------------------------------------------------------------
 let falla = null;
-for (const n of [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]) {
+for (const n of [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]) {
   try {
     await applyMigration(antes, n);
     r.push([true, `la migración ${String(n).padStart(4, "0")} se aplica sobre datos existentes`]);

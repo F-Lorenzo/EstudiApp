@@ -17,23 +17,24 @@ async function correr(db, sql) {
 }
 
 // --- Diagnóstico en cada estado ------------------------------------------------------------------------
-const TODAS = ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010", "0011", "0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019", "0020", "0021"];
+const TODAS = ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010", "0011", "0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019", "0020", "0021", "0022"];
 const casos = [
-  [0, [], /proyecto vacío: corré «npm run db:bundle -- 1 21»/],
-  [3, TODAS.slice(0, 3), /faltan de la 0004 en adelante: corré «npm run db:bundle -- 4 21»/],
-  [5, TODAS.slice(0, 5), /faltan de la 0006 en adelante: corré «npm run db:bundle -- 6 21»/],
-  [7, TODAS.slice(0, 7), /faltan de la 0008 en adelante: corré «npm run db:bundle -- 8 21»/],
-  [10, TODAS.slice(0, 10), /faltan de la 0011 en adelante: corré «npm run db:bundle -- 11 21» y pegá supabase\/aplicar-0011-a-0021\.sql/],
-  [11, TODAS.slice(0, 11), /faltan de la 0012 en adelante: corré «npm run db:bundle -- 12 21» y pegá supabase\/aplicar-0012-a-0021\.sql/],
-  [12, TODAS.slice(0, 12), /faltan de la 0013 en adelante: corré «npm run db:bundle -- 13 21» y pegá supabase\/aplicar-0013-a-0021\.sql/],
-  [13, TODAS.slice(0, 13), /faltan de la 0014 en adelante: corré «npm run db:bundle -- 14 21» y pegá supabase\/aplicar-0014-a-0021\.sql/],
-  [14, TODAS.slice(0, 14), /faltan de la 0015 en adelante: corré «npm run db:bundle -- 15 21» y pegá supabase\/aplicar-0015-a-0021\.sql/],
-  [15, TODAS.slice(0, 15), /faltan de la 0016 en adelante: corré «npm run db:bundle -- 16 21» y pegá supabase\/aplicar-0016-a-0021\.sql/],
-  [16, TODAS.slice(0, 16), /faltan de la 0017 en adelante: corré «npm run db:bundle -- 17 21» y pegá supabase\/aplicar-0017-a-0021\.sql/],
-  [17, TODAS.slice(0, 17), /faltan de la 0018 en adelante: corré «npm run db:bundle -- 18 21» y pegá supabase\/aplicar-0018-a-0021\.sql/],
-  [18, TODAS.slice(0, 18), /faltan de la 0019 en adelante: corré «npm run db:bundle -- 19 21» y pegá supabase\/aplicar-0019-a-0021\.sql/],
-  [19, TODAS.slice(0, 19), /faltan de la 0020 en adelante: corré «npm run db:bundle -- 20 21» y pegá supabase\/aplicar-0020-a-0021\.sql/],
-  [20, TODAS.slice(0, 20), /faltan de la 0021 en adelante: corré «npm run db:bundle -- 21 21» y pegá supabase\/aplicar-0021-a-0021\.sql/],
+  [0, [], /proyecto vacío: corré «npm run db:bundle -- 1 22»/],
+  [3, TODAS.slice(0, 3), /faltan de la 0004 en adelante: corré «npm run db:bundle -- 4 22»/],
+  [5, TODAS.slice(0, 5), /faltan de la 0006 en adelante: corré «npm run db:bundle -- 6 22»/],
+  [7, TODAS.slice(0, 7), /faltan de la 0008 en adelante: corré «npm run db:bundle -- 8 22»/],
+  [10, TODAS.slice(0, 10), /faltan de la 0011 en adelante: corré «npm run db:bundle -- 11 22» y pegá supabase\/aplicar-0011-a-0022\.sql/],
+  [11, TODAS.slice(0, 11), /faltan de la 0012 en adelante: corré «npm run db:bundle -- 12 22» y pegá supabase\/aplicar-0012-a-0022\.sql/],
+  [12, TODAS.slice(0, 12), /faltan de la 0013 en adelante: corré «npm run db:bundle -- 13 22» y pegá supabase\/aplicar-0013-a-0022\.sql/],
+  [13, TODAS.slice(0, 13), /faltan de la 0014 en adelante: corré «npm run db:bundle -- 14 22» y pegá supabase\/aplicar-0014-a-0022\.sql/],
+  [14, TODAS.slice(0, 14), /faltan de la 0015 en adelante: corré «npm run db:bundle -- 15 22» y pegá supabase\/aplicar-0015-a-0022\.sql/],
+  [15, TODAS.slice(0, 15), /faltan de la 0016 en adelante: corré «npm run db:bundle -- 16 22» y pegá supabase\/aplicar-0016-a-0022\.sql/],
+  [16, TODAS.slice(0, 16), /faltan de la 0017 en adelante: corré «npm run db:bundle -- 17 22» y pegá supabase\/aplicar-0017-a-0022\.sql/],
+  [17, TODAS.slice(0, 17), /faltan de la 0018 en adelante: corré «npm run db:bundle -- 18 22» y pegá supabase\/aplicar-0018-a-0022\.sql/],
+  [18, TODAS.slice(0, 18), /faltan de la 0019 en adelante: corré «npm run db:bundle -- 19 22» y pegá supabase\/aplicar-0019-a-0022\.sql/],
+  [19, TODAS.slice(0, 19), /faltan de la 0020 en adelante: corré «npm run db:bundle -- 20 22» y pegá supabase\/aplicar-0020-a-0022\.sql/],
+  [20, TODAS.slice(0, 20), /faltan de la 0021 en adelante: corré «npm run db:bundle -- 21 22» y pegá supabase\/aplicar-0021-a-0022\.sql/],
+  [21, TODAS.slice(0, 21), /faltan de la 0022 en adelante: corré «npm run db:bundle -- 22 22» y pegá supabase\/aplicar-0022-a-0022\.sql/],
   [999, TODAS, /nada: están todas/],
 ];
 for (const [upTo, esperadas, consejo] of casos) {
@@ -60,7 +61,7 @@ for (const [upTo, esperadas, consejo] of casos) {
   const filas = await correr(db, VERIFICACION);
   const por = Object.fromEntries(filas.map((f) => [f.orden, f]));
   const migracionesOk = filas.filter((f) => f.orden <= 19 || f.orden >= 23).every((f) => f.resultado === "OK");
-  r.push([migracionesOk && filas.length === 28, `verificación completa: las 25 comprobaciones de migraciones (1 a 19 y 23 a 28) dan OK (${filas.length} filas)`]);
+  r.push([migracionesOk && filas.length === 29, `verificación completa: las 26 comprobaciones de migraciones (1 a 19 y 23 a 29) dan OK (${filas.length} filas)`]);
   // El seed de las pruebas tiene una reserva «confirmada» sin pago: la verificación tiene que verla.
   r.push([por[20].resultado === "REVISAR", `detecta reservas confirmadas sin pago: ${por[20].comprobacion} → ${por[20].resultado}`]);
   r.push([por[21].resultado === "OK", `ve la cuenta de administración: ${por[21].comprobacion}`]);
@@ -93,7 +94,7 @@ for (const [upTo, esperadas, consejo] of casos) {
   if (filas) {
     const fallas = filas.filter((f) => f.resultado === "FALLA").map((f) => f.orden);
     r.push([
-      JSON.stringify(fallas) === JSON.stringify([2, 3, 4, 9, 12, 13, 14, 15, 16, 17, 18, 19, 23, 24, 25, 26, 27, 28]),
+      JSON.stringify(fallas) === JSON.stringify([2, 3, 4, 9, 12, 13, 14, 15, 16, 17, 18, 19, 23, 24, 25, 26, 27, 28, 29]),
       `sin la 0010 ni las siguientes marca FALLA en datos privados, guardas y cobro (filas ${fallas.join(", ")})`,
     ]);
   }
@@ -102,19 +103,20 @@ for (const [upTo, esperadas, consejo] of casos) {
 // --- Verificación con las migraciones hasta una dada: solo faltan las comprobaciones de las que no están ---------
 //   hasta 0010 → faltan 0011 a 0015; hasta 0011 → 0012 a 0015; hasta 0012 → 0013 a 0015; hasta 0013 → 0014 y 0015;
 //   hasta 0014 → de la 0015 en adelante; hasta 0015 → la 0016 (fila 23), la 0017 (fila 24) y la 0018 (fila 25); hasta 0016 → 0017 y 0018;
-//   hasta 0017 → 0018 y 0019; hasta 0018 → 0019 y 0020; hasta 0019 → 0020 y 0021; hasta 0020 → solo la 0021 (fila 28).
+//   hasta 0017 → 0018 y 0019; hasta 0018 → 0019 y 0020; hasta 0019 → 0020 y 0021; hasta 0020 → 0021 y 0022; hasta 0021 → solo la 0022 (fila 29).
 for (const [upTo, esperadas] of [
-  [10, [12, 13, 14, 15, 16, 17, 18, 19, 23, 24, 25, 26, 27, 28]],
-  [11, [16, 17, 18, 19, 23, 24, 25, 26, 27, 28]],
-  [12, [17, 18, 19, 23, 24, 25, 26, 27, 28]],
-  [13, [18, 19, 23, 24, 25, 26, 27, 28]],
-  [14, [19, 23, 24, 25, 26, 27, 28]],
-  [15, [23, 24, 25, 26, 27, 28]],
-  [16, [24, 25, 26, 27, 28]],
-  [17, [25, 26, 27, 28]],
-  [18, [26, 27, 28]],
-  [19, [27, 28]],
-  [20, [28]],
+  [10, [12, 13, 14, 15, 16, 17, 18, 19, 23, 24, 25, 26, 27, 28, 29]],
+  [11, [16, 17, 18, 19, 23, 24, 25, 26, 27, 28, 29]],
+  [12, [17, 18, 19, 23, 24, 25, 26, 27, 28, 29]],
+  [13, [18, 19, 23, 24, 25, 26, 27, 28, 29]],
+  [14, [19, 23, 24, 25, 26, 27, 28, 29]],
+  [15, [23, 24, 25, 26, 27, 28, 29]],
+  [16, [24, 25, 26, 27, 28, 29]],
+  [17, [25, 26, 27, 28, 29]],
+  [18, [26, 27, 28, 29]],
+  [19, [27, 28, 29]],
+  [20, [28, 29]],
+  [21, [29]],
 ]) {
   const db = await makeDb({ upTo });
   const filas = await correr(db, VERIFICACION);
@@ -151,6 +153,7 @@ for (const [fila, descripcion, sabotaje] of [
   [27, "admin_metrics queda abierta a un visitante", "grant execute on function public.admin_metrics(integer) to anon"],
   [28, "los escalones de comisión quedan legibles por un visitante", "grant select on public.commission_tiers to anon"],
   [28, "los cambios de escalones dejan de registrarse", "drop trigger commission_tiers_audit on public.commission_tiers"],
+  [29, "un visitante puede cambiar el contenido", "grant update on public.site_content to anon"],
 ]) {
   // Cada sabotaje corre en una transacción que se deshace, así que se reutiliza la misma base.
   await sabotajes.exec("begin");

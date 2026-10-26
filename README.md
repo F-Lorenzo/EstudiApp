@@ -40,9 +40,9 @@ El proyecto se construye por fases, ordenadas por prioridad. Ver [ROADMAP.md](RO
 | Alumno: inicio, próximas clases, historial, perfil | Funcionan con datos reales. |
 | Docente: inicio, perfil profesional (3 pasos), disponibilidad (abrir y cerrar franjas de 60 min) | Funcionan con datos reales. La disponibilidad requiere la migración 0007. |
 | Reservas: elegir un horario libre, retenerlo 15 min, pagar, cancelar | Funcionan con datos reales (migraciones 0008 y 0009). **El cobro con Mercado Pago todavía no existe:** hay un pago simulado solo para desarrollo (`ALLOW_SIMULATED_PAYMENTS`). |
-| Admin: solicitudes, ficha con aprobar o rechazar, docentes activos, métricas | Funcionan con datos reales. |
+| Admin: solicitudes, ficha (aprobar, rechazar, reabrir, dar de baja), rechazados, docentes activos, métricas, comisión, contenido del inicio, registro de acciones | Funcionan con datos reales. |
 | Sala de clase | **Real** con Daily.co (`DAILY_API_KEY`): sala privada por reserva, solo alumno y docente, desde 10 minutos antes hasta el final de la clase. No se graba. La clase cuenta como dada si el docente estuvo al menos 10 minutos; si no, se devuelve el 100 %. Al terminar, el alumno califica la clase (también desde su historial, hasta 30 días después). |
-| Docente: cuenta de cobro. Admin: contenido | **Vista de muestra**. No guardan nada. |
+| Docente: cuenta de cobro y cobros | Funcionan con datos reales (vinculación con Mercado Pago probada solo con credenciales de prueba). |
 
 ## Estructura
 

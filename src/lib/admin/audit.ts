@@ -20,6 +20,9 @@ const ACTIONS: Record<string, string> = {
   crear_escalon: "Agregó un escalón de comisión",
   cambiar_escalon: "Cambió un escalón de comisión",
   borrar_escalon: "Borró un escalón de comisión",
+  cambiar_hero: "Cambió el texto del inicio",
+  cambiar_anuncio: "Cambió la franja de anuncio",
+  cambiar_contenido: "Cambió el contenido del inicio",
 };
 
 const ROLES: Record<string, string> = { alumno: "alumno", docente: "docente", administrador: "administración" };
@@ -29,7 +32,7 @@ const rowSchema = z.object({
   actor_kind: z.enum(["administracion", "docente", "sistema"]),
   actor_name: z.string().nullable(),
   action: z.string(),
-  target_type: z.enum(["docente", "reserva", "cuenta", "comision"]),
+  target_type: z.enum(["docente", "reserva", "cuenta", "comision", "contenido"]),
   target_id: z.string(),
   reason: z.string().nullable(),
   details: z.record(z.string(), z.unknown()).catch({}),
@@ -45,7 +48,7 @@ export type AuditEntry = {
   actor: string;
   actorKind: "administracion" | "docente" | "sistema";
   reason: string | null;
-  targetType: "docente" | "reserva" | "cuenta" | "comision";
+  targetType: "docente" | "reserva" | "cuenta" | "comision" | "contenido";
   targetId: string;
   /** A quién o a qué se le hizo: el docente, la clase («Lucía con Martín, 20 de octubre»), la cuenta. */
   target: string | null;
@@ -83,6 +86,20 @@ function describeCommission(details: Record<string, unknown>): string | null {
     .join(" · ");
 }
 
+/** Lo que quedó publicado: el anuncio («Encendido · Inscripciones abiertas») o el título del inicio. */
+function describeContent(action: string, details: Record<string, unknown>): string | null {
+  const after = details.after as Record<string, unknown> | undefined;
+  if (!after || typeof after !== "object") return null;
+  const short = (value: unknown) => {
+    const t = typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+    return t ? `«${t.length > 60 ? `${t.slice(0, 59)}…` : t}»` : null;
+  };
+  if (action === "cambiar_anuncio") {
+    return [after.announcement_enabled ? "Encendido" : "Apagado", short(after.announcement_text)].filter(Boolean).join(" · ");
+  }
+  return short(after.hero_title) ?? "Texto original";
+}
+
 const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : null);
 
 function describeTarget(row: z.infer<typeof rowSchema>): string | null {
@@ -90,6 +107,7 @@ function describeTarget(row: z.infer<typeof rowSchema>): string | null {
   if (row.target_type === "docente") return text(d.tutor_name);
   if (row.target_type === "cuenta") return text(d.account_name);
   if (row.target_type === "comision") return describeCommission(d);
+  if (row.target_type === "contenido") return describeContent(row.action, d);
   const student = text(d.student_name);
   const tutor = text(d.tutor_name);
   const startsAt = text(d.starts_at);

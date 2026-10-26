@@ -27,7 +27,7 @@ describe("titulares con saltos de línea ocultos en móvil", () => {
   const CASOS: [archivo: string, texto: string][] = [
     ["home.tsx", "Detrás de cada explicación hay años de recorrido."],
     ["home.tsx", "Antes del"],
-    ["admin-content.tsx", "Claro. Cercano."],
+    ["admin-content.tsx", "Algo para contar,"],
     ["how-it-works.tsx", "También tenemos"],
   ];
 

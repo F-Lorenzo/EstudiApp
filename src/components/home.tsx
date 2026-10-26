@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { gsap } from "gsap";
 import { ButtonLink, Icon, TeacherCard } from "./ui";
 import { Mascot } from "./mascot";
+import type { Announcement, HeroContent } from "@/lib/content/site-content";
 import type { Teacher } from "@/lib/tutors/view";
 
 const topicLinks = [
@@ -53,8 +54,20 @@ const faqs = [
   ],
 ];
 
-/** `featured`: docentes aprobados para la sección de destacados (puede venir vacío). */
-export function Home({ featured }: { featured: Teacher[] }) {
+/**
+ * `featured`: docentes aprobados para la sección de destacados (puede venir vacío).
+ * `hero` y `announcement`: el texto del hero y la franja de anuncio que edita la administración (migración 0022).
+ * La pizarra, la mascota y el diseño del hero son fijos.
+ */
+export function Home({
+  featured,
+  hero,
+  announcement,
+}: {
+  featured: Teacher[];
+  hero: HeroContent;
+  announcement: Announcement | null;
+}) {
   const heroRef = useRef<HTMLElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
@@ -108,6 +121,7 @@ export function Home({ featured }: { featured: Teacher[] }) {
 
   return (
     <div ref={pageRef} className="home-page">
+      {announcement && <HomeAnnouncement announcement={announcement} />}
       <section ref={heroRef} className="home-hero" aria-labelledby="hero-title">
         <div className="hero-grain" aria-hidden="true" />
         <div className="hero-layout">
@@ -117,12 +131,15 @@ export function Home({ featured }: { featured: Teacher[] }) {
               EXPERIENCIA QUE SE COMPARTE
             </p>
             <h1 id="hero-title" className="hero-reveal">
-              Hay una forma
-              <br />
-              de entenderlo.
-              <br />
+              {hero.titleLines.map((line, index) => (
+                // Sin envoltorio: `.hero-copy h1 > span` es la frase subrayada.
+                <Fragment key={index}>
+                  {line}
+                  <br />
+                </Fragment>
+              ))}
               <span>
-                La tuya.
+                {hero.highlight}
                 <svg viewBox="0 0 275 22" fill="none" aria-hidden="true">
                   <path
                     d="M3 13C67 2 190 1 271 9M29 20C91 9 173 8 223 13"
@@ -134,9 +151,15 @@ export function Home({ featured }: { featured: Teacher[] }) {
               </span>
             </h1>
             <p className="hero-description hero-reveal">
-              Aprendé con profesores que tienen mucho
-              <br className="desktop-break" /> para enseñarte. A tu ritmo, con
-              experiencia real.
+              {hero.defaultDescription ? (
+                <>
+                  Aprendé con profesores que tienen mucho
+                  <br className="desktop-break" /> para enseñarte. A tu ritmo, con
+                  experiencia real.
+                </>
+              ) : (
+                hero.description
+              )}
             </p>
             <form
               onSubmit={search}
@@ -537,5 +560,31 @@ export function Home({ featured }: { featured: Teacher[] }) {
         </svg>
       </section>
     </div>
+  );
+}
+
+/** Franja de anuncio arriba del hero. Un enlace a otro sitio se abre en otra pestaña. */
+function HomeAnnouncement({ announcement }: { announcement: Announcement }) {
+  const external = announcement.linkUrl?.startsWith("https://") ?? false;
+  return (
+    <aside className="home-announcement" aria-label="Anuncio">
+      <p>
+        <span className="home-announcement-mark" aria-hidden="true">
+          ✳
+        </span>
+        {announcement.text}
+        {announcement.linkUrl && announcement.linkLabel && (
+          external ? (
+            <a href={announcement.linkUrl} target="_blank" rel="noopener noreferrer">
+              {announcement.linkLabel} <span aria-hidden="true">↗</span>
+            </a>
+          ) : (
+            <Link href={announcement.linkUrl}>
+              {announcement.linkLabel} <span aria-hidden="true">→</span>
+            </Link>
+          )
+        )}
+      </p>
+    </aside>
   );
 }

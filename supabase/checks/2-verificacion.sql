@@ -102,7 +102,7 @@ begin
   ), 'FALLA';
 
   -- 12 a 15. Cimientos del cobro (migración 0011). La 16 es de la 0012, la 17 de la 0013, la 18 de la 0014
-  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019, la 27 de la 0020 y la 28 de la 0021.
+  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021 y la 29 de la 0022.
   insert into _verificacion
   select 12, 'cobro: los tokens de Mercado Pago (mp_credentials) no se leen ni se escriben desde la API',
     case when to_regclass('public.mp_credentials') is null then false
@@ -322,6 +322,19 @@ begin
           and not has_function_privilege('authenticated', 'public.tutor_review_stats(uuid)', 'execute')
           and exists (select 1 from pg_trigger where tgname = 'commission_tiers_audit' and not tgisinternal)
           and exists (select 1 from pg_trigger where tgname = 'commission_settings_audit' and not tgisinternal) end,
+    'FALLA';
+
+  -- 29. Contenido del sitio (migración 0022): lo lee cualquiera, lo cambia solo la administración, con registro.
+  insert into _verificacion
+  select 29, 'contenido: site_content lo cambia solo la administración y cada cambio queda registrado',
+    case when to_regclass('public.site_content') is null then false
+         else (select c.relrowsecurity from pg_class c where c.oid = to_regclass('public.site_content'))
+          and not has_table_privilege('anon', 'public.site_content', 'update')
+          and not has_table_privilege('authenticated', 'public.site_content', 'insert')
+          and not has_table_privilege('authenticated', 'public.site_content', 'delete')
+          and exists (select 1 from pg_policies
+                      where schemaname = 'public' and tablename = 'site_content' and policyname = 'site_content_update_admin')
+          and exists (select 1 from pg_trigger where tgname = 'site_content_audit' and not tgisinternal) end,
     'FALLA';
 
   -- 20. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).

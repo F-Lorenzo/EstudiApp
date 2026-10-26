@@ -44,6 +44,7 @@ const F18 = "0018_reminder_and_tutor_decision_emails.sql";
 const F19 = "0019_admin_audit_log.sql";
 const F20 = "0020_admin_metrics.sql";
 const F21 = "0021_commission_tiers.sql";
+const F22 = "0022_site_content.sql";
 // `claim_pending_emails` se creó en la 0015 y la reemplazan la 0018 y la 0019; `enqueue_tutor_decision_email`, de la
 // 0018, la reemplaza la 0019. Sus mutaciones van sobre la versión vigente.
 const CLAIM = F19;
@@ -58,6 +59,7 @@ const REMINDERS = ["reminders", "email-outbox", "rls-matrix"];
 const AUDIT = ["audit-log", "reminders", "rls-matrix", "hardening"];
 const METRICS = ["metrics", "rls-matrix"];
 const COMMISSION = ["commission", "payments", "rls-matrix"];
+const CONTENT = ["site-content", "rls-matrix"];
 
 const M = [
   // ---------------------------------------------------------------- 0013
@@ -207,6 +209,14 @@ const M = [
   [F21, "21-10 los cambios de la configuración no se registran", (s) => sub(s, "create trigger commission_settings_audit\n  after update on public.commission_settings", "create trigger commission_settings_audit\n  after insert on public.commission_settings"), COMMISSION],
   [F21, "21-11 cualquiera ve la vista previa", (s) => sub(s, "if not public.is_admin() then\n    raise exception 'Solo la administración ve la comisión", "if false then\n    raise exception 'Solo la administración ve la comisión"), COMMISSION],
   [F21, "21-12 el piso puede quedar por encima de la base", (s) => sub(s, "check (floor_rate >= 0 and floor_rate <= base_rate and base_rate < 1)", "check (floor_rate >= 0 and base_rate < 1)"), COMMISSION],
+  // ---------------------------------------------------------------- 0022
+  [F22, "22-01 cualquiera con sesión cambia el contenido", (s) => sub(s, `create policy "site_content_update_admin" on public.site_content for update\n  using (public.is_admin()) with check (public.is_admin());`, `create policy "site_content_update_admin" on public.site_content for update\n  using (true) with check (true);`), CONTENT],
+  [F22, "22-02 el enlace acepta cualquier esquema", (s) => sub(s, "and (announcement_link_url ~ '^/[^/\\\\]' or announcement_link_url = '/' or announcement_link_url ~ '^https://[^\\s/]+')", "and true"), CONTENT],
+  [F22, "22-03 el enlace acepta una ruta que empieza con //", (s) => sub(s, "announcement_link_url ~ '^/[^/\\\\]'", "announcement_link_url ~ '^/'"), CONTENT],
+  [F22, "22-04 el título acepta más de 3 renglones", (s) => sub(s, "and array_length(string_to_array(hero_title, E'\\n'), 1) <= 3", ""), CONTENT],
+  [F22, "22-05 el anuncio se enciende sin texto", (s) => sub(s, "constraint site_content_announcement_text check (not announcement_enabled or announcement_text is not null),", ""), CONTENT],
+  [F22, "22-06 los cambios no se registran", (s) => sub(s, "create trigger site_content_audit\n  after update on public.site_content", "create trigger site_content_audit\n  after insert on public.site_content"), CONTENT],
+  [F22, "22-07 guardar sin cambios igual se registra", (s) => sub(s, "  if v_changed is null then\n    return null;\n  end if;\n", ""), CONTENT],
   [F19, "19-14 se manda la reapertura de un perfil que ya no está pendiente", (s) => sub(s, "          else 'pendiente'\n        end);", "          else tp.verification_status::text\n        end);"), AUDIT],
 ];
 

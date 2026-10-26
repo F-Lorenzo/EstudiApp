@@ -1,70 +1,57 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Notice } from "@/components/management-ui";
-import { ButtonLink, PageHeading, SampleBanner } from "@/components/ui";
+import { useActionState, useState } from "react";
+import { saveSiteContent } from "@/app/admin/contenido/actions";
+import { FieldError } from "@/components/field-error";
+import { ButtonLink, PageHeading } from "@/components/ui";
+import {
+  ANNOUNCEMENT_LIMITS,
+  DEFAULT_HERO,
+  HERO_LIMITS,
+  type SiteContentRow,
+} from "@/lib/content/site-content";
+import { initialActionState } from "@/lib/validation/form-state";
 
-const DEFAULT_TITLE = "Lo que hoy cuesta, mañana lo entendés.";
-const DEFAULT_SUBTITLE = "Aprendé con alguien que sabe acompañarte.";
+/** Fecha guardada (fin del día en Argentina) → valor de un `<input type="date">`. */
+function dateInputValue(iso: string | null) {
+  if (!iso) return "";
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }).format(new Date(iso));
+}
 
-/** Editor del banner principal. Es una vista previa local: no publica nada. */
-export function ContentManager() {
-  const [image, setImage] = useState("");
-  const [title, setTitle] = useState(DEFAULT_TITLE);
-  const [subtitle, setSubtitle] = useState(DEFAULT_SUBTITLE);
-  const [fileName, setFileName] = useState("");
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [dirty, setDirty] = useState(false);
+/**
+ * Editor del contenido de la Home (migración 0022): el texto del hero y la franja de anuncio. La pizarra, la
+ * mascota y el diseño del hero son fijos (decisión de marca); acá solo se cambian las palabras. Un campo del
+ * hero vacío usa el texto original.
+ */
+export function ContentManager({ content }: { content: SiteContentRow }) {
+  const [state, formAction, pending] = useActionState(saveSiteContent, initialActionState);
+  const [title, setTitle] = useState(state.values?.heroTitle ?? content.heroTitle ?? "");
+  const [highlight, setHighlight] = useState(state.values?.heroHighlight ?? content.heroHighlight ?? "");
+  const [description, setDescription] = useState(state.values?.heroDescription ?? content.heroDescription ?? "");
   const [previewMobile, setPreviewMobile] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
-  function chooseFile(file?: File) {
-    if (!file) return;
-    setError("");
-    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-      setError("Elegí una imagen JPG, PNG o WebP.");
-      return;
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      setError("La imagen debe pesar menos de 8 MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onerror = () =>
-      setError("No pudimos leer la imagen. Probá con otro archivo.");
-    reader.onload = () => {
-      setImage(String(reader.result));
-      setFileName(file.name);
-      setDirty(true);
-      setNotice("");
-    };
-    reader.readAsDataURL(file);
-  }
+  const shownLines = (title.trim() || DEFAULT_HERO.title)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, HERO_LIMITS.titleLines);
 
   return (
     <div className="mgmt-page">
       <PageHeading
         eyebrow="CONTENIDO DEL SITIO"
         title="Una buena primera impresión."
-        description="Prepará las imágenes y el mensaje que reciben a la comunidad."
+        description="El mensaje del inicio y los anuncios para la comunidad. La pizarra y la mascota no cambian: son parte de nuestra identidad."
       >
         <ButtonLink href="/" variant="secondary">
           Ver sitio <span aria-hidden="true">↗</span>
         </ButtonLink>
       </PageHeading>
-      <SampleBanner>
-        La gestión de contenido todavía no está conectada: la vista previa es
-        local y no cambia nada en el sitio publicado.
-      </SampleBanner>
-      <div className="mgmt-content-layout">
+      <form action={formAction} className="mgmt-content-layout">
         <section className="mgmt-banner-section">
           <div className="mgmt-section-heading">
-            <h2>Banner principal</h2>
-            <div
-              className="mgmt-device-toggle"
-              aria-label="Tamaño de vista previa"
-            >
+            <h2>Texto del inicio</h2>
+            <div className="mgmt-device-toggle" aria-label="Tamaño de vista previa">
               <button
                 type="button"
                 className={!previewMobile ? "is-active" : ""}
@@ -83,143 +70,159 @@ export function ContentManager() {
               </button>
             </div>
           </div>
-          <div
-            className={`mgmt-banner-preview ${previewMobile ? "is-mobile" : ""}`}
-          >
-            {image ? (
-              // La vista previa usa un data URL local: next/image no aplica.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={image}
-                alt="Vista previa de la imagen seleccionada para el banner"
-              />
-            ) : (
-              <div className="mgmt-banner-illustration" aria-hidden="true">
-                <span className="mgmt-banner-orbit" />
-                <span className="mgmt-banner-spark">✳</span>
-                <span className="mgmt-banner-book">
-                  a²
-                  <br />
-                  <i>+ b²</i>
-                </span>
-              </div>
-            )}
+          <div className={`mgmt-banner-preview ${previewMobile ? "is-mobile" : ""}`} aria-label="Vista previa del inicio">
+            <div className="mgmt-banner-illustration" aria-hidden="true">
+              <span className="mgmt-banner-orbit" />
+              <span className="mgmt-banner-spark">✳</span>
+            </div>
             <div className="mgmt-banner-copy">
-              <span>ESTUDIAPP</span>
-              <h3>{title || "Tu próximo mensaje empieza acá."}</h3>
-              <p>{subtitle}</p>
+              <span>EXPERIENCIA QUE SE COMPARTE</span>
+              <h3>
+                {shownLines.map((line, index) => (
+                  <span key={index} className="mgmt-preview-line">
+                    {line}
+                  </span>
+                ))}
+                <span className="mgmt-preview-highlight">{highlight.trim() || DEFAULT_HERO.highlight}</span>
+              </h3>
+              <p>{description.trim() || DEFAULT_HERO.description}</p>
             </div>
           </div>
           <p className="mgmt-preview-caption">
             <span className="mgmt-status-dot" />
-            Vista previa local · Los cambios no están publicados.
+            Vista previa · Se publica al guardar.
           </p>
-          <div
-            className="mgmt-upload"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault();
-              chooseFile(event.dataTransfer.files[0]);
-            }}
-          >
-            <span className="mgmt-upload-symbol" aria-hidden="true">
-              ↑
-            </span>
-            <div>
-              <strong>{fileName || "Una imagen para empezar"}</strong>
-              <p>Arrastrá una imagen o elegila desde tu equipo.</p>
-              <small>JPG, PNG o WebP · hasta 8 MB</small>
-            </div>
-            <button
-              type="button"
-              className="mgmt-button mgmt-button-secondary"
-              onClick={() => fileRef.current?.click()}
-            >
-              {image ? "Cambiar imagen" : "Elegir imagen"}
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="mgmt-sr-only"
-              aria-label="Seleccionar imagen de banner"
-              onChange={(event) => chooseFile(event.target.files?.[0])}
-            />
+          <div className="mgmt-content-fields">
+            <label className="mgmt-field">
+              Título (hasta {HERO_LIMITS.titleLines} renglones)
+              <textarea
+                name="heroTitle"
+                rows={3}
+                maxLength={HERO_LIMITS.title}
+                value={title}
+                placeholder={DEFAULT_HERO.title}
+                onChange={(event) => setTitle(event.target.value)}
+                aria-invalid={state.fieldErrors?.heroTitle ? true : undefined}
+              />
+              <span className="mgmt-field-hint">
+                {title.length}/{HERO_LIMITS.title} · Vacío: «{DEFAULT_HERO.title.replace("\n", " ")}»
+              </span>
+              <FieldError messages={state.fieldErrors?.heroTitle} />
+            </label>
+            <label className="mgmt-field">
+              Frase subrayada
+              <input
+                name="heroHighlight"
+                maxLength={HERO_LIMITS.highlight}
+                value={highlight}
+                placeholder={DEFAULT_HERO.highlight}
+                onChange={(event) => setHighlight(event.target.value)}
+                aria-invalid={state.fieldErrors?.heroHighlight ? true : undefined}
+              />
+              <span className="mgmt-field-hint">
+                {highlight.length}/{HERO_LIMITS.highlight} · Va al final del título, subrayada en naranja.
+              </span>
+              <FieldError messages={state.fieldErrors?.heroHighlight} />
+            </label>
+            <label className="mgmt-field">
+              Texto de apoyo
+              <textarea
+                name="heroDescription"
+                rows={3}
+                maxLength={HERO_LIMITS.description}
+                value={description}
+                placeholder={DEFAULT_HERO.description}
+                onChange={(event) => setDescription(event.target.value)}
+                aria-invalid={state.fieldErrors?.heroDescription ? true : undefined}
+              />
+              <span className="mgmt-field-hint">
+                {description.length}/{HERO_LIMITS.description}
+              </span>
+              <FieldError messages={state.fieldErrors?.heroDescription} />
+            </label>
           </div>
-          {error && (
-            <p className="mgmt-field-error" role="alert">
-              {error}
-            </p>
-          )}
         </section>
         <aside className="mgmt-content-form">
-          <span className="mgmt-small-label">EL MENSAJE</span>
+          <span className="mgmt-small-label">FRANJA DE ANUNCIO</span>
           <h2>
-            Claro. Cercano.{" "}
+            Algo para contar,{" "}
             <br />
-            Bien nuestro.
+            arriba de todo.
           </h2>
-          <label className="mgmt-field">
-            Título
-            <textarea
-              rows={3}
-              maxLength={90}
-              value={title}
-              onChange={(event) => {
-                setTitle(event.target.value);
-                setDirty(true);
-              }}
+          <label className="mgmt-check">
+            <input
+              type="checkbox"
+              name="announcementEnabled"
+              defaultChecked={content.announcementEnabled}
             />
-            <span className="mgmt-field-hint">{title.length}/90 caracteres</span>
+            <span>
+              <strong>Mostrar el anuncio</strong>
+              <small>Aparece arriba del inicio, en todas las pantallas.</small>
+            </span>
           </label>
           <label className="mgmt-field">
-            Texto de apoyo
+            Anuncio
             <textarea
+              name="announcementText"
               rows={3}
-              maxLength={130}
-              value={subtitle}
-              onChange={(event) => {
-                setSubtitle(event.target.value);
-                setDirty(true);
-              }}
+              maxLength={ANNOUNCEMENT_LIMITS.text}
+              defaultValue={state.values?.announcementText ?? content.announcementText ?? ""}
+              placeholder="Por ejemplo: Ya podés reservar clases para el segundo cuatrimestre."
+              aria-invalid={state.fieldErrors?.announcementText ? true : undefined}
             />
+            <FieldError messages={state.fieldErrors?.announcementText} />
           </label>
-          <button
-            type="button"
-            className="mgmt-button"
-            disabled={!dirty || !title.trim()}
-            onClick={() => {
-              setDirty(false);
-              setNotice(
-                "Es una vista de muestra: no se publicó contenido en el sitio.",
-              );
-            }}
-          >
-            Guardar cambios <span aria-hidden="true">✓</span>
-          </button>
-          <button
-            type="button"
-            className="mgmt-text-button"
-            onClick={() => {
-              setImage("");
-              setTitle(DEFAULT_TITLE);
-              setSubtitle(DEFAULT_SUBTITLE);
-              setFileName("");
-              setDirty(false);
-              setError("");
-              setNotice("Se restableció el banner de muestra.");
-              if (fileRef.current) fileRef.current.value = "";
-            }}
-          >
-            Restablecer original
+          <label className="mgmt-field">
+            Texto del enlace (opcional)
+            <input
+              name="announcementLinkLabel"
+              maxLength={ANNOUNCEMENT_LIMITS.linkLabel}
+              defaultValue={state.values?.announcementLinkLabel ?? content.announcementLinkLabel ?? ""}
+              placeholder="Ver docentes"
+              aria-invalid={state.fieldErrors?.announcementLinkLabel ? true : undefined}
+            />
+            <FieldError messages={state.fieldErrors?.announcementLinkLabel} />
+          </label>
+          <label className="mgmt-field">
+            Dirección del enlace
+            <input
+              name="announcementLinkUrl"
+              maxLength={ANNOUNCEMENT_LIMITS.linkUrl}
+              defaultValue={state.values?.announcementLinkUrl ?? content.announcementLinkUrl ?? ""}
+              placeholder="/docentes o https://…"
+              aria-invalid={state.fieldErrors?.announcementLinkUrl ? true : undefined}
+            />
+            <FieldError messages={state.fieldErrors?.announcementLinkUrl} />
+          </label>
+          <label className="mgmt-field">
+            Se muestra hasta el (opcional)
+            <input
+              type="date"
+              name="announcementEndsAt"
+              defaultValue={state.values?.announcementEndsAt ?? dateInputValue(content.announcementEndsAt)}
+              aria-invalid={state.fieldErrors?.announcementEndsAt ? true : undefined}
+            />
+            <span className="mgmt-field-hint">Inclusive, en hora de Argentina. Vacío: hasta que lo apagues.</span>
+            <FieldError messages={state.fieldErrors?.announcementEndsAt} />
+          </label>
+          {state.error && (
+            <p className="mgmt-field-error" role="alert">
+              {state.error}
+            </p>
+          )}
+          {state.success && (
+            <p className="mgmt-field-hint" role="status">
+              Publicado. Ya se ve en el inicio.
+            </p>
+          )}
+          <button type="submit" className="mgmt-button" disabled={pending}>
+            {pending ? "Publicando…" : "Publicar cambios"} <span aria-hidden="true">✓</span>
           </button>
           <p className="mgmt-content-advice">
-            Elegí imágenes con aire y textos breves. La legibilidad también es
-            parte de nuestra identidad.
+            Textos breves y claros. Para volver al mensaje original, dejá vacíos los campos del inicio.
           </p>
         </aside>
-      </div>
-      <Notice message={notice} />
+      </form>
     </div>
   );
 }
