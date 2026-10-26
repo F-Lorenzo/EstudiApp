@@ -53,6 +53,18 @@ describe("toTutorEarning", () => {
     expect(item?.refund).toEqual({ amount: 5000, percent: 50, state: "hecho" });
   });
 
+  it("una devuelta entera (el pago queda «reembolsado») sigue en la lista, sin nada para el docente", () => {
+    const item = toTutorEarning(
+      fila({
+        status: "cancelada",
+        payments: pago({ status: "reembolsado", refunded_amount: "10000.00", commission_amount: "0.00", tutor_amount: "0.00" }),
+        refunds: [{ amount: "10000.00", percent: 100, status: "aprobado" }],
+      }),
+      NOW,
+    );
+    expect(item).toMatchObject({ status: "cancelada", paid: 10000, commission: 0, tutorAmount: 0, refunded: 10000 });
+  });
+
   it("un reembolso pendiente o fallido figura en curso", () => {
     for (const status of ["pendiente", "fallido"]) {
       const item = toTutorEarning(fila({ status: "cancelada", refunds: [{ amount: 10000, percent: 100, status }] }), NOW);

@@ -42,6 +42,7 @@ const F16 = "0016_reviews.sql";
 const F17 = "0017_class_attendance.sql";
 const F18 = "0018_reminder_and_tutor_decision_emails.sql";
 const F19 = "0019_admin_audit_log.sql";
+const F20 = "0020_admin_metrics.sql";
 // `claim_pending_emails` se creó en la 0015 y la reemplazan la 0018 y la 0019; `enqueue_tutor_decision_email`, de la
 // 0018, la reemplaza la 0019. Sus mutaciones van sobre la versión vigente.
 const CLAIM = F19;
@@ -54,6 +55,7 @@ const REVIEWS = ["reviews", "rls-matrix", "rls-base"];
 const ATTENDANCE = ["attendance", "rls-matrix", "hardening"];
 const REMINDERS = ["reminders", "email-outbox", "rls-matrix"];
 const AUDIT = ["audit-log", "reminders", "rls-matrix", "hardening"];
+const METRICS = ["metrics", "rls-matrix"];
 
 const M = [
   // ---------------------------------------------------------------- 0013
@@ -182,6 +184,14 @@ const M = [
   [F19, "19-11 la administración figura como «sistema»", (s) => sub(s, "when p.role = 'administrador' then 'administracion'", "when p.role = 'administrador' then 'sistema'"), AUDIT],
   [F19, "19-12 el docente que reenvía figura como reapertura", (s) => sub(s, "and old.verification_status = 'rechazado' and new.verification_status = 'pendiente' then 'reenviar'", "and false then 'reenviar'"), AUDIT],
   [F19, "19-13 la baja no se distingue de un rechazo en el email", (s) => sub(s, "'was_approved', case when v_kind = 'perfil_rechazado' and old.verification_status = 'aprobado' then true end,", ""), AUDIT],
+  // ---------------------------------------------------------------- 0020
+  [F20, "20-01 cualquiera con sesión ve las métricas", (s) => sub(s, "if not public.is_admin() then\n    raise exception 'Solo la administración ve", "if false then\n    raise exception 'Solo la administración ve"), METRICS],
+  [F20, "20-02 los pagos devueltos enteros no cuentan como cobrados", (s) => sub(s, "from public.payments where status in ('aprobado', 'reembolsado') and created_at >= v_since", "from public.payments where status = 'aprobado' and created_at >= v_since", { all: true }), METRICS],
+  [F20, "20-03 los reembolsos pendientes cuentan como devueltos", (s) => sub(s, "from public.refunds where status = 'aprobado' and updated_at >= v_since", "from public.refunds where updated_at >= v_since"), METRICS],
+  [F20, "20-04 las clases futuras cuentan como dadas", (s) => sub(s, "where status = 'completada' and starts_at >= v_since and starts_at <= now()", "where status in ('completada', 'confirmada') and starts_at >= v_since"), METRICS],
+  [F20, "20-05 las semanas no son de lunes a domingo", (s) => sub(s, "date_trunc('week', now() at time zone v_tz))::date - (v_weeks - 1) * 7", "date_trunc('week', now() at time zone v_tz))::date - (v_weeks - 1) * 7 + 2"), METRICS],
+  [F20, "20-06 sin tope de semanas", (s) => sub(s, "least(coalesce(p_weeks, 8), 26)", "coalesce(p_weeks, 8)"), METRICS],
+  [F20, "20-07 las reservas vencidas se cuentan como canceladas pagas", (s) => sub(s, "        where b.status = 'cancelada' and b.updated_at >= v_since\n          and exists", "        where b.status = 'cancelada' and b.updated_at >= v_since\n          and true or exists"), METRICS],
   [F19, "19-14 se manda la reapertura de un perfil que ya no está pendiente", (s) => sub(s, "          else 'pendiente'\n        end);", "          else tp.verification_status::text\n        end);"), AUDIT],
 ];
 

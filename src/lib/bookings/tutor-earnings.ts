@@ -3,7 +3,7 @@ import { syncBookings } from "@/lib/bookings/sync";
 import { STUDENT_FALLBACK_NAME } from "@/lib/bookings/tutor-queries";
 
 /**
- * Cobros de un docente: por cada clase pagada, cuánto pagó el alumno, la comisión de EstudiApp y lo que le queda
+ * Cobros de un docente: por cada clase cobrada, cuánto pagó el alumno, la comisión de EstudiApp y lo que le queda
  * al docente (decisión del 26 de octubre de 2026), más los reembolsos de las clases canceladas.
  *
  * Todo sale de lo que el docente ya puede leer con SU sesión (la RLS de `payments` y `refunds` le deja ver solo
@@ -83,8 +83,9 @@ export type EarningRow = {
 
 export function toTutorEarning(row: EarningRow, now: Date = new Date()): TutorEarning | null {
   const payment = one(row.payments);
-  // Solo las clases con un pago aprobado: una reserva sin pago no dejó plata (ni a cobrar ni a devolver).
-  if (!payment || payment.status !== "aprobado") return null;
+  // Solo las clases cobradas: «aprobado», o «reembolsado» si después se devolvió entero (migración 0011). Una
+  // reserva sin pago no dejó plata (ni a cobrar ni a devolver).
+  if (!payment || (payment.status !== "aprobado" && payment.status !== "reembolsado")) return null;
   let status: EarningStatus;
   if (row.status === "completada") status = "completada";
   else if (row.status === "cancelada") status = "cancelada";

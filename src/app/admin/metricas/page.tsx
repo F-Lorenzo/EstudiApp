@@ -1,54 +1,76 @@
-import { ButtonLink, PageHeading } from "@/components/ui";
-import { relativeFromNow } from "@/lib/format";
+import { ButtonLink, EmptyState, PageHeading } from "@/components/ui";
+import { getAdminMetrics, weekLabel } from "@/lib/admin/metrics";
+import { moneyExact, relativeFromNow } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Métricas" };
 
-type Supabase = Awaited<ReturnType<typeof createClient>>;
-
-async function count(
-  supabase: Supabase,
-  table: string,
-  match?: Record<string, string>,
-) {
-  let query = supabase.from(table).select("*", { count: "exact", head: true });
-  if (match) {
-    for (const [column, value] of Object.entries(match)) {
-      query = query.eq(column, value);
-    }
-  }
-  const { count: total } = await query;
-  return total ?? 0;
-}
+const WEEKS = 8;
+const number = (value: number) => value.toLocaleString("es-AR");
+const rating = (value: number | null) => (value === null ? "—" : value.toFixed(1).replace(".", ","));
 
 export default async function MetricasPage() {
   const supabase = await createClient();
 
-  const [usuarios, aprobados, pendientes, reservas, subjectRows, oldest] =
-    await Promise.all([
-      count(supabase, "profiles"),
-      count(supabase, "tutor_profiles", { verification_status: "aprobado" }),
-      count(supabase, "tutor_profiles", { verification_status: "pendiente" }),
-      count(supabase, "bookings"),
-      supabase
-        .from("tutor_subjects")
-        .select("subjects(name)")
-        .returns<{ subjects: { name: string } | null }[]>(),
-      supabase
-        .from("tutor_profiles")
-        .select("created_at")
-        .eq("verification_status", "pendiente")
-        .order("created_at")
-        .limit(1)
-        .returns<{ created_at: string }[]>(),
-    ]);
+  // Las cifras de reservas, plata y actividad salen de la base (`admin_metrics`, migración 0020).
+  const [{ metrics, error }, subjectRows, oldest] = await Promise.all([
+    getAdminMetrics(supabase, { weeks: WEEKS }),
+    supabase
+      .from("tutor_subjects")
+      .select("subjects(name), tutor_profiles!inner(verification_status)")
+      .eq("tutor_profiles.verification_status", "aprobado")
+      .returns<{ subjects: { name: string } | null }[]>(),
+    supabase
+      .from("tutor_profiles")
+      .select("created_at")
+      .eq("verification_status", "pendiente")
+      .order("created_at")
+      .limit(1)
+      .returns<{ created_at: string }[]>(),
+  ]);
 
-  const metrics = [
-    { label: "Usuarios registrados", value: usuarios, note: "cuentas en la plataforma" },
-    { label: "Docentes aprobados", value: aprobados, note: "visibles en el catálogo" },
-    { label: "Docentes pendientes", value: pendientes, note: "esperan tu revisión" },
-    { label: "Clases reservadas", value: reservas, note: "reservas creadas" },
+  if (error || !metrics)
+    return (
+      <div className="mgmt-page">
+        <EmptyState
+          title="No pudimos cargar las métricas."
+          description="Hubo un problema de nuestro lado. Actualizá la página en un momento."
+        />
+      </div>
+    );
+
+  const month = metrics.last_30_days;
+  const activity = [
+    { label: "Reservas pagas", value: number(month.paid_bookings), note: "en los últimos 30 días" },
+    { label: "Clases dadas", value: number(month.classes_given), note: "en los últimos 30 días" },
+    { label: "Ingresos", value: moneyExact(month.revenue), note: "lo que pagaron los alumnos (30 días)" },
+    { label: "Comisión", value: moneyExact(month.commission), note: "de EstudiApp, neta de reembolsos (30 días)" },
   ];
+  const community = [
+    {
+      label: "Docentes activos",
+      value: number(metrics.tutors.active_30d),
+      note: `dieron clases en 30 días, de ${number(metrics.tutors.approved)} aprobados (${number(metrics.tutors.payable)} pueden cobrar)`,
+    },
+    {
+      label: "Alumnos activos",
+      value: number(metrics.students.active_30d),
+      note: `pagaron una clase en 30 días, de ${number(metrics.students.total)} registrados`,
+    },
+    {
+      label: "Calificación promedio",
+      value: rating(metrics.ratings.average),
+      note: `${number(metrics.ratings.count)} ${metrics.ratings.count === 1 ? "opinión" : "opiniones"}; ${rating(metrics.ratings.average_30d)} en los últimos 30 días`,
+    },
+    {
+      label: "Cancelaciones",
+      value: number(month.paid_cancellations),
+      note: `de clases pagas (30 días), ${number(month.tutor_absences)} por ausencia del docente`,
+    },
+  ];
+
+  const weeks = metrics.weeks;
+  const topRevenue = Math.max(1, ...weeks.map((week) => week.revenue));
 
   // Docentes aprobados por materia.
   const perSubject = new Map<string, number>();
@@ -61,6 +83,7 @@ export default async function MetricasPage() {
     .slice(0, 6);
   const top = ranking[0]?.[1] ?? 1;
   const totalAssignments = [...perSubject.values()].reduce((sum, n) => sum + n, 0);
+  const pendientes = metrics.tutors.pending;
   const oldestDate = oldest.data?.[0]?.created_at;
 
   return (
@@ -68,17 +91,75 @@ export default async function MetricasPage() {
       <PageHeading
         eyebrow="PULSO DE LA COMUNIDAD"
         title="Cada encuentro cuenta."
-        description="Una mirada a cómo crece la comunidad y a lo que necesita atención."
+        description="Reservas, clases y plata de verdad, con lo que necesita atención."
       />
       <div className="mgmt-metric-strip">
-        {metrics.map((metric) => (
+        {activity.map((metric) => (
           <article key={metric.label}>
             <span>{metric.label}</span>
-            <strong>{metric.value.toLocaleString("es-AR")}</strong>
+            <strong>{metric.value}</strong>
             <p>{metric.note}</p>
           </article>
         ))}
       </div>
+      <div className="mgmt-metric-strip mgmt-metric-strip-secondary">
+        {community.map((metric) => (
+          <article key={metric.label}>
+            <span>{metric.label}</span>
+            <strong>{metric.value}</strong>
+            <p>{metric.note}</p>
+          </article>
+        ))}
+      </div>
+      <section className="mgmt-chart-panel mgmt-weeks-panel">
+        <div className="mgmt-section-heading">
+          <div>
+            <h2>Semana a semana</h2>
+            <p>
+              Las últimas {WEEKS} semanas, de lunes a domingo. Ingresos y reservas por la fecha del pago; clases por el
+              día de la clase.
+            </p>
+          </div>
+        </div>
+        <div className="mgmt-table-wrap">
+          <table className="mgmt-table mgmt-weeks-table">
+            <thead>
+              <tr>
+                <th>Semana del</th>
+                <th>Ingresos</th>
+                <th>Comisión</th>
+                <th>Reservas pagas</th>
+                <th>Clases dadas</th>
+                <th>Reembolsado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {weeks.map((week) => (
+                <tr key={week.week_start}>
+                  <td>{weekLabel(week.week_start)}</td>
+                  <td>
+                    <div className="mgmt-week-revenue">
+                      <span className="mgmt-report-track" aria-hidden="true">
+                        <span style={{ width: `${(week.revenue / topRevenue) * 100}%` }} />
+                      </span>
+                      {moneyExact(week.revenue)}
+                    </div>
+                  </td>
+                  <td>{moneyExact(week.commission)}</td>
+                  <td>{number(week.paid_bookings)}</td>
+                  <td>{number(week.classes_given)}</td>
+                  <td>{week.refunded > 0 ? moneyExact(week.refunded) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mgmt-field-hint">
+          En los últimos 30 días se devolvieron {moneyExact(month.refunded)} a alumnos y {number(month.expired_holds)}{" "}
+          {month.expired_holds === 1 ? "reserva venció" : "reservas vencieron"} sin pagarse. A los docentes les quedaron{" "}
+          {moneyExact(month.tutor_amount)}.
+        </p>
+      </section>
       <div className="mgmt-metrics-grid">
         <section className="mgmt-chart-panel">
           <div className="mgmt-section-heading">
@@ -134,10 +215,6 @@ export default async function MetricasPage() {
           </ButtonLink>
         </aside>
       </div>
-      <p className="mgmt-field-hint">
-        Usuarios activos y evolución por período todavía no están disponibles:
-        requieren datos que la plataforma aún no registra.
-      </p>
     </div>
   );
 }

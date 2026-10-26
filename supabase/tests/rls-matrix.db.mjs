@@ -285,6 +285,8 @@ const FUNCIONES = [
   ["public.audit_tutor_status_change()", ["service_role"]],
   ["public.audit_admin_booking_cancel()", ["service_role"]],
   ["public.audit_role_change()", ["service_role"]],
+  // 0020: las métricas (la función exige administración).
+  ["public.admin_metrics(integer)", ["authenticated", "service_role"]],
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {

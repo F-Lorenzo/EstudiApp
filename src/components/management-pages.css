@@ -1726,6 +1726,32 @@
   font-weight: 600;
   padding-right: 4px;
 }
+/* Montos largos («$ 1.234.567,50») no desbordan la columna. */
+.mgmt-metric-strip > article > strong {
+  font-size: clamp(1.75rem, 3vw, 2.75rem);
+  overflow-wrap: anywhere;
+}
+.mgmt-metric-strip-secondary {
+  border-top: 0;
+}
+.mgmt-metric-strip-secondary > article > strong {
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+}
+.mgmt-weeks-panel {
+  margin-top: 36px;
+}
+.mgmt-weeks-table td {
+  white-space: nowrap;
+}
+.mgmt-week-revenue {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mgmt-week-revenue > .mgmt-report-track {
+  display: block;
+  flex: 0 0 120px;
+}
 .mgmt-metrics-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 250px;
