@@ -13,9 +13,10 @@ cuenta, el dominio y tres variables en Cloudflare.
 
 ## Antes de empezar
 
-1. **Aplicá la migración 0023** (`npm run db:bundle -- 23 23` y pegá `supabase/aplicar-0023-a-0023.sql` en el
-   SQL Editor). Hacelo **antes** de cargar la clave: así los emails viejos de prueba vencen y no salen. Después,
-   la fila 30 de `supabase/checks/2-verificacion.sql` tiene que decir OK.
+1. ✅ **Migración 0023 aplicada** (26 de octubre de 2026). Tiene que estar antes de cargar la clave: así los
+   emails viejos de prueba vencen y no salen. En un proyecto nuevo: `npm run db:bundle -- 23 23`, pegar
+   `supabase/aplicar-0023-a-0023.sql` en el SQL Editor y comprobar que la fila 30 de
+   `supabase/checks/2-verificacion.sql` diga OK.
 2. Tené a mano la casilla de soporte (por ejemplo `soporte@estudiapp.app`). Tiene que existir y recibir correo.
 
 ## 1. Crear la cuenta y agregar el dominio

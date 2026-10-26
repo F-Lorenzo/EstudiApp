@@ -211,7 +211,7 @@ Objetivo: salir a producción con confianza.
 6. Quitar `noindex`, quitar los avisos de «vista de muestra», verificar la firma del webhook en
    todos los entornos y **desplegar a producción**.
 7. **Mercado Pago real** (pendiente de la Fase 1): prueba de punta a punta del cobro, la comisión, el
-   aviso y el reembolso; dominio y clave de Resend (✅ código listo: migración `0023`, `/admin/emails` y la guía
+   aviso y el reembolso; dominio y clave de Resend (✅ código listo: migración `0023` aplicada, `/admin/emails` y la guía
    [docs/RESEND.md](docs/RESEND.md); falta crear la cuenta, verificar `mail.estudiapp.app` y cargar la clave); apagar `MERCADOPAGO_OAUTH_TEST_TOKEN` y desvincular al
    docente de prueba (`scripts/link-test-payout.mjs`). Qué se probó y qué bloqueó las cuentas de prueba:
    [docs/FASE-1-PLAN.md](docs/FASE-1-PLAN.md).
