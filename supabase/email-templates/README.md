@@ -6,6 +6,9 @@ plantillas les dan la misma estética que los avisos de EstudiApp. **No se edita
 
 ## Cómo cargarlas
 
+✅ Cargadas en el proyecto real el 27 de octubre de 2026. Si cambiás un texto en `auth-templates.ts`, corré
+`npm run auth-emails` y volvé a pegar la plantilla que cambió.
+
 En Supabase → **Authentication → Emails → Templates**, para cada plantilla de la tabla:
 
 1. Elegí la pestaña con el nombre de la columna «En Supabase».
