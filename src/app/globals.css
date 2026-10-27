@@ -261,7 +261,6 @@ button:active:not(:disabled) {
 .brand-logo img {
   width: 100%;
   height: auto;
-  mix-blend-mode: multiply;
 }
 .brand-logo-light {
   background: var(--cream);
