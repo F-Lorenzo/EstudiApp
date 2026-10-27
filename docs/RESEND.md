@@ -98,6 +98,31 @@ estas variables.
    perfil, y en el mantenimiento de cada hora. En `/admin/emails` se ve cuántos salieron, cuántos esperan y los
    últimos problemas.
 
+## 6. Emails de cuentas de Supabase (confirmación y recuperación de contraseña)
+
+Los emails de las cuentas (confirmar el registro, recuperar la contraseña) **no** los manda la app: los manda
+Supabase Auth. Con el servicio de email que trae Supabase, salen muy pocos por hora y fallan con «Error sending
+recovery email». Para el lanzamiento van por Resend, con SMTP:
+
+1. En Resend, **API Keys → Create API Key**: nombre `supabase-auth`, permiso **Sending access**, dominio
+   `estudiapp.app`. Es una clave aparte de la de la app, así se puede cambiar una sin tocar la otra.
+2. En Supabase, **Authentication → Emails → SMTP Settings** (en algunas versiones, **Project Settings →
+   Authentication → SMTP**), encendé **Enable Custom SMTP** y cargá:
+
+   | Campo | Valor |
+   | --- | --- |
+   | Sender email | `avisos@estudiapp.app` |
+   | Sender name | `EstudiApp` |
+   | Host | `smtp.resend.com` |
+   | Port | `465` |
+   | Username | `resend` |
+   | Password | la clave `supabase-auth` (`re_...`) |
+
+3. En **Authentication → Rate Limits**, el límite de emails por hora sube con un SMTP propio: dejalo en 30 o más.
+4. Probá desde `/recuperar-password` con tu cuenta: tiene que llegar el enlace y, al seguirlo, `/actualizar-password`.
+
+Si falla, **Authentication → Logs** (o **Logs → Auth**) muestra el error exacto del SMTP.
+
 ## Límites del plan gratuito
 
 Al 26 de octubre de 2026, el plan gratuito de Resend permite unos 3.000 emails por mes y 100 por día, con un
