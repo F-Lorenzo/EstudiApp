@@ -12,7 +12,7 @@ const READY = {
   MERCADOPAGO_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString("base64"),
   DAILY_API_KEY: "clave-daily",
   RESEND_API_KEY: "re_clave",
-  EMAIL_FROM: "EstudiApp <avisos@mail.estudiapp.app>",
+  EMAIL_FROM: "EstudiApp <avisos@estudiapp.app>",
   CRON_SECRET: "secreto-cron",
   TURNSTILE_SITE_KEY: "0x4AAA",
   TURNSTILE_SECRET_KEY: "0x4BBB-secreta",

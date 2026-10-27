@@ -38,7 +38,7 @@ export function EmailStatus({ setup, outbox }: EmailStatusView) {
       label: "Remitente (EMAIL_FROM)",
       ok: setup.fromValid,
       value: setup.from ?? "Falta",
-      hint: setup.from && !setup.fromValid ? "No tiene el formato «EstudiApp <avisos@mail.estudiapp.app>»." : undefined,
+      hint: setup.from && !setup.fromValid ? "No tiene el formato «EstudiApp <avisos@estudiapp.app>»." : undefined,
     },
     {
       label: "Responder a (EMAIL_REPLY_TO)",

@@ -5,7 +5,7 @@ import { EmailSendError, sanitizeText, type EmailMessage, type EmailSender } fro
  * Envío de emails con Resend (https://resend.com/docs/api-reference/emails/send-email).
  *
  *   RESEND_API_KEY   clave de la API (solo servidor)
- *   EMAIL_FROM       remitente con dominio verificado en Resend, p. ej. «EstudiApp <avisos@mail.estudiapp.app>»
+ *   EMAIL_FROM       remitente con dominio verificado en Resend, p. ej. «EstudiApp <avisos@estudiapp.app>»
  *   EMAIL_REPLY_TO   (opcional) adónde van las respuestas, p. ej. «soporte@estudiapp.app»
  *
  * Si falta alguna de las dos primeras, o el «responder a» no es un email válido, el sender queda «no
