@@ -27,7 +27,11 @@ export type EmailContent = {
   blocks: Block[];
   /** Origen del sitio (https://...), para el pie. `null` si no está configurado. */
   siteUrl: string | null;
+  /** Primera frase del pie, si no es la de los avisos (las plantillas de Supabase Auth tienen la suya). */
+  footer?: string;
 };
+
+const DEFAULT_FOOTER = "Este es un aviso automático de EstudiApp, que te llega porque tenés una cuenta con este email.";
 
 // Marca (docs: README / CLAUDE.md).
 const BLACK_FOREST = "#023618";
@@ -105,7 +109,7 @@ export function renderHtml(subject: string, content: EmailContent): string {
 <p style="margin:0 0 16px;font-family:${BODY_FONT};font-size:16px;line-height:1.55;color:${TEXT};">${escapeHtml(content.greeting)}</p>
 ${content.blocks.map(renderBlockHtml).join("\n")}
 </td></tr>
-<tr><td style="padding:16px 28px;font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${MUTED};">Este es un aviso automático de EstudiApp, que te llega porque tenés una cuenta con este email.${footerSite}</td></tr>
+<tr><td style="padding:16px 28px;font-family:${BODY_FONT};font-size:12px;line-height:1.5;color:${MUTED};">${escapeHtml(content.footer ?? DEFAULT_FOOTER)}${footerSite}</td></tr>
 </table>
 </td></tr>
 </table>
@@ -133,7 +137,7 @@ export function renderText(content: EmailContent): string {
     }
   }
   parts.push(
-    `Este es un aviso automático de EstudiApp, que te llega porque tenés una cuenta con este email.${content.siteUrl ? `\n${content.siteUrl}` : ""}`,
+    `${content.footer ?? DEFAULT_FOOTER}${content.siteUrl ? `\n${content.siteUrl}` : ""}`,
   );
   return `${parts.join("\n\n")}\n`;
 }

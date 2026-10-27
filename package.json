@@ -17,6 +17,7 @@
     "e2e:supabase": "supabase start --workdir e2e -x imgproxy,logflare,vector,supavisor,postgres-meta,mailpit,studio,realtime,storage-api,edge-runtime",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:db",
     "db:bundle": "node scripts/bundle-migrations.mjs",
+    "auth-emails": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/auth-emails.mjs",
     "seed:demo": "node scripts/seed-demo.mjs",
     "seed:demo:cleanup": "node scripts/seed-demo.mjs --cleanup"
   },

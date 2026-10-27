@@ -131,26 +131,10 @@ Volvé a correr la verificación hasta que las filas 1 a 20 y la 22 digan OK.
 - **Redirect URLs:** agregá `http://localhost:3000/**`, `https://TU-DOMINIO/**` y, para las vistas
   previas de Vercel, `https://*-TU-EQUIPO.vercel.app/**`.
 
-**Authentication → Emails → Templates.** La app espera que los links pasen por `/auth/confirm`.
-Reemplazá el cuerpo de estas dos plantillas:
-
-*Confirm signup* — asunto: «Confirmá tu cuenta de EstudiApp»
-
-```html
-<h2>Ya casi estás</h2>
-<p>Confirmá tu email para empezar a usar EstudiApp.</p>
-<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email">Confirmar mi cuenta</a></p>
-<p>Si no creaste una cuenta, ignorá este mensaje.</p>
-```
-
-*Reset password* — asunto: «Elegí una nueva contraseña»
-
-```html
-<h2>Recuperá tu cuenta</h2>
-<p>Pediste cambiar tu contraseña de EstudiApp.</p>
-<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery">Elegir una nueva contraseña</a></p>
-<p>Si no lo pediste, ignorá este mensaje: tu contraseña sigue igual.</p>
-```
+**Authentication → Emails → Templates.** La app espera que los links pasen por `/auth/confirm`. Las
+plantillas, con la estética de EstudiApp y el asunto de cada una, están en
+[supabase/email-templates](../supabase/email-templates/README.md): pegá cada archivo en la plantilla que indica la
+tabla (como mínimo *Confirm signup* y *Reset password*).
 
 > El servicio de email que trae Supabase sirve para probar, pero manda **muy pocos emails por
 > hora**. Si te quedás sin envíos, confirmá cuentas a mano con la consulta del paso 5. Para el

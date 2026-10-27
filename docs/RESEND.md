@@ -121,7 +121,8 @@ recovery email». Para el lanzamiento van por Resend, con SMTP:
    | Password | la clave `supabase-auth` (`re_...`) |
 
 3. En **Authentication → Rate Limits**, el límite de emails por hora sube con un SMTP propio: dejalo en 30 o más.
-4. Probá desde `/recuperar-password` con tu cuenta: tiene que llegar el enlace y, al seguirlo, `/actualizar-password`.
+4. Cargá las plantillas con la estética de EstudiApp: [supabase/email-templates](../supabase/email-templates/README.md).
+5. Probá desde `/recuperar-password` con tu cuenta: tiene que llegar el enlace y, al seguirlo, `/actualizar-password`.
 
 Si falla, **Authentication → Logs** (o **Logs → Auth**) muestra el error exacto del SMTP.
 

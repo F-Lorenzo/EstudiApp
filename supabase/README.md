@@ -288,8 +288,8 @@ de confirmación de registro y recuperación de contraseña pasen por
 no figura entre las que documenta Supabase para las plantillas; con el tipo
 escrito fijo el link funciona seguro.) Por
 defecto Supabase usa `{{ .ConfirmationURL }}`, que apunta a un endpoint
-propio en vez de a la app. El texto completo de las dos plantillas está en
-[docs/FASE-0-PASO-A-PASO.md](../docs/FASE-0-PASO-A-PASO.md), paso 6.
+propio en vez de a la app. Las plantillas completas, con la estética de EstudiApp, están en
+[email-templates/](email-templates/README.md) (se generan con `npm run auth-emails`).
 
 ## Consultas para el SQL Editor (`supabase/checks`)
 
