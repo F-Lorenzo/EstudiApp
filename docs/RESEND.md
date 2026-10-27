@@ -1,8 +1,8 @@
 # Configurar Resend (emails de EstudiApp)
 
-Guía para encender el envío de emails. El código ya está listo y probado contra un Resend simulado. La cuenta
-está creada y el dominio `estudiapp.app` quedó **verificado el 27 de octubre de 2026**; faltan las variables en
-Cloudflare y la prueba.
+Guía para encender el envío de emails. El código ya está listo y probado contra un Resend simulado. **Funcionando en
+producción desde el 27 de octubre de 2026:** dominio `estudiapp.app` verificado, variables cargadas en Cloudflare y
+email de prueba recibido. Lo que sigue queda como referencia para otro proyecto o para rehacerlo.
 
 **Decisiones del 26 de octubre de 2026:**
 

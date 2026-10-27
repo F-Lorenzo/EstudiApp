@@ -233,7 +233,7 @@ Objetivo: salir a producción con confianza.
    `/admin/sistema` en producción y, con los textos legales definitivos (ítem 5), encender la indexación.
 7. **Mercado Pago real** (pendiente de la Fase 1): prueba de punta a punta del cobro, la comisión, el
    aviso y el reembolso; dominio y clave de Resend (✅ código listo: migración `0023` aplicada, `/admin/emails` y la guía
-   [docs/RESEND.md](docs/RESEND.md); dominio `estudiapp.app` verificado el 27 de octubre de 2026; falta cargar la clave y probar); apagar `MERCADOPAGO_OAUTH_TEST_TOKEN` y desvincular al
+   [docs/RESEND.md](docs/RESEND.md); ✅ Resend funcionando en producción el 27 de octubre de 2026: dominio `estudiapp.app` verificado y email de prueba recibido); apagar `MERCADOPAGO_OAUTH_TEST_TOKEN` y desvincular al
    docente de prueba (`scripts/link-test-payout.mjs`). Qué se probó y qué bloqueó las cuentas de prueba:
    [docs/FASE-1-PLAN.md](docs/FASE-1-PLAN.md).
 
