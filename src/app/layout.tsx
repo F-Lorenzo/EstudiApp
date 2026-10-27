@@ -20,9 +20,6 @@ const baseMetadata: Metadata = {
   },
   description:
     "Encontrá profesores con trayectoria comprobada. Aprendé a tu ritmo, con alguien que sabe cómo acompañarte.",
-  icons: {
-    icon: [{ url: "/brand/isotype-official.png", type: "image/png" }],
-  },
 };
 
 // Se arma en cada pedido: la indexación es un interruptor del Worker (`SITE_INDEXABLE`, src/lib/seo/indexing.ts),
