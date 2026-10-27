@@ -100,6 +100,8 @@ estas variables.
 
 ## 6. Emails de cuentas de Supabase (confirmación y recuperación de contraseña)
 
+✅ Configurado en el proyecto real el 27 de octubre de 2026.
+
 Los emails de las cuentas (confirmar el registro, recuperar la contraseña) **no** los manda la app: los manda
 Supabase Auth. Con el servicio de email que trae Supabase, salen muy pocos por hora y fallan con «Error sending
 recovery email». Para el lanzamiento van por Resend, con SMTP:
