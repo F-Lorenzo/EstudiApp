@@ -224,7 +224,7 @@ Objetivo: salir a producción con confianza.
    Supabase local reales, y un job propio en el CI. El pago es el simulado y la cuenta de Mercado Pago del docente
    es de mentira: el cobro real se prueba en el ítem 7.
 5. **Textos legales finales** (términos, privacidad, cancelación, condiciones de ingreso) y marca.
-   Fotos de perfil y respaldos (28 de octubre de 2026, migración `0026`, falta aplicarla): se suben desde el
+   Fotos de perfil y respaldos (28 de octubre de 2026, migración `0026`, aplicada el 28 de octubre de 2026): se suben desde el
    dispositivo a Supabase Storage en lugar de pegar un enlace.
 6. Quitar `noindex`, quitar los avisos de «vista de muestra», verificar la firma del webhook en
    todos los entornos y **desplegar a producción**.
