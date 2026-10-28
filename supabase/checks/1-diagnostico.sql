@@ -50,7 +50,10 @@ with estado(n, nombre, aplicada) as (
     (24, '0024 límites contra el abuso (card_payment_attempts)',
         to_regclass('public.card_payment_attempts') is not null),
     (25, '0025 búsqueda del catálogo sin tildes y por páginas (search_tutor_catalog)',
-        to_regprocedure('public.search_tutor_catalog(text, text[], numeric, numeric, boolean, text, integer, integer)') is not null)
+        to_regprocedure('public.search_tutor_catalog(text, text[], numeric, numeric, boolean, text, integer, integer)') is not null),
+    (26, '0026 fotos y respaldos en Storage (políticas estudiapp_avatars_* y estudiapp_credentials_*)',
+        exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects'
+                and policyname = 'estudiapp_credentials_select_own_or_admin'))
 ),
 -- Primera migración que falta, y si desde ahí faltan TODAS las siguientes (un tramo limpio).
 resumen as (

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { avatarError, credentialError, removeOtherAvatars, removeOtherCredentials } from "@/lib/storage/server";
 import { createClient } from "@/lib/supabase/server";
 import { tutorProfileSchema } from "@/lib/validation/tutor";
 import type { ActionState } from "@/lib/validation/form-state";
@@ -43,6 +44,23 @@ export async function updateTutorProfile(
     contactoVerificacion,
     subjectIds,
   } = parsed.data;
+
+  // La foto y el respaldo se suben desde el formulario (migración 0026): solo se guardan archivos propios, o los
+  // que ya estaban (también los enlaces de antes).
+  const [{ data: currentProfile }, { data: currentPrivate }] = await Promise.all([
+    supabase.from("profiles").select("avatar_url").eq("id", user.id).single(),
+    supabase.from("tutor_private").select("credential_url").eq("id", user.id).maybeSingle(),
+  ]);
+  const photoError = avatarError(avatarUrl, currentProfile?.avatar_url ?? null, user.id);
+  const fileError = credentialError(credentialUrl, currentPrivate?.credential_url ?? null, user.id);
+  if (photoError || fileError) {
+    return {
+      fieldErrors: {
+        ...(photoError ? { avatarUrl: [photoError] } : {}),
+        ...(fileError ? { credentialUrl: [fileError] } : {}),
+      },
+    };
+  }
 
   const { error: profileError } = await supabase
     .from("profiles")
@@ -114,6 +132,10 @@ export async function updateTutorProfile(
     return { error: "No se pudo enviar el perfil a revisión. Intentá de nuevo." };
   }
 
+  await Promise.all([
+    removeOtherAvatars(supabase, user.id, avatarUrl || null),
+    removeOtherCredentials(supabase, user.id, credentialUrl || null),
+  ]);
   revalidatePath("/docente", "layout");
   return { success: true };
 }

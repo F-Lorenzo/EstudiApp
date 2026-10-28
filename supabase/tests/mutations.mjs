@@ -48,6 +48,7 @@ const F22 = "0022_site_content.sql";
 const F23 = "0023_email_expiry_and_summary.sql";
 const F24 = "0024_abuse_limits.sql";
 const F25 = "0025_catalog_search.sql";
+const F26 = "0026_storage_uploads.sql";
 // `claim_pending_emails` se creó en la 0015 y la reemplazan la 0018, la 0019 y la 0023; `enqueue_tutor_decision_email`, de la
 // 0018, la reemplaza la 0019. Sus mutaciones van sobre la versión vigente.
 const CLAIM = F23;
@@ -66,6 +67,7 @@ const CONTENT = ["site-content", "rls-matrix"];
 const EXPIRY = ["email-expiry", "email-outbox", "reminders", "rls-matrix"];
 const ABUSE = ["abuse-limits", "rls-matrix", "bookings"];
 const CATALOG = ["catalog-search", "rls-matrix"];
+const STORAGE = ["storage-uploads"];
 
 const M = [
   // ---------------------------------------------------------------- 0013
@@ -254,6 +256,17 @@ const M = [
   [F25, "25-10 con horarios aunque no pueda cobrar", (s) => sub(s, "        and public.tutor_can_receive_payments(c.id)\n", ""), CATALOG],
   [F25, "25-11 el filtro de precio máximo no se aplica", (s) => sub(s, "and (p_precio_max is null or c.tarifa_por_clase <= p_precio_max)", ""), CATALOG],
   [F25, "25-12 se puede pedir un salto negativo", (s) => sub(s, "v_offset integer := greatest(coalesce(p_offset, 0), 0);", "v_offset integer := coalesce(p_offset, 0);"), CATALOG],
+  // ---------------------------------------------------------------- 0026
+  [F26, "26-01 una foto se sube en la subcarpeta de otra cuenta", (s) => sub(s, "create policy \"estudiapp_avatars_insert_own\"\n  on storage.objects for insert to authenticated\n  with check (\n    bucket_id = 'avatars'\n    and (storage.foldername(name))[1] = auth.uid()::text\n", "create policy \"estudiapp_avatars_insert_own\"\n  on storage.objects for insert to authenticated\n  with check (\n    bucket_id = 'avatars'\n"), STORAGE],
+  [F26, "26-02 una foto se sube en subcarpetas anidadas", (s) => sub(s, "create policy \"estudiapp_avatars_insert_own\"\n  on storage.objects for insert to authenticated\n  with check (\n    bucket_id = 'avatars'\n    and (storage.foldername(name))[1] = auth.uid()::text\n    and array_length(storage.foldername(name), 1) = 1\n", "create policy \"estudiapp_avatars_insert_own\"\n  on storage.objects for insert to authenticated\n  with check (\n    bucket_id = 'avatars'\n    and (storage.foldername(name))[1] = auth.uid()::text\n"), STORAGE],
+  [F26, "26-03 cada cuenta lista las fotos de todas", (s) => sub(s, "create policy \"estudiapp_avatars_select_own\"\n  on storage.objects for select to authenticated\n  using (\n    bucket_id = 'avatars'\n    and (storage.foldername(name))[1] = auth.uid()::text\n", "create policy \"estudiapp_avatars_select_own\"\n  on storage.objects for select to authenticated\n  using (\n    bucket_id = 'avatars'\n"), STORAGE],
+  [F26, "26-04 nadie puede borrar sus fotos viejas", (s) => sub(s, "create policy \"estudiapp_avatars_delete_own\"\n  on storage.objects for delete to authenticated", "create policy \"estudiapp_avatars_delete_own\"\n  on storage.objects for delete to service_role"), STORAGE],
+  [F26, "26-05 los respaldos quedan públicos", (s) => sub(s, "('credentials', 'credentials', false,", "('credentials', 'credentials', true,"), STORAGE],
+  [F26, "26-06 la administración no ve los respaldos", (s) => sub(s, "\n      or public.is_admin()\n", "\n"), STORAGE],
+  [F26, "26-07 cualquiera con sesión ve los respaldos", (s) => sub(s, "create policy \"estudiapp_credentials_select_own_or_admin\"\n  on storage.objects for select to authenticated\n  using (\n    bucket_id = 'credentials'\n", "create policy \"estudiapp_credentials_select_own_or_admin\"\n  on storage.objects for select to authenticated\n  using (\n    bucket_id = 'credentials' or true\n"), STORAGE],
+  [F26, "26-08 cualquier cuenta sube respaldos", (s) => sub(s, "    and array_length(storage.foldername(name), 1) = 1\n    and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'docente')\n  );\n\ncreate policy \"estudiapp_credentials_update_own_tutor\"", "    and array_length(storage.foldername(name), 1) = 1\n  );\n\ncreate policy \"estudiapp_credentials_update_own_tutor\""), STORAGE],
+  [F26, "26-09 fotos de hasta 20 MB", (s) => sub(s, "('avatars', 'avatars', true, 2097152,", "('avatars', 'avatars', true, 20971520,"), STORAGE],
+  [F26, "26-10 respaldos de cualquier tipo", (s) => sub(s, "array['application/pdf', 'image/jpeg', 'image/png', 'image/webp']", "array['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'text/html']"), STORAGE],
   [F19, "19-14 se manda la reapertura de un perfil que ya no está pendiente", (s) => sub(s, "          else 'pendiente'\n        end);", "          else tp.verification_status::text\n        end);"), AUDIT],
 ];
 

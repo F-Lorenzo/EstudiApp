@@ -32,6 +32,7 @@ npm run test:db -- bookings  # solo las que tengan «bookings» en el nombre
 | `email-expiry.db.mjs` | Emails vencidos y resumen de la bandeja (0023): vence lo que lleva 48 horas sin salir (no lo reciente, lo enviado ni lo que agotó los intentos) y no se reclama; el resumen cuenta por estado, muestra los últimos problemas sin destinatarios ni contenido y lo ve solo la administración |
 | `abuse-limits.db.mjs` | Límites contra el abuso (0024): 5 intentos de pago con tarjeta por reserva y 10 por alumno en 24 horas (el rechazado no se anota, el tope por reserva no vence, otro alumno no se ve afectado), 10 reservas sin pagar vencidas o canceladas por día (las pagas y las de ayer no cuentan) y que todo sea solo del backend |
 | `catalog-search.db.mjs` | Búsqueda del catálogo (0025): sin tildes ni mayúsculas, palabras en cualquier orden, sin comodines, solo los primeros 100 caracteres; filtros de materia, precio y horarios (= reservable: no la próxima hora ni un docente sin cuenta de cobro vigente); los dos órdenes con desempate; páginas que juntas son el catálogo entero, con el total y el tope de 48; y que cada rol vea solo a los aprobados y sus datos públicos |
+| `storage-uploads.db.mjs` | Fotos y respaldos en Storage (0026): la configuración de las dos carpetas (pública y privada, tamaños y tipos); que cada cuenta suba, liste, mueva y borre solo en su subcarpeta (y en un solo nivel); que el respaldo lo suba solo un docente y lo lean solo él y la administración. El arnés trae una copia mínima del esquema `storage` de Supabase |
 | `checks.db.mjs` | Que las consultas de `supabase/checks` (diagnóstico y verificación para el SQL Editor) funcionen en cualquier estado de la base y digan lo correcto (cada una de las filas, con las migraciones hasta cada punto, y que marquen FALLA si una función queda con permisos de más) |
 
 Los ayudantes `seed.mjs` (datos base; el docente base ya tiene una cuenta de cobro de relleno vigente) y
@@ -55,7 +56,7 @@ cambio: así la regla queda escrita.
 ### Mutaciones
 
 Una regla que se puede romper sin que ninguna prueba falle no está probada. `mutations.mjs` rompe a propósito
-**174 reglas** de las migraciones 0013 a 0025 (y de la política de reembolsos de la 0011) y comprueba que alguna
+**184 reglas** de las migraciones 0013 a 0026 (y de la política de reembolsos de la 0011) y comprueba que alguna
 suite falle: un umbral de 24 h o 2 h, el porcentaje del tramo parcial, el redondeo del monto, un `for update`, la
 cuenta de cobro que se guarda en el reembolso, un permiso abierto a `authenticated`, la restricción única de la
 bandeja de emails, el payload con el email adentro, el reintento sin espera, una fila enviada que vuelve atrás, etc.

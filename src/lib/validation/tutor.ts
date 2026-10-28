@@ -9,7 +9,9 @@ export const tutorProfileSchema = z.object({
   avatarUrl: z.union([z.url({ protocol: /^https?$/, error: "Ingresá un enlace válido que empiece con http o https" }), z.literal("")]),
   bio: z.string().trim().min(1, "Contanos tu presentación"),
   nivelAcademico: z.string().trim().min(1, "Ingresá tu nivel académico o título"),
-  credentialUrl: z.union([z.url({ protocol: /^https?$/, error: "Ingresá un enlace válido que empiece con http o https" }), z.literal("")]),
+  // Un archivo de la carpeta privada (`<id>/<uuid>.pdf`, migración 0026) o un enlace de antes; el servidor comprueba
+  // que sea propio.
+  credentialUrl: z.string().trim().max(500),
   tarifaPorClase: z.coerce
     .number()
     .positive("La tarifa debe ser mayor a cero"),

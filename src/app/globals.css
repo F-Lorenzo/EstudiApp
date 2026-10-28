@@ -1026,3 +1026,72 @@ button:active:not(:disabled) {
   font-weight: 500;
   line-height: 1.5;
 }
+
+/* Subida de archivos (foto de perfil y respaldo del docente): la comparten el espacio del alumno y el del docente. */
+.file-upload {
+  display: grid;
+  gap: 8px;
+}
+.file-upload-avatar {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+.file-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.file-upload-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 16px;
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  background: var(--cream);
+  color: var(--forest);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+.file-upload-button:hover:not(:disabled) {
+  background: #eeeee1;
+}
+.file-upload-remove {
+  min-height: 42px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--rust);
+  font-size: 0.85rem;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.file-upload-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--forest);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.file-upload-file a {
+  color: var(--forest);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.file-upload-hint,
+.file-upload-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+.file-upload-status.is-error {
+  color: var(--rust);
+  font-weight: 600;
+}

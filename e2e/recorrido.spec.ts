@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Browser, type Page } from "@playwright/test";
+import fs from "node:fs";
 import { sql, value } from "./db";
 
 /**
@@ -17,6 +18,14 @@ const PASSWORD = "clave-de-prueba-123";
 const DOCENTE = { name: "Marina Prueba", email: "docente.e2e@estudiapp.test" };
 const ALUMNO = { name: "Tomás Ensayo", email: "alumno.e2e@estudiapp.test" };
 const ADMIN = { name: "Equipo Prueba", email: "admin.e2e@estudiapp.test" };
+
+// Archivos para subir (migración 0026): el isotipo de la marca como foto y un PDF mínimo como respaldo.
+const PHOTO = { name: "foto.png", mimeType: "image/png", buffer: fs.readFileSync("public/brand/isotype-official.png") };
+const CREDENTIAL = {
+  name: "titulo.pdf",
+  mimeType: "application/pdf",
+  buffer: Buffer.from("%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n"),
+};
 
 /** El id de una cuenta por su email. */
 const idOf = (email: string) => value(`select id from auth.users where email = '${email}'`);
@@ -52,6 +61,9 @@ test("el docente se registra y completa su perfil", async ({ browser, page }) =>
 
   await docente.goto("/docente/perfil");
   await docente.fill('[name="fullName"]', DOCENTE.name);
+  // La foto se sube desde el dispositivo: el navegador la achica y la manda a Storage con la sesión del docente.
+  await docente.locator(`input[type=file][aria-label="Elegir una foto de perfil"]`).setInputFiles(PHOTO);
+  await expect(docente.getByText("Lista. Se guarda al apretar «Guardar».")).toBeVisible();
   await docente.fill(
     '[name="bio"]',
     "Doy clases de matemática hace diez años. Empiezo por lo que ya sabés y avanzamos con ejercicios a tu ritmo.",
@@ -59,6 +71,8 @@ test("el docente se registra y completa su perfil", async ({ browser, page }) =>
   await docente.getByRole("button", { name: /Continuar/ }).click();
   await docente.getByRole("button", { name: /^Matemática/ }).click();
   await docente.fill('[name="nivelAcademico"]', "Profesora de Matemática (UBA)");
+  await docente.locator(`input[type=file][aria-label="Elegir el archivo de respaldo"]`).setInputFiles(CREDENTIAL);
+  await expect(docente.getByText("titulo.pdf")).toBeVisible();
   await docente.getByRole("button", { name: /Continuar/ }).click();
   await docente.fill('[name="tarifaPorClase"]', "15000");
   await docente.fill('[name="contactoVerificacion"]', "+54 11 5555-0000");
@@ -66,6 +80,19 @@ test("el docente se registra y completa su perfil", async ({ browser, page }) =>
   await expect(docente.getByText("Perfil en revisión")).toBeVisible();
 
   expect(value(`select verification_status from public.tutor_profiles tp join auth.users u on u.id = tp.id where u.email = '${DOCENTE.email}'`)).toBe("pendiente");
+  // La foto quedó en la carpeta pública, achicada; el respaldo, en la privada. Solo un archivo de cada uno.
+  const tutorId = idOf(DOCENTE.email);
+  const avatar = value(`select avatar_url from public.profiles where id = '${tutorId}'`);
+  expect(avatar).toMatch(new RegExp(`/storage/v1/object/public/avatars/${tutorId}/[0-9a-f-]{36}\\.(webp|jpg)$`));
+  const photo = await page.request.get(avatar);
+  expect(photo.status()).toBe(200);
+  expect((await photo.body()).length).toBeLessThan(80_000);
+  expect(value(`select credential_url from public.tutor_private where id = '${tutorId}'`)).toMatch(new RegExp(`^${tutorId}/[0-9a-f-]{36}\\.pdf$`));
+  expect(value(`select count(*) from storage.objects where bucket_id = 'avatars' and name like '${tutorId}/%'`)).toBe("1");
+  // El respaldo no se puede abrir con una dirección pública.
+  const supabaseUrl = new URL(avatar).origin;
+  const leaked = await page.request.get(`${supabaseUrl}/storage/v1/object/public/credentials/${value(`select credential_url from public.tutor_private where id = '${tutorId}'`)}`);
+  expect(leaked.ok()).toBe(false);
   // Un perfil pendiente no aparece en el catálogo.
   await page.goto("/docentes");
   await expect(page.getByText(DOCENTE.name)).toHaveCount(0);
@@ -80,6 +107,11 @@ test("la administración aprueba el perfil y el docente aparece en el catálogo"
   const admin = await login(browser, ADMIN.email);
   await admin.goto("/admin/docentes/pendientes");
   await admin.getByRole("link", { name: new RegExp(DOCENTE.name) }).click();
+  // La administración abre el respaldo con un enlace firmado que vence.
+  const credentialLink = admin.getByRole("link", { name: "Ver el archivo ↗" });
+  const signed = await admin.request.get((await credentialLink.getAttribute("href"))!);
+  expect(signed.status()).toBe(200);
+  expect((await signed.body()).subarray(0, 5).toString()).toBe("%PDF-");
   await admin.getByRole("button", { name: /Aprobar perfil/ }).click();
   // Vuelve a la lista, que queda vacía.
   await expect(admin.getByText("No hay solicitudes pendientes.")).toBeVisible();

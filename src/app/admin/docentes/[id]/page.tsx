@@ -5,6 +5,8 @@ import { Avatar, Badge, PageHeading } from "@/components/ui";
 import { VerificationStatusBanner } from "@/components/verification-status-banner";
 import { getTutorHistory } from "@/lib/admin/audit";
 import { longDate, money } from "@/lib/format";
+import { credentialViewUrl } from "@/lib/storage/server";
+import { isExternalLink } from "@/lib/storage/uploads";
 import { createClient } from "@/lib/supabase/server";
 import { getTutorDetail } from "@/lib/tutors/queries";
 
@@ -35,8 +37,9 @@ export default async function DetalleDocentePage({
   const subjectNames = (tutor.tutor_subjects ?? [])
     .map((row) => row.subjects?.name)
     .filter((subject): subject is string => Boolean(subject));
-  const credentialIsLink =
-    !!tutor.credential_url && /^https?:\/\//i.test(tutor.credential_url);
+  // Un respaldo subido (migración 0026) está en la carpeta privada: el enlace se firma acá y vence en 10 minutos.
+  const credentialUrl = await credentialViewUrl(supabase, tutor.credential_url);
+  const credentialIsFile = !!tutor.credential_url && !isExternalLink(tutor.credential_url);
 
   return (
     <div className="mgmt-page">
@@ -98,16 +101,14 @@ export default async function DetalleDocentePage({
             <div>
               <dt>Respaldo</dt>
               <dd>
-                {credentialIsLink ? (
-                  <a
-                    href={tutor.credential_url!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Ver adjunto ↗
+                {credentialUrl ? (
+                  <a href={credentialUrl} target="_blank" rel="noopener noreferrer">
+                    {credentialIsFile ? "Ver el archivo ↗" : "Ver enlace ↗"}
                   </a>
+                ) : credentialIsFile ? (
+                  "No pudimos abrir el archivo. Recargá la página."
                 ) : (
-                  tutor.credential_url || "—"
+                  "—"
                 )}
               </dd>
             </div>

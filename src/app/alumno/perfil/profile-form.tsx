@@ -2,15 +2,18 @@
 
 import { useActionState, useState } from "react";
 import { FieldError } from "@/components/field-error";
-import { Avatar, Icon } from "@/components/ui";
+import { AvatarUpload } from "@/components/file-uploads";
+import { Icon } from "@/components/ui";
 import { initialActionState } from "@/lib/validation/form-state";
 import { updateProfile } from "./actions";
 
 export function ProfileForm({
+  userId,
   email,
   fullName,
   avatarUrl,
 }: {
+  userId: string;
   email: string;
   fullName: string;
   avatarUrl: string;
@@ -25,11 +28,10 @@ export function ProfileForm({
   return (
     <form action={formAction} className="stu-profile-form">
       <div className="stu-profile-photo">
-        <Avatar name={name || "Estudiante"} src={photo || undefined} size={88} />
-        <div>
-          <strong>Tu foto de perfil</strong>
-          <p>Pegá el enlace de una imagen para mostrarla en tu perfil.</p>
-        </div>
+        <strong>Tu foto de perfil</strong>
+        <p>La ve tu profe cuando reservás una clase. Es opcional.</p>
+        <AvatarUpload userId={userId} name={name || "Estudiante"} value={photo} onChange={setPhoto} />
+        <FieldError messages={state.fieldErrors?.avatarUrl} />
       </div>
       <div className="stu-profile-fields">
         <label className="stu-field">
@@ -49,20 +51,6 @@ export function ProfileForm({
           <span>Correo electrónico</span>
           <input type="email" value={email} readOnly aria-readonly="true" />
           <small>Es el email con el que ingresás. No se puede cambiar acá.</small>
-        </label>
-        <label className="stu-field stu-field-full">
-          <span>
-            Foto de perfil (enlace) <small>Opcional</small>
-          </span>
-          <input
-            name="avatarUrl"
-            type="url"
-            placeholder="https://…"
-            value={photo}
-            onChange={(event) => setPhoto(event.target.value)}
-            aria-invalid={state.fieldErrors?.avatarUrl ? true : undefined}
-          />
-          <FieldError messages={state.fieldErrors?.avatarUrl} />
         </label>
       </div>
       {state.error && (

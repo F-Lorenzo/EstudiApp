@@ -1,4 +1,5 @@
 import { TeacherOnboarding } from "@/components/teacher-onboarding";
+import { credentialViewUrl } from "@/lib/storage/server";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Tu perfil profesional" };
@@ -38,8 +39,13 @@ export default async function PerfilDocentePage() {
     supabase.from("tutor_subjects").select("subject_id").eq("tutor_id", user!.id),
   ]);
 
+  // El respaldo vive en la carpeta privada (migración 0026): para verlo hace falta un enlace firmado.
+  const viewUrl = await credentialViewUrl(supabase, tutorPrivate?.credential_url ?? null);
+
   return (
     <TeacherOnboarding
+      userId={user!.id}
+      credentialViewUrl={viewUrl}
       values={{
         fullName: profile?.full_name ?? "",
         avatarUrl: profile?.avatar_url ?? "",

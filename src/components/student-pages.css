@@ -903,9 +903,8 @@
   margin-top: 38px;
 }
 .stu-profile-photo {
-  display: flex;
-  align-items: center;
-  gap: 20px;
+  display: grid;
+  gap: 4px;
   margin-bottom: 30px;
 }
 .stu-profile-photo strong {

@@ -25,6 +25,7 @@ export default async function PerfilAlumnoPage() {
       />
       <div className="stu-profile-layout">
         <ProfileForm
+          userId={user!.id}
           email={user!.email ?? ""}
           fullName={profile?.full_name ?? ""}
           avatarUrl={profile?.avatar_url ?? ""}

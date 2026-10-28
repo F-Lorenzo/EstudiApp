@@ -84,12 +84,12 @@ for (const [nombre, sql] of [["completo", COMPLETO], ["compacto", COMPACTO]]) {
   const diag = (await db.exec(leer("../checks/1-diagnostico.sql"))).at(-1).rows;
   r.push([/nada: están todas/.test(diag.at(-1).migracion), `el diagnóstico dice que están todas (${nombre})`]);
   const verif = (await db.exec(leer("../checks/2-verificacion.sql"))).at(-1).rows;
-  r.push([verif.filter((f) => f.orden <= 19 || f.orden >= 23).every((f) => f.resultado === "OK"), `la verificación da OK en las filas 1 a 19 y 23 a 32 (${nombre})`]);
+  r.push([verif.filter((f) => f.orden <= 19 || f.orden >= 23).every((f) => f.resultado === "OK"), `la verificación da OK en las filas 1 a 19 y 23 a 33 (${nombre})`]);
 }
 
 // --- Tramos finales: un proyecto que ya tiene parte de las migraciones y DATOS recibe solo las que faltan --------
 //   (el de EstudiApp hoy tiene hasta la 0011; el README recomienda aplicar 12–13 y, tras vincular un docente, 14–15)
-for (const [desde, tiene] of [[12, 11], [13, 12], [14, 13], [15, 14], [16, 15], [17, 16], [18, 17], [19, 18], [20, 19], [21, 20], [22, 21], [23, 22], [24, 23], [25, 24]]) {
+for (const [desde, tiene] of [[12, 11], [13, 12], [14, 13], [15, 14], [16, 15], [17, 16], [18, 17], [19, 18], [20, 19], [21, 20], [22, 21], [23, 22], [24, 23], [25, 24], [26, 25]]) {
   const pad = (n) => String(n).padStart(4, "0");
   r.push([generar(String(desde), String(LAST)), `npm run db:bundle -- ${desde} ${LAST} genera el tramo final`]);
   const sql = leer(`../aplicar-${pad(desde)}-a-${N}.sql`);

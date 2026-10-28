@@ -2,6 +2,7 @@
 
 import { useActionState, useState, type FormEvent } from "react";
 import { FieldError } from "@/components/field-error";
+import { AvatarUpload, CredentialUpload } from "@/components/file-uploads";
 import { Badge, ButtonLink, PageHeading } from "@/components/ui";
 import { VerificationStatusBanner } from "@/components/verification-status-banner";
 import { money } from "@/lib/format";
@@ -50,29 +51,16 @@ const STEPS = [
   ["Los últimos detalles", "Tarifa y contacto"],
 ];
 
-function isUrl(value: string) {
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function validateStep(step: number, draft: Draft) {
   const errors: Record<string, string> = {};
   if (step === 0) {
     if (!draft.fullName.trim()) errors.fullName = "Contanos tu nombre.";
-    if (draft.avatarUrl.trim() && !isUrl(draft.avatarUrl.trim()))
-      errors.avatarUrl = "Ingresá una URL válida.";
     if (!draft.bio.trim()) errors.bio = "Contanos cómo enseñás.";
   }
   if (step === 1) {
     if (!draft.subjectIds.length) errors.subjectIds = "Elegí al menos una materia.";
     if (!draft.nivelAcademico.trim())
       errors.nivelAcademico = "Indicá tu título o nivel académico.";
-    if (draft.credentialUrl.trim() && !isUrl(draft.credentialUrl.trim()))
-      errors.credentialUrl = "Ingresá una URL válida.";
   }
   if (step === 2) {
     if (!(Number(draft.tarifa) > 0))
@@ -85,11 +73,16 @@ function validateStep(step: number, draft: Draft) {
 }
 
 export function TeacherOnboarding({
+  userId,
+  credentialViewUrl,
   values,
   subjects,
   status,
   reason,
 }: {
+  userId: string;
+  /** Enlace firmado para ver el respaldo guardado (migración 0026), o `null`. */
+  credentialViewUrl: string | null;
   values: TutorProfileValues;
   subjects: Subject[];
   status: string;
@@ -303,22 +296,21 @@ export function TeacherOnboarding({
               />
               <FieldError messages={shown("fullName")} />
             </label>
-            <label className="mgmt-field">
+            <div className="mgmt-field">
               <span>
-                Foto de perfil (enlace) <small>Opcional</small>
+                Foto de perfil <small>Opcional</small>
               </span>
-              <input
-                name="avatarUrl"
-                type="url"
+              <AvatarUpload
+                userId={userId}
+                name={draft.fullName || "Tu foto"}
                 value={draft.avatarUrl}
-                onChange={(event) =>
-                  update("avatarUrl", event.target.value, "avatarUrl")
-                }
-                placeholder="https://…"
-                aria-invalid={!!shown("avatarUrl")}
+                onChange={(url) => update("avatarUrl", url, "avatarUrl")}
               />
+              <span className="mgmt-field-hint">
+                Una foto de frente, con buena luz, da confianza a quien te elige.
+              </span>
               <FieldError messages={shown("avatarUrl")} />
-            </label>
+            </div>
             <label className="mgmt-field">
               Tu forma de enseñar
               <textarea
@@ -384,25 +376,21 @@ export function TeacherOnboarding({
               />
               <FieldError messages={shown("nivelAcademico")} />
             </label>
-            <label className="mgmt-field">
+            <div className="mgmt-field">
               <span>
-                Respaldo de tu trayectoria (enlace) <small>Opcional</small>
+                Respaldo de tu trayectoria <small>Opcional</small>
               </span>
-              <input
-                name="credentialUrl"
-                type="url"
-                value={draft.credentialUrl}
-                onChange={(event) =>
-                  update("credentialUrl", event.target.value, "credentialUrl")
-                }
-                placeholder="https://…"
-                aria-invalid={!!shown("credentialUrl")}
-              />
               <span className="mgmt-field-hint">
-                Un título, un CV o un perfil profesional que podamos consultar.
+                Un título, un certificado o tu CV, para que podamos verificar tu formación.
               </span>
+              <CredentialUpload
+                userId={userId}
+                value={draft.credentialUrl}
+                viewUrl={draft.credentialUrl === values.credentialUrl ? credentialViewUrl : null}
+                onChange={(value) => update("credentialUrl", value, "credentialUrl")}
+              />
               <FieldError messages={shown("credentialUrl")} />
-            </label>
+            </div>
             <div className="mgmt-form-tip">
               <strong>La trayectoria se construye de muchas formas.</strong>
               <p>

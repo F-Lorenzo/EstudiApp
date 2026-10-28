@@ -27,7 +27,12 @@ enabled = false
 [studio]
 enabled = false
 
+# Storage: las fotos de perfil y los respaldos (migración 0026) se suben de verdad en el recorrido.
 [storage]
+enabled = true
+file_size_limit = "10MiB"
+
+[storage.image_transformation]
 enabled = false
 
 [edge_runtime]

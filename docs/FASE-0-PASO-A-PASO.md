@@ -24,12 +24,12 @@ los mismos pasos en el real. Si el proyecto solo tiene datos de prueba, podés i
 
 1. Supabase → tu proyecto → **SQL Editor** → **New query**.
 2. Pegá el contenido de `supabase/checks/1-diagnostico.sql` y apretá **Run**.
-3. Te muestra qué migraciones (0001 a 0025) tiene y, en la **última fila, qué hacer**:
+3. Te muestra qué migraciones (0001 a 0026) tiene y, en la **última fila, qué hacer**:
 
 | La última fila dice… | Hacé esto |
 |---|---|
 | «aplicá supabase/aplicar-0006-a-0010.sql…» | Seguí con el paso 2. Es el caso esperado. |
-| «proyecto vacío…» | **Instalación desde cero**: corré `npm run db:bundle -- 1 25`, copiá todo `supabase/aplicar-0001-a-0025.sql` (o `npm run db:bundle -- 1 25 --compacto` para la versión sin comentarios), pegalo en el SQL Editor y Run. Con eso quedan las veinticinco migraciones y **saltás directo al paso 4** (verificación). |
+| «proyecto vacío…» | **Instalación desde cero**: corré `npm run db:bundle -- 1 26`, copiá todo `supabase/aplicar-0001-a-0026.sql` (o `npm run db:bundle -- 1 26 --compacto` para la versión sin comentarios), pegalo en el SQL Editor y Run. Con eso quedan las veintiséis migraciones y **saltás directo al paso 4** (verificación). |
 | «faltan algunas de 0001 a 0005…» | Aplicá solo las de 0001 a 0005 que dicen NO, en orden. Volvé a correr el diagnóstico. |
 | «nada: están todas…» | Saltá al paso 4. |
 | «estado mezclado…» | **No sigas.** Mandame el resultado completo del diagnóstico. |
@@ -72,9 +72,9 @@ SQL Editor:
 
 Pegá `supabase/checks/2-verificacion.sql` en el SQL Editor y apretá **Run**. Son 29 filas:
 
-- Las filas **1 a 19 y 23 a 32** tienen que decir **OK**. Si alguna dice FALLA, no sigas y mandame el resultado.
-  (Las filas 16 a 19 y 23 a 32 comprueban las migraciones del cobro, los emails, las calificaciones, la
-  asistencia, los recordatorios, el registro de acciones, las métricas, la comisión, el contenido, el vencimiento de los emails, los límites contra el abuso y la búsqueda del catálogo: 0012 a 0025. Si todavía no las aplicaste, van a decir FALLA y es lo esperado: esas migraciones no son
+- Las filas **1 a 19 y 23 a 33** tienen que decir **OK**. Si alguna dice FALLA, no sigas y mandame el resultado.
+  (Las filas 16 a 19 y 23 a 33 comprueban las migraciones del cobro, los emails, las calificaciones, la
+  asistencia, los recordatorios, el registro de acciones, las métricas, la comisión, el contenido, el vencimiento de los emails, los límites contra el abuso, la búsqueda del catálogo y los archivos subidos: 0012 a 0026. Si todavía no las aplicaste, van a decir FALLA y es lo esperado: esas migraciones no son
   parte de este paso.)
 - Las filas **20 a 22** pueden decir **REVISAR**:
 

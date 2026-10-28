@@ -102,7 +102,7 @@ begin
   ), 'FALLA';
 
   -- 12 a 15. Cimientos del cobro (migración 0011). La 16 es de la 0012, la 17 de la 0013, la 18 de la 0014
-  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021, la 29 de la 0022, la 30 de la 0023, la 31 de la 0024 y la 32 de la 0025.
+  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021, la 29 de la 0022, la 30 de la 0023, la 31 de la 0024, la 32 de la 0025 y la 33 de la 0026.
   insert into _verificacion
   select 12, 'cobro: los tokens de Mercado Pago (mp_credentials) no se leen ni se escriben desde la API',
     case when to_regclass('public.mp_credentials') is null then false
@@ -369,6 +369,22 @@ begin
           and has_function_privilege('anon', 'public.search_tutor_catalog(text, text[], numeric, numeric, boolean, text, integer, integer)', 'execute')
           and not (select p.prosecdef from pg_proc p
                    where p.oid = to_regprocedure('public.search_tutor_catalog(text, text[], numeric, numeric, boolean, text, integer, integer)')) end,
+    'FALLA';
+
+  -- 33. Fotos y respaldos en Storage (migración 0026): las dos carpetas con su configuración y las ocho políticas.
+  insert into _verificacion
+  select 33, 'archivos: fotos públicas y respaldos privados, cada cuenta solo en su subcarpeta',
+    case when to_regclass('storage.buckets') is null then false
+         else exists (select 1 from storage.buckets where id = 'avatars' and public
+                      and file_size_limit = 2097152 and allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp'])
+          and exists (select 1 from storage.buckets where id = 'credentials' and not public
+                      and file_size_limit = 5242880
+                      and allowed_mime_types = array['application/pdf', 'image/jpeg', 'image/png', 'image/webp'])
+          and (select count(*) from pg_policies where schemaname = 'storage' and tablename = 'objects'
+               and policyname like 'estudiapp\_%') = 8
+          -- Ninguna política de la carpeta privada alcanza al visitante.
+          and not exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects'
+                          and qual like '%credentials%' and ('anon' = any (roles) or 'public' = any (roles))) end,
     'FALLA';
 
   -- 20. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).
