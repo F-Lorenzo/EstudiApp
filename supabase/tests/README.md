@@ -33,6 +33,7 @@ npm run test:db -- bookings  # solo las que tengan «bookings» en el nombre
 | `abuse-limits.db.mjs` | Límites contra el abuso (0024): 5 intentos de pago con tarjeta por reserva y 10 por alumno en 24 horas (el rechazado no se anota, el tope por reserva no vence, otro alumno no se ve afectado), 10 reservas sin pagar vencidas o canceladas por día (las pagas y las de ayer no cuentan) y que todo sea solo del backend |
 | `catalog-search.db.mjs` | Búsqueda del catálogo (0025): sin tildes ni mayúsculas, palabras en cualquier orden, sin comodines, solo los primeros 100 caracteres; filtros de materia, precio y horarios (= reservable: no la próxima hora ni un docente sin cuenta de cobro vigente); los dos órdenes con desempate; páginas que juntas son el catálogo entero, con el total y el tope de 48; y que cada rol vea solo a los aprobados y sus datos públicos |
 | `storage-uploads.db.mjs` | Fotos y respaldos en Storage (0026): la configuración de las dos carpetas (pública y privada, tamaños y tipos); que cada cuenta suba, liste, mueva y borre solo en su subcarpeta (y en un solo nivel); que el respaldo lo suba solo un docente y lo lean solo él y la administración. El arnés trae una copia mínima del esquema `storage` de Supabase |
+| `review-appeals.db.mjs` | Niveles y apelaciones (0027): los nombres de los niveles (y que renombrarlos quede en el registro); el nivel de un docente con la misma regla que la comisión (escalón más bajo cumplido, desactivados no cuentan, nunca bajo el piso) y lo que le falta para el siguiente; que solo un docente vea el suyo y solo la administración el de todos; que se apelen solo las reseñas propias de 1 o 2 estrellas, una vez y con motivo; que decida solo la administración (rechazar con respuesta); que una reseña quitada deje de contar en el promedio, las opiniones y la comisión y no se pueda volver a calificar; quién ve cada apelación, y el registro |
 | `checks.db.mjs` | Que las consultas de `supabase/checks` (diagnóstico y verificación para el SQL Editor) funcionen en cualquier estado de la base y digan lo correcto (cada una de las filas, con las migraciones hasta cada punto, y que marquen FALLA si una función queda con permisos de más) |
 
 Los ayudantes `seed.mjs` (datos base; el docente base ya tiene una cuenta de cobro de relleno vigente) y
@@ -56,7 +57,7 @@ cambio: así la regla queda escrita.
 ### Mutaciones
 
 Una regla que se puede romper sin que ninguna prueba falle no está probada. `mutations.mjs` rompe a propósito
-**184 reglas** de las migraciones 0013 a 0026 (y de la política de reembolsos de la 0011) y comprueba que alguna
+**203 reglas** de las migraciones 0013 a 0027 (y de la política de reembolsos de la 0011) y comprueba que alguna
 suite falle: un umbral de 24 h o 2 h, el porcentaje del tramo parcial, el redondeo del monto, un `for update`, la
 cuenta de cobro que se guarda en el reembolso, un permiso abierto a `authenticated`, la restricción única de la
 bandeja de emails, el payload con el email adentro, el reintento sin espera, una fila enviada que vuelve atrás, etc.

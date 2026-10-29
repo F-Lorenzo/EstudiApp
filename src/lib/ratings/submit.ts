@@ -5,7 +5,7 @@ import { canRate } from "./window";
 
 export type SubmitRatingResult =
   | { ok: true; tutorId: string }
-  | { ok: false; reason: "not_found" | "not_completed" | "expired" | "already_rated" | "error" };
+  | { ok: false; reason: "not_found" | "not_completed" | "expired" | "already_rated" | "removed" | "error" };
 
 const bookingSchema = z.object({
   id: z.string(),
@@ -52,6 +52,8 @@ export async function submitRating(
   if (insertError) {
     // 23505: ya había una calificación (otra pestaña, doble clic).
     if (insertError.code === "23505") return { ok: false, reason: "already_rated" };
+    // La administración quitó la opinión de esta clase después de una apelación (migración 0027).
+    if (insertError.hint === "rating_removed") return { ok: false, reason: "removed" };
     console.error(JSON.stringify({ source: "ratings", message: "no se pudo guardar la calificación", bookingId, code: insertError.code }));
     return { ok: false, reason: "error" };
   }
@@ -66,6 +68,8 @@ export function ratingErrorMessage(reason: Exclude<SubmitRatingResult, { ok: tru
       return "Vas a poder calificar la clase cuando termine.";
     case "expired":
       return "Pasaron más de 30 días desde la clase: ya no se puede calificar.";
+    case "removed":
+      return "La opinión de esta clase se quitó por moderación y no se puede volver a calificar.";
     case "not_found":
       return "No encontramos esa clase.";
     default:

@@ -14,6 +14,7 @@ import {
   type CommissionSettings,
   type CommissionTier,
 } from "@/lib/admin/commission";
+import { LEVEL_NAME_MAX } from "@/lib/validation/commission";
 import { initialActionState } from "@/lib/validation/form-state";
 import { TableWrap } from "@/components/management-ui";
 
@@ -46,13 +47,14 @@ export function CommissionAdmin({
             <div>
               <h2>Escalones</h2>
               <p>
-                Un docente paga la comisión más baja de los escalones que cumple, nunca menos que el piso. Cuentan solo
-                las reseñas de clases dadas y pagas, una por alumno.
+                Cada escalón es un nivel. Un docente queda en el nivel de comisión más baja entre los que cumple, nunca
+                menos que el piso, y lo ve en su panel. Cuentan solo las reseñas de clases dadas y pagas, una por alumno.
               </p>
             </div>
           </div>
           <div className="mgmt-tier-list">
             <div className="mgmt-tier-row mgmt-tier-head" aria-hidden="true">
+              <span>Nivel</span>
               <span>Reseñas</span>
               <span>Calificación mínima</span>
               <span>Comisión</span>
@@ -60,7 +62,7 @@ export function CommissionAdmin({
               <span />
             </div>
             <p className="mgmt-tier-base">
-              Con menos reseñas de las que pide el primer escalón: la base, {formatRate(settings.baseRate)}.
+              Sin ningún escalón cumplido: «{settings.baseName}», con la base, {formatRate(settings.baseRate)}.
             </p>
             {tiers.map((tier) => (
               <TierForm key={tier.id} tier={tier} />
@@ -86,6 +88,7 @@ export function CommissionAdmin({
               <thead>
                 <tr>
                   <th>Docente</th>
+                  <th>Nivel</th>
                   <th>Reseñas que cuentan</th>
                   <th>Promedio</th>
                   <th>Con la regla encendida</th>
@@ -96,6 +99,7 @@ export function CommissionAdmin({
                 {preview.map((row) => (
                   <tr key={row.tutorId}>
                     <td>{row.name}</td>
+                    <td>{row.level ?? "—"}</td>
                     <td>{row.reviews}</td>
                     <td>{row.average === null ? "—" : row.average.toFixed(2).replace(".", ",")}</td>
                     <td>{formatRate(row.rateIfEnabled)}</td>
@@ -126,6 +130,18 @@ function SettingsForm({ settings }: { settings: CommissionSettings }) {
           <strong>Aplicar la comisión por reputación</strong>
           <small>Apagada, todos pagan la comisión base.</small>
         </span>
+      </label>
+      <label className="mgmt-field">
+        Nombre del nivel base
+        <input
+          name="baseName"
+          required
+          maxLength={LEVEL_NAME_MAX}
+          defaultValue={state.values?.baseName ?? settings.baseName}
+          aria-invalid={state.fieldErrors?.baseName ? true : undefined}
+        />
+        <small className="mgmt-field-hint">El de quien todavía no cumple ningún escalón.</small>
+        <FieldError messages={state.fieldErrors?.baseName} />
       </label>
       <label className="mgmt-field">
         Comisión base (%)
@@ -170,10 +186,22 @@ function TierForm({ tier }: { tier: CommissionTier | null }) {
   const [state, formAction, pending] = useActionState(saveCommissionTier.bind(null, tier?.id ?? null), initialActionState);
   const [deleting, startDelete] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const label = tier ? `escalón de ${tier.minReviews} reseñas` : "escalón nuevo";
+  const label = tier ? `nivel ${tier.name}` : "nivel nuevo";
 
   return (
-    <form action={formAction} className="mgmt-tier-row" aria-label={tier ? `Escalón de ${tier.minReviews} reseñas` : "Agregar un escalón"}>
+    <form action={formAction} className="mgmt-tier-row" aria-label={tier ? `Nivel ${tier.name}` : "Agregar un nivel"}>
+      <label className="mgmt-field">
+        <span className="mgmt-tier-label">Nivel</span>
+        <input
+          name="name"
+          required
+          maxLength={LEVEL_NAME_MAX}
+          aria-label={tier ? `Nombre del ${label}` : "Nombre del nivel nuevo"}
+          defaultValue={state.values?.name ?? tier?.name ?? ""}
+          placeholder="Ej.: Maestro"
+        />
+        <FieldError messages={state.fieldErrors?.name} />
+      </label>
       <label className="mgmt-field">
         <span className="mgmt-tier-label">Reseñas (mínimo)</span>
         <input
@@ -241,7 +269,7 @@ function TierForm({ tier }: { tier: CommissionTier | null }) {
       )}
       {state.success && !tier && (
         <p className="mgmt-field-hint mgmt-tier-message" role="status">
-          Escalón agregado.
+          Nivel agregado.
         </p>
       )}
     </form>

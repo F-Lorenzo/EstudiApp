@@ -102,7 +102,7 @@ begin
   ), 'FALLA';
 
   -- 12 a 15. Cimientos del cobro (migración 0011). La 16 es de la 0012, la 17 de la 0013, la 18 de la 0014
-  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021, la 29 de la 0022, la 30 de la 0023, la 31 de la 0024, la 32 de la 0025 y la 33 de la 0026.
+  -- y la 19 de la 0015. Las filas 20 a 22 son datos para revisar a mano. La 23 es de la 0016, la 24 de la 0017, la 25 de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021, la 29 de la 0022, la 30 de la 0023, la 31 de la 0024, la 32 de la 0025, la 33 de la 0026 y la 34 de la 0027.
   insert into _verificacion
   select 12, 'cobro: los tokens de Mercado Pago (mp_credentials) no se leen ni se escriben desde la API',
     case when to_regclass('public.mp_credentials') is null then false
@@ -385,6 +385,28 @@ begin
           -- Ninguna política de la carpeta privada alcanza al visitante.
           and not exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects'
                           and qual like '%credentials%' and ('anon' = any (roles) or 'public' = any (roles))) end,
+    'FALLA';
+
+  -- 34. Niveles y apelaciones (migración 0027): la API solo lee las apelaciones; apelar y decidir pasan por sus
+  -- funciones (abiertas a quien tiene sesión, que las valida adentro); una reseña quitada no se vuelve a escribir.
+  insert into _verificacion
+  select 34, 'reseñas: se apelan y se deciden solo con sus funciones; los niveles tienen nombre',
+    case when to_regclass('public.rating_appeals') is null then false
+         else (select relrowsecurity from pg_class where oid = to_regclass('public.rating_appeals'))
+          and not has_table_privilege('anon', 'public.rating_appeals', 'select')
+          and not has_table_privilege('authenticated', 'public.rating_appeals', 'insert')
+          and not has_table_privilege('authenticated', 'public.rating_appeals', 'update')
+          and not has_table_privilege('authenticated', 'public.rating_appeals', 'delete')
+          and has_function_privilege('authenticated', 'public.appeal_rating(uuid, text)', 'execute')
+          and not has_function_privilege('anon', 'public.appeal_rating(uuid, text)', 'execute')
+          and has_function_privilege('authenticated', 'public.decide_rating_appeal(uuid, boolean, text)', 'execute')
+          and not has_function_privilege('anon', 'public.decide_rating_appeal(uuid, boolean, text)', 'execute')
+          and not has_function_privilege('anon', 'public.my_commission_level()', 'execute')
+          and not has_function_privilege('authenticated', 'public.commission_level_of(uuid)', 'execute')
+          and exists (select 1 from pg_trigger where tgname = 'ratings_block_removed'
+                      and tgrelid = to_regclass('public.ratings') and not tgisinternal)
+          and exists (select 1 from information_schema.columns where table_schema = 'public'
+                      and table_name = 'commission_tiers' and column_name = 'name' and is_nullable = 'NO') end,
     'FALLA';
 
   -- 20. Datos: reservas «confirmada» o «completada» sin pago aprobado (resto del hueco anterior a 0008).

@@ -301,6 +301,17 @@ const FUNCIONES = [
   ["public.limit_daily_holds()", ["service_role"]],
   // 0025: la búsqueda del catálogo es pública, como la vista que lee (corre con los permisos de quien consulta).
   ["public.search_tutor_catalog(text, text[], numeric, numeric, boolean, text, integer, integer)", ["anon", "authenticated", "service_role"]],
+  // 0027: niveles y apelaciones. Las que abren a quien tiene sesión validan adentro quién llama (docente o administración);
+  // el nivel de un docente cualquiera, el nombre corto del alumno y la guarda de reseñas quitadas, internos.
+  ["public.my_commission_level()", ["authenticated", "service_role"]],
+  ["public.commission_levels()", ["authenticated", "service_role"]],
+  ["public.commission_level_of(uuid)", ["service_role"]],
+  ["public.appeal_rating(uuid, text)", ["authenticated", "service_role"]],
+  ["public.decide_rating_appeal(uuid, boolean, text)", ["authenticated", "service_role"]],
+  ["public.my_reviews()", ["authenticated", "service_role"]],
+  ["public.admin_rating_appeals()", ["authenticated", "service_role"]],
+  ["public.short_student_name(uuid)", ["service_role"]],
+  ["public.block_removed_rating()", ["service_role"]],
 ];
 for (const [fn, permitidos] of FUNCIONES) {
   for (const rol of ["anon", "authenticated", "service_role"]) {

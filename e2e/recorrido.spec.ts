@@ -213,6 +213,57 @@ test("después de la clase, el alumno la califica y la opinión se ve en el perf
   await expect(page.getByText(ALUMNO.name)).toHaveCount(0);
 });
 
+test("el docente apela una reseña de 1 estrella y la administración la quita", async ({ browser, page }) => {
+  // Otra clase de Tomás con Marina, dada y paga hace tres días, con una reseña de 1 estrella (como desde el SQL Editor).
+  const docenteId = idOf(DOCENTE.email);
+  const alumnoId = idOf(ALUMNO.email);
+  const otra = value(`
+    with slot as (
+      insert into public.availability_slots (tutor_id, starts_at, ends_at, is_booked)
+      values ('${docenteId}', now() - interval '3 days', now() - interval '3 days' + interval '1 hour', true)
+      returning id, starts_at, ends_at
+    )
+    insert into public.bookings (student_id, tutor_id, slot_id, status, starts_at, ends_at, price)
+    select '${alumnoId}', '${docenteId}', id, 'completada', starts_at, ends_at, 15000 from slot
+    returning id`);
+  sql(`
+    insert into public.payments (booking_id, status, amount) values ('${otra}', 'aprobado', 15000);
+    insert into public.ratings (booking_id, student_id, tutor_id, score, comment)
+      values ('${otra}', '${alumnoId}', '${docenteId}', 1, 'Reseña injusta para apelar.');
+  `);
+
+  // El docente ve su nivel y apela.
+  const docente = await login(browser, DOCENTE.email);
+  await docente.goto("/docente/resenas");
+  await expect(docente.getByRole("heading", { name: "Profesor", exact: true })).toBeVisible();
+  await expect(docente.getByText("Reseña injusta para apelar.")).toBeVisible();
+  await docente.getByRole("button", { name: /Apelar esta reseña/ }).click();
+  await docente.fill('textarea[name="reason"]', "El alumno calificó una clase que no corresponde.");
+  await docente.getByRole("button", { name: "Enviar apelación" }).click();
+  // Al actualizarse, la reseña muestra la apelación en curso y ya no ofrece apelar.
+  await expect(docente.getByText("Apelación en revisión")).toBeVisible();
+  await expect(docente.getByRole("button", { name: /Apelar esta reseña/ })).toHaveCount(0);
+
+  // La administración la quita.
+  const admin = await login(browser, ADMIN.email);
+  await admin.goto("/admin/resenas");
+  await expect(admin.getByText("El alumno calificó una clase que no corresponde.")).toBeVisible();
+  await admin.getByRole("button", { name: "Quitar la reseña" }).click();
+  await admin.getByRole("button", { name: "Quitar la reseña" }).click();
+  await expect(admin.getByText("No hay apelaciones pendientes")).toBeVisible();
+  expect(value(`select count(*) from public.ratings where booking_id = '${otra}'`)).toBe("0");
+
+  // Ya no se muestra en el perfil público, y el alumno no puede volver a calificar esa clase.
+  await page.goto(`/docentes/${docenteId}`);
+  await expect(page.getByText("Explica con mucha paciencia. Salí entendiendo derivadas.")).toBeVisible();
+  await expect(page.getByText("Reseña injusta para apelar.")).toHaveCount(0);
+  const alumno = await login(browser, ALUMNO.email);
+  await alumno.goto("/alumno/historial");
+  await expect(alumno.getByText("Opinión quitada por moderación")).toBeVisible();
+  await docente.goto("/docente/resenas");
+  await expect(docente.getByText("Quitada", { exact: true })).toBeVisible();
+});
+
 test("el catálogo busca sin tildes y muestra los docentes de a 10", async ({ page }) => {
   // 11 docentes aprobados más, como desde el SQL Editor: con Marina son 12, dos páginas.
   sql(`
@@ -272,8 +323,8 @@ test("con la indexación apagada, ningún buscador indexa el sitio", async ({ pa
 const SCREENS: { who: "anon" | "alumno" | "docente" | "admin"; paths: () => string[] }[] = [
   { who: "anon", paths: () => ["/", "/docentes", `/docentes/${idOf(DOCENTE.email)}`, "/como-funciona", "/login", "/registro/alumno", "/recuperar-password"] },
   { who: "alumno", paths: () => ["/alumno", "/alumno/historial", "/alumno/perfil", `/alumno/reservar/${idOf(DOCENTE.email)}`, `/alumno/reservas/${bookingId}`] },
-  { who: "docente", paths: () => ["/docente", "/docente/disponibilidad", "/docente/perfil"] },
-  { who: "admin", paths: () => ["/admin/docentes/pendientes", "/admin/docentes/activos", `/admin/docentes/${idOf(DOCENTE.email)}`, "/admin/comision", "/admin/contenido", "/admin/emails", "/admin/metricas", "/admin/registro", "/admin/sistema"] },
+  { who: "docente", paths: () => ["/docente", "/docente/disponibilidad", "/docente/perfil", "/docente/resenas"] },
+  { who: "admin", paths: () => ["/admin/docentes/pendientes", "/admin/docentes/activos", `/admin/docentes/${idOf(DOCENTE.email)}`, "/admin/comision", "/admin/resenas", "/admin/contenido", "/admin/emails", "/admin/metricas", "/admin/registro", "/admin/sistema"] },
 ];
 const EMAILS = { alumno: ALUMNO.email, docente: DOCENTE.email, admin: ADMIN.email };
 

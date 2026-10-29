@@ -18,13 +18,14 @@ function refresh() {
   revalidatePath("/admin/registro");
 }
 
-const SETTINGS_FIELDS = ["base", "floor"];
-const TIER_FIELDS = ["minReviews", "minRating", "rate"];
+const SETTINGS_FIELDS = ["baseName", "base", "floor"];
+const TIER_FIELDS = ["name", "minReviews", "minRating", "rate"];
 
 export async function saveCommissionSettings(_prev: ActionState, formData: FormData): Promise<ActionState> {
   if (!(await requireAdmin())) return { error: "No tenés permiso para cambiar la comisión." };
 
   const parsed = commissionSettingsSchema.safeParse({
+    baseName: formData.get("baseName") ?? "",
     enabled: formData.get("enabled") ?? undefined,
     base: formData.get("base") ?? "",
     floor: formData.get("floor") ?? "",
@@ -36,7 +37,12 @@ export async function saveCommissionSettings(_prev: ActionState, formData: FormD
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("commission_settings")
-    .update({ enabled: parsed.data.enabled, base_rate: parsed.data.base, floor_rate: parsed.data.floor })
+    .update({
+      enabled: parsed.data.enabled,
+      base_rate: parsed.data.base,
+      floor_rate: parsed.data.floor,
+      base_name: parsed.data.baseName,
+    })
     .eq("id", true)
     .select("id");
   if (error || !data?.length) {
@@ -55,6 +61,7 @@ export async function saveCommissionTier(
   if (!(await requireAdmin())) return { error: "No tenés permiso para cambiar la comisión." };
 
   const parsed = commissionTierSchema.safeParse({
+    name: formData.get("name") ?? "",
     minReviews: formData.get("minReviews") ?? "",
     minRating: formData.get("minRating") ?? "",
     rate: formData.get("rate") ?? "",
@@ -65,6 +72,7 @@ export async function saveCommissionTier(
   }
 
   const row = {
+    name: parsed.data.name,
     min_reviews: parsed.data.minReviews,
     min_rating: parsed.data.minRating,
     rate: parsed.data.rate,

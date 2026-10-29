@@ -15,8 +15,17 @@ const percent = (label: string) =>
     )
     .transform((value) => Math.round(value * 100) / 10000);
 
+/** El nombre de un nivel («Gran profesor»), de 1 a 40 caracteres como en la base (migración 0027). */
+export const LEVEL_NAME_MAX = 40;
+const levelName = z
+  .string()
+  .trim()
+  .min(1, "Poné un nombre para el nivel.")
+  .max(LEVEL_NAME_MAX, `El nombre puede tener hasta ${LEVEL_NAME_MAX} caracteres.`);
+
 export const commissionSettingsSchema = z
   .object({
+    baseName: levelName,
     enabled: z.literal("on").optional().transform((value) => value === "on"),
     base: percent("la comisión base"),
     floor: percent("el piso"),
@@ -27,6 +36,7 @@ export const commissionSettingsSchema = z
   });
 
 export const commissionTierSchema = z.object({
+  name: levelName,
   minReviews: z.coerce
     .number({ error: "Ingresá cuántas reseñas hacen falta." })
     .int("Usá un número entero de reseñas.")

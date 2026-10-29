@@ -181,8 +181,11 @@ Objetivo: que el equipo pueda operar el producto sin tocar la base de datos.
    referencias), administrables desde el panel. Diseño en [docs/FASE-1-PLAN.md](docs/FASE-1-PLAN.md);
    necesita el formulario real de calificaciones de la Fase 2.
    ✅ código (migración `0021`, aplicada): `/admin/comision`, con los escalones de ejemplo y **apagada**
-   hasta que el cliente los confirme (decisión del 26 de octubre de 2026). Pendiente del cliente: escalones
-   definitivos, exclusión de reseñas fraudulentas y si el docente ve su escalón.
+   hasta que el cliente los confirme (decisión del 26 de octubre de 2026).
+   ✅ decisiones del cliente (28 de octubre de 2026, migración `0027`, falta aplicarla): los escalones quedan como
+   están y se editan desde el panel; cada nivel tiene nombre («Profesor», «Gran profesor», «Maestro», «Gran
+   maestro»); el docente ve su nivel en «Mis reseñas»; las reseñas de 1 o 2 estrellas se apelan y la
+   administración las quita desde `/admin/resenas`. Falta encender la regla en `/admin/comision`.
 4. **Modelo del docente ampliado**: años de experiencia, universidad, cantidad de reseñas.
 5. Auditoría de acciones de administración.
    ✅ código (migración `0019`, aplicada): `audit_log` y `/admin/registro`.

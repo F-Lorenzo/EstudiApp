@@ -7,9 +7,9 @@ export const RATING_WINDOW_DAYS = 30;
 const DAY = 86_400_000;
 
 export function canRate(
-  { status, endsAt, score }: { status: string; endsAt: string; score: number | null },
+  { status, endsAt, score, ratingRemoved = false }: { status: string; endsAt: string; score: number | null; ratingRemoved?: boolean },
   now: Date = new Date(),
 ) {
-  if (status !== "completada" || score != null) return false;
+  if (status !== "completada" || score != null || ratingRemoved) return false;
   return now.getTime() - new Date(endsAt).getTime() < RATING_WINDOW_DAYS * DAY;
 }

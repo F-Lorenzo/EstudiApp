@@ -11,11 +11,11 @@ pendiente (tarjeta "Setup de Supabase").
    aprovisionarse).
 2. `cp .env.local.example .env.local` y completar `NEXT_PUBLIC_SUPABASE_URL`
    y `NEXT_PUBLIC_SUPABASE_ANON_KEY` desde Project Settings → API.
-3. Aplicar las migraciones (`supabase/migrations/0001` a `0026`) en el
+3. Aplicar las migraciones (`supabase/migrations/0001` a `0027`) en el
    SQL Editor del dashboard. (Alternativa con la CLI: ver más abajo.)
 
-   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 26` genera
-   `supabase/aplicar-0001-a-0026.sql` (con `--compacto`, la misma versión sin
+   **Proyecto nuevo y vacío:** `npm run db:bundle -- 1 27` genera
+   `supabase/aplicar-0001-a-0027.sql` (con `--compacto`, la misma versión sin
    comentarios).
 
    **Proyecto que ya tiene hasta la 0011** (el de EstudiApp hoy):
@@ -264,8 +264,18 @@ las dos entradas `seed:demo*` de `package.json`.
   `storage.objects`: cada cuenta escribe solo en su subcarpeta; el respaldo lo
   sube solo un docente y lo leen él y la administración. **Sin ella no se
   pueden subir fotos ni respaldos.**
+- `0027_levels_and_review_appeals.sql`: **niveles con nombre y apelación de
+  reseñas.** Cada escalón de la comisión (y la base) tiene un nombre, editable
+  desde `/admin/comision` («Profesor», «Gran profesor», «Maestro», «Gran
+  maestro»); el docente ve su nivel (`my_commission_level`). Una reseña propia
+  de 1 o 2 estrellas se apela una vez (`appeal_rating`) y la decide solo la
+  administración (`decide_rating_appeal`): aceptada, la reseña se borra de
+  `ratings` (deja de contar en todos lados) y el alumno no puede volver a
+  calificar esa clase; rechazada, lleva una respuesta. Todo queda en el registro.
+  **Sin ella no cargan `/docente/resenas` ni `/admin/resenas`, y no se pueden
+  guardar los niveles en `/admin/comision`.**
 
-Las migraciones 0006 a 0026 se probaron con unas 1.000 comprobaciones (la matriz de la RLS hace además 623 intentos por rol) y con 184 mutaciones (se rompe una regla a propósito y se comprueba que alguna prueba falle) en un Postgres real
+Las migraciones 0006 a 0027 se probaron con unas 1.000 comprobaciones (la matriz de la RLS hace además 623 intentos por rol) y con 203 mutaciones (se rompe una regla a propósito y se comprueba que alguna prueba falle) en un Postgres real
 (roles anónimo, alumno, docente, administrador y service role; ver
 [tests/README.md](tests/README.md) y `npm run test:db`), pero **no contra tu
 proyecto de Supabase**: revisalas y probalas en un proyecto de prueba antes de
@@ -301,9 +311,9 @@ propio en vez de a la app. Las plantillas completas, con la estética de EstudiA
 
 - `1-diagnostico.sql`: qué migraciones tiene el proyecto y qué hacer a continuación.
 - `2-verificacion.sql`: después de aplicar, comprueba la RLS, los permisos, las guardas y los datos
-  que hay que revisar a mano. Son 33 filas: las 1 a 19 y las 23 a 33 son comprobaciones de las migraciones (la 16
+  que hay que revisar a mano. Son 34 filas: las 1 a 19 y las 23 a 34 son comprobaciones de las migraciones (la 16
   es de la 0012, la 17 de la 0013, la 18 de la 0014, la 19 de la 0015, la 23 de la 0016, la 24 de la 0017, la 25
-  de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021, la 29 de la 0022, la 30 de la 0023, la 31 de la 0024, la 32 de la 0025 y la 33 de la 0026) y
+  de la 0018, la 26 de la 0019, la 27 de la 0020, la 28 de la 0021, la 29 de la 0022, la 30 de la 0023, la 31 de la 0024, la 32 de la 0025, la 33 de la 0026 y la 34 de la 0027) y
   tienen que decir OK; las 20 a 22
   son datos para revisar (reservas confirmadas sin pago, cuentas de administración y cuentas del seed de
   demo viejo) y pueden decir REVISAR (qué hacer con cada una: [docs/FASE-0-PASO-A-PASO.md](../docs/FASE-0-PASO-A-PASO.md), paso 4).

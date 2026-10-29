@@ -62,6 +62,12 @@ describe("submitRating", () => {
     expect(await run()).toEqual({ ok: false, reason: "already_rated" });
   });
 
+  it("si la administración quitó la opinión de esa clase, lo dice", async () => {
+    const { run } = setup(booking(), { error: { code: "P0001", hint: "rating_removed" } });
+    expect(await run()).toEqual({ ok: false, reason: "removed" });
+    expect(ratingErrorMessage("removed")).toMatch(/se quitó por moderación/);
+  });
+
   it("un id que no es de reserva no consulta nada", async () => {
     const { run, fake } = setup(booking());
     expect(await run(undefined, "nada")).toEqual({ ok: false, reason: "not_found" });

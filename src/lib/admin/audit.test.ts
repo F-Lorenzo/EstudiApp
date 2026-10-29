@@ -69,6 +69,24 @@ describe("toAuditEntry", () => {
       NOW,
     );
     expect(tier).toMatchObject({ label: "Borró un escalón de comisión", target: "10 reseñas · 4,5 o más · 10 %" });
+    const named = toAuditEntry(
+      row({ action: "cambiar_escalon", target_type: "comision", details: { after: { name: "Maestro", min_reviews: 25, min_rating: 4.7, rate: 0.08, active: true } } }),
+      NOW,
+    );
+    expect(named?.target).toBe("«Maestro» · 25 reseñas · 4,7 o más · 8 %");
+  });
+
+  it("una reseña apelada o quitada dice de quién y a quién", () => {
+    const entry = toAuditEntry(
+      row({
+        action: "quitar_resena",
+        target_type: "resena",
+        reason: null,
+        details: { score: 1, student_name: "Sofía G.", tutor_name: "Martín Gómez" },
+      }),
+      NOW,
+    );
+    expect(entry).toMatchObject({ label: "Quitó una reseña (apelación aceptada)", target: "1 estrella · de Sofía G. a Martín Gómez" });
   });
 
   it("una fila ilegible se descarta; una acción desconocida se muestra tal cual", () => {

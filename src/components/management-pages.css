@@ -1789,7 +1789,7 @@
 }
 .mgmt-tier-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) 70px auto;
+  grid-template-columns: minmax(0, 1.9fr) repeat(3, minmax(0, 1fr)) 44px auto;
   gap: 12px;
   align-items: start;
   padding: 12px 0;
@@ -1811,10 +1811,25 @@
 .mgmt-tier-active {
   padding-top: 10px;
 }
+.mgmt-tier-row input:not([type="checkbox"]) {
+  width: 100%;
+  min-width: 0;
+  padding-left: 10px;
+  padding-right: 10px;
+}
 .mgmt-tier-actions {
   display: flex;
-  gap: 8px;
-  align-items: center;
+  flex-direction: column;
+  gap: 2px;
+  align-items: stretch;
+}
+.mgmt-tier-actions .mgmt-button {
+  min-height: 40px;
+  padding: 8px 16px;
+}
+.mgmt-tier-actions .mgmt-text-button {
+  justify-content: center;
+  min-height: 28px;
 }
 .mgmt-tier-message {
   grid-column: 1 / -1;
@@ -2873,4 +2888,148 @@
 .mgmt-system-groups {
   display: grid;
   gap: 24px;
+}
+
+/* Nivel del docente y reseñas apeladas (migración 0027) ------------------------------------------------------------ */
+.mgmt-level-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 24px 40px;
+  align-items: center;
+  padding: 28px 32px;
+  margin-bottom: 40px;
+  border-radius: 24px;
+  background: var(--forest);
+  color: var(--cream);
+}
+.mgmt-level-card .mgmt-small-label {
+  color: #d3ddbf;
+}
+.mgmt-level-card h2 {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  margin: 6px 0 8px;
+  color: var(--cream);
+}
+.mgmt-level-card p {
+  margin: 0;
+  color: #e9eadf;
+  font-size: 0.85rem;
+}
+.mgmt-level-facts {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+}
+.mgmt-level-facts div {
+  border-left: 2px solid var(--orange);
+  padding-left: 16px;
+}
+.mgmt-level-facts dt {
+  font-size: 0.75rem;
+  color: #d3ddbf;
+}
+.mgmt-level-facts dd {
+  margin: 2px 0 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.mgmt-level-facts small {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #e9eadf;
+}
+.mgmt-level-card .mgmt-level-note {
+  grid-column: 1 / -1;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 252, 242, 0.2);
+}
+.mgmt-reviews-section {
+  margin-top: 32px;
+}
+.mgmt-review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mgmt-review-item {
+  display: grid;
+  gap: 10px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.mgmt-review-item.is-removed .mgmt-review-comment {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.mgmt-review-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+.mgmt-review-stars {
+  letter-spacing: 2px;
+  color: var(--dust);
+  font-size: 1rem;
+}
+.mgmt-review-stars .is-on {
+  color: var(--rust);
+}
+.mgmt-review-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.mgmt-review-meta strong {
+  color: var(--forest);
+}
+.mgmt-review-meta a {
+  color: var(--forest);
+  font-weight: 650;
+}
+.mgmt-page .mgmt-review-comment {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.mgmt-page .mgmt-review-comment.is-empty {
+  color: var(--muted);
+  font-style: italic;
+}
+.mgmt-review-appeal {
+  display: grid;
+  gap: 6px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--surface);
+}
+.mgmt-page .mgmt-review-appeal p {
+  margin: 0;
+  font-size: 0.8rem;
+}
+.mgmt-review-appeal-button {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mgmt-review-form {
+  display: grid;
+  gap: 10px;
+  max-width: 640px;
+}
+.mgmt-review-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+@media (max-width: 760px) {
+  .mgmt-level-card {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 24px 20px;
+  }
+  .mgmt-level-card h2 {
+    font-size: 1.85rem;
+  }
 }

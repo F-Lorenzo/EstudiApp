@@ -78,14 +78,18 @@ export function HistoryRow({ item }: { item: ClassItem }) {
       ) : (
         <Badge tone="orange">Confirmando asistencia</Badge>
       )}
-      <ClassRating
-        bookingId={item.id}
-        tutorName={item.tutorName}
-        tutorPhoto={item.tutorPhoto}
-        score={item.score}
-        canRate={canRate(item)}
-        variant="row"
-      />
+      {item.ratingRemoved ? (
+        <span className="stu-rating-removed">Opinión quitada por moderación</span>
+      ) : (
+        <ClassRating
+          bookingId={item.id}
+          tutorName={item.tutorName}
+          tutorPhoto={item.tutorPhoto}
+          score={item.score}
+          canRate={canRate(item)}
+          variant="row"
+        />
+      )}
       <Link href={`/docentes/${item.tutorId}`} className="stu-text-link">
         Reservar otra clase <Icon name="arrow-right" size={16} />
       </Link>

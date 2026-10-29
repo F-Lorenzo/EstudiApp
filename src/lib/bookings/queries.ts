@@ -16,6 +16,8 @@ export type StudentBookingRow = {
     profiles: { full_name: string; avatar_url: string | null } | null;
   } | null;
   ratings?: ScoreEmbed;
+  /** Solo las apelaciones aceptadas: la RLS (migración 0027) no le muestra otras al alumno. */
+  rating_appeals?: { status: string }[] | null;
 };
 
 /** Clase lista para mostrar en la interfaz. */
@@ -34,12 +36,14 @@ export type ClassItem = {
   createdAt: string;
   /** Calificación que dejó el alumno, si ya calificó. */
   score: number | null;
+  /** La administración quitó su opinión de esta clase (apelación aceptada): no se vuelve a calificar. */
+  ratingRemoved: boolean;
 };
 
 // El horario sale de la propia reserva (`starts_at`, `ends_at`): sigue ahí aunque
 // el docente cierre la franja después de una cancelación.
 const SELECT_STUDENT =
-  "id, status, tutor_id, price, created_at, starts_at, ends_at, tutor_profiles(profiles(full_name, avatar_url)), ratings(score)";
+  "id, status, tutor_id, price, created_at, starts_at, ends_at, tutor_profiles(profiles(full_name, avatar_url)), ratings(score), rating_appeals(status)";
 
 function toClassItem(row: StudentBookingRow): ClassItem {
   const rating = Array.isArray(row.ratings) ? row.ratings[0] : row.ratings;
@@ -54,6 +58,7 @@ function toClassItem(row: StudentBookingRow): ClassItem {
     price: row.price == null ? null : Number(row.price),
     createdAt: row.created_at,
     score: rating?.score ?? null,
+    ratingRemoved: (row.rating_appeals ?? []).some((appeal) => appeal.status === "aceptada"),
   };
 }
 

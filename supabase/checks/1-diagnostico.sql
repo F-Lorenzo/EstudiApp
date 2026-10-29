@@ -53,7 +53,9 @@ with estado(n, nombre, aplicada) as (
         to_regprocedure('public.search_tutor_catalog(text, text[], numeric, numeric, boolean, text, integer, integer)') is not null),
     (26, '0026 fotos y respaldos en Storage (políticas estudiapp_avatars_* y estudiapp_credentials_*)',
         exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects'
-                and policyname = 'estudiapp_credentials_select_own_or_admin'))
+                and policyname = 'estudiapp_credentials_select_own_or_admin')),
+    (27, '0027 niveles con nombre y apelación de reseñas (rating_appeals)',
+        to_regclass('public.rating_appeals') is not null)
 ),
 -- Primera migración que falta, y si desde ahí faltan TODAS las siguientes (un tramo limpio).
 resumen as (

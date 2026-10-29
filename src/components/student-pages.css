@@ -361,6 +361,10 @@
   font-size: 13px;
   color: var(--rust);
 }
+.stu-rating-removed {
+  font-size: 13px;
+  color: var(--muted);
+}
 .stu-history-check {
   width: 51px;
   height: 51px;
@@ -1791,7 +1795,8 @@
     width: 40px;
     height: 40px;
   }
-  .stu-history-row > .stu-review-score {
+  .stu-history-row > .stu-review-score,
+  .stu-history-row > .stu-rating-removed {
     grid-column: 2;
     grid-row: 2;
   }

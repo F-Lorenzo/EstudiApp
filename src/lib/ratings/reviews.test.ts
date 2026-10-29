@@ -38,5 +38,7 @@ describe("canRate", () => {
     expect(canRate({ status: "confirmada", endsAt: "2026-10-24T14:00:00.000Z", score: null }, now)).toBe(false);
     expect(canRate({ status: "completada", endsAt: "2026-09-25T12:00:00.000Z", score: null }, now)).toBe(false);
     expect(canRate({ status: "completada", endsAt: "2026-09-25T12:00:01.000Z", score: null }, now)).toBe(true);
+    // La administración quitó la opinión de esa clase (migración 0027): no se ofrece calificar de nuevo.
+    expect(canRate({ status: "completada", endsAt: "2026-10-24T14:00:00.000Z", score: null, ratingRemoved: true }, now)).toBe(false);
   });
 });

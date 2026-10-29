@@ -49,6 +49,7 @@ const F23 = "0023_email_expiry_and_summary.sql";
 const F24 = "0024_abuse_limits.sql";
 const F25 = "0025_catalog_search.sql";
 const F26 = "0026_storage_uploads.sql";
+const F27 = "0027_levels_and_review_appeals.sql";
 // `claim_pending_emails` se creó en la 0015 y la reemplazan la 0018, la 0019 y la 0023; `enqueue_tutor_decision_email`, de la
 // 0018, la reemplaza la 0019. Sus mutaciones van sobre la versión vigente.
 const CLAIM = F23;
@@ -68,6 +69,7 @@ const EXPIRY = ["email-expiry", "email-outbox", "reminders", "rls-matrix"];
 const ABUSE = ["abuse-limits", "rls-matrix", "bookings"];
 const CATALOG = ["catalog-search", "rls-matrix"];
 const STORAGE = ["storage-uploads"];
+const APPEALS = ["review-appeals", "rls-matrix", "commission"];
 
 const M = [
   // ---------------------------------------------------------------- 0013
@@ -267,6 +269,26 @@ const M = [
   [F26, "26-08 cualquier cuenta sube respaldos", (s) => sub(s, "    and array_length(storage.foldername(name), 1) = 1\n    and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'docente')\n  );\n\ncreate policy \"estudiapp_credentials_update_own_tutor\"", "    and array_length(storage.foldername(name), 1) = 1\n  );\n\ncreate policy \"estudiapp_credentials_update_own_tutor\""), STORAGE],
   [F26, "26-09 fotos de hasta 20 MB", (s) => sub(s, "('avatars', 'avatars', true, 2097152,", "('avatars', 'avatars', true, 20971520,"), STORAGE],
   [F26, "26-10 respaldos de cualquier tipo", (s) => sub(s, "array['application/pdf', 'image/jpeg', 'image/png', 'image/webp']", "array['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'text/html']"), STORAGE],
+  // ---------------------------------------------------------------- 0027
+  [F27, "27-01 el nivel es el escalón de comisión más alta", (s) => sub(s, "  order by t.rate, t.min_reviews desc, t.min_rating desc\n  limit 1;", "  order by t.rate desc, t.min_reviews desc, t.min_rating desc\n  limit 1;"), APPEALS],
+  [F27, "27-02 un escalón desactivado da nivel", (s) => sub(s, "  where t.active and v_reviews >= t.min_reviews and v_average >= t.min_rating\n  order by", "  where v_reviews >= t.min_reviews and v_average >= t.min_rating\n  order by"), APPEALS],
+  [F27, "27-03 el nivel no respeta el piso", (s) => sub(s, "v_rate := greatest(v_settings.floor_rate, least(", "v_rate := greatest(0, least("), APPEALS],
+  [F27, "27-04 apagada, el docente ve la comisión de su nivel", (s) => sub(s, "'rate', case when v_enabled then v_level.rate else (select base_rate from public.commission_settings where id) end,", "'rate', v_level.rate,"), APPEALS],
+  [F27, "27-05 cualquiera con sesión tiene nivel", (s) => sub(s, "  if not exists (select 1 from public.tutor_profiles where id = auth.uid()) then\n    raise exception 'Solo un docente tiene nivel.'", "  if false then\n    raise exception 'Solo un docente tiene nivel.'"), APPEALS],
+  [F27, "27-06 cualquiera ve el nivel de todos los docentes", (s) => sub(s, "  if not public.is_admin() then\n    raise exception 'Solo la administración ve el nivel", "  if false then\n    raise exception 'Solo la administración ve el nivel"), APPEALS],
+  [F27, "27-07 se apelan las reseñas de 3 estrellas", (s) => sub(s, "  if v_rating.score >= 3 then", "  if v_rating.score >= 4 then"), APPEALS],
+  [F27, "27-08 un docente apela la reseña de otro", (s) => sub(s, "select * into v_rating from public.ratings where id = p_rating and tutor_id = auth.uid() for update;", "select * into v_rating from public.ratings where id = p_rating for update;"), APPEALS],
+  [F27, "27-09 se apela sin motivo", (s) => sub(s, "  if v_reason is null or char_length(v_reason) < 10 then", "  if false then"), APPEALS],
+  [F27, "27-10 un docente decide apelaciones", (s) => sub(s, "  if not public.is_admin() then\n    raise exception 'Solo la administración decide las apelaciones.'", "  if false then\n    raise exception 'Solo la administración decide las apelaciones.'"), APPEALS],
+  [F27, "27-11 una apelación se decide dos veces", (s) => sub(s, "  if v_appeal.status <> 'pendiente' then", "  if false then"), APPEALS],
+  [F27, "27-12 se rechaza sin respuesta", (s) => sub(s, "  if not p_accept and v_response is null then", "  if false then"), APPEALS],
+  [F27, "27-13 aceptada, la reseña sigue contando", (s) => sub(s, "  if p_accept then\n    delete from public.ratings where id = v_appeal.rating_id;\n  end if;", ""), APPEALS],
+  [F27, "27-14 el alumno vuelve a calificar una clase con la reseña quitada", (s) => sub(s, "create trigger ratings_block_removed\n  before insert on public.ratings", "create trigger ratings_block_removed\n  before update on public.ratings"), APPEALS],
+  [F27, "27-15 el alumno ve las apelaciones pendientes de sus reseñas", (s) => sub(s, "using (student_id = auth.uid() and status = 'aceptada');", "using (student_id = auth.uid());"), APPEALS],
+  [F27, "27-16 cada docente ve todas las apelaciones", (s) => sub(s, "using (tutor_id = auth.uid() or public.is_admin());", "using (true);"), APPEALS],
+  [F27, "27-17 el docente ve reseñas ajenas en las suyas", (s) => sub(s, "    where r.tutor_id = auth.uid()\n    union all", "    where true\n    union all"), APPEALS],
+  [F27, "27-18 las apelaciones se registran como de un perfil, no de una reseña", (s) => sub(s, "'apelar_resena', 'resena', v_rating.id, v_reason,", "'apelar_resena', 'docente', v_rating.id, v_reason,"), APPEALS],
+  [F27, "27-19 cualquiera ve la lista de apelaciones", (s) => sub(s, "  if not public.is_admin() then\n    raise exception 'Solo la administración ve las apelaciones.'", "  if false then\n    raise exception 'Solo la administración ve las apelaciones.'"), APPEALS],
   [F19, "19-14 se manda la reapertura de un perfil que ya no está pendiente", (s) => sub(s, "          else 'pendiente'\n        end);", "          else tp.verification_status::text\n        end);"), AUDIT],
 ];
 

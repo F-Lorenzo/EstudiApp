@@ -23,6 +23,9 @@ const ACTIONS: Record<string, string> = {
   cambiar_hero: "Cambió el texto del inicio",
   cambiar_anuncio: "Cambió la franja de anuncio",
   cambiar_contenido: "Cambió el contenido del inicio",
+  apelar_resena: "Apeló una reseña",
+  quitar_resena: "Quitó una reseña (apelación aceptada)",
+  rechazar_apelacion: "Rechazó la apelación de una reseña",
 };
 
 const ROLES: Record<string, string> = { alumno: "alumno", docente: "docente", administrador: "administración" };
@@ -32,7 +35,7 @@ const rowSchema = z.object({
   actor_kind: z.enum(["administracion", "docente", "sistema"]),
   actor_name: z.string().nullable(),
   action: z.string(),
-  target_type: z.enum(["docente", "reserva", "cuenta", "comision", "contenido"]),
+  target_type: z.enum(["docente", "reserva", "cuenta", "comision", "contenido", "resena"]),
   target_id: z.string(),
   reason: z.string().nullable(),
   details: z.record(z.string(), z.unknown()).catch({}),
@@ -48,7 +51,7 @@ export type AuditEntry = {
   actor: string;
   actorKind: "administracion" | "docente" | "sistema";
   reason: string | null;
-  targetType: "docente" | "reserva" | "cuenta" | "comision" | "contenido";
+  targetType: "docente" | "reserva" | "cuenta" | "comision" | "contenido" | "resena";
   targetId: string;
   /** A quién o a qué se le hizo: el docente, la clase («Lucía con Martín, 20 de octubre»), la cuenta. */
   target: string | null;
@@ -77,6 +80,7 @@ function describeCommission(details: Record<string, unknown>): string | null {
   }
   const rating = Number(row.min_rating);
   return [
+    text(row.name) ? `«${text(row.name)}»` : null,
     `${row.min_reviews} reseñas`,
     Number.isFinite(rating) ? `${rating.toLocaleString("es-AR")} o más` : null,
     pct(row.rate),
@@ -108,6 +112,12 @@ function describeTarget(row: z.infer<typeof rowSchema>): string | null {
   if (row.target_type === "cuenta") return text(d.account_name);
   if (row.target_type === "comision") return describeCommission(d);
   if (row.target_type === "contenido") return describeContent(row.action, d);
+  if (row.target_type === "resena") {
+    const score = Number(d.score);
+    const stars = Number.isFinite(score) ? `${score} ${score === 1 ? "estrella" : "estrellas"}` : null;
+    const who = [text(d.student_name) && `de ${text(d.student_name)}`, text(d.tutor_name) && `a ${text(d.tutor_name)}`].filter(Boolean).join(" ");
+    return [stars, who].filter(Boolean).join(" · ") || null;
+  }
   const student = text(d.student_name);
   const tutor = text(d.tutor_name);
   const startsAt = text(d.starts_at);
