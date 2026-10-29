@@ -182,7 +182,7 @@ Objetivo: que el equipo pueda operar el producto sin tocar la base de datos.
    necesita el formulario real de calificaciones de la Fase 2.
    ✅ código (migración `0021`, aplicada): `/admin/comision`, con los escalones de ejemplo y **apagada**
    hasta que el cliente los confirme (decisión del 26 de octubre de 2026).
-   ✅ decisiones del cliente (28 de octubre de 2026, migración `0027`, falta aplicarla): los escalones quedan como
+   ✅ decisiones del cliente (28 de octubre de 2026, migración `0027`, aplicada el 29 de octubre de 2026): los escalones quedan como
    están y se editan desde el panel; cada nivel tiene nombre («Profesor», «Gran profesor», «Maestro», «Gran
    maestro»); el docente ve su nivel en «Mis reseñas»; las reseñas de 1 o 2 estrellas se apelan y la
    administración las quita desde `/admin/resenas`. Falta encender la regla en `/admin/comision`.
